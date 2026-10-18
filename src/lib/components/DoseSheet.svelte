@@ -234,7 +234,7 @@
 		min-height: 32px;
 		font-size: inherit;
 		font-weight: inherit;
-		max-width: 11.5em;
+		/* No max-width: 12-hour formats need room for AM/PM (times follow the phone's setting). */
 	}
 	.exact {
 		margin-top: var(--sp-1);
