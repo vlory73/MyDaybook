@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trends: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.body .rg { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.2; }
+.body .rg.sel { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+.body .h1 { fill: var(--heat-1); } .body .h2 { fill: var(--heat-2); } .body .h3 { fill: var(--heat-3); }
+.body .h4 { fill: var(--heat-4); } .body .h5 { fill: var(--heat-5); } .body .h6 { fill: var(--heat-6); }
+.body .pt-halo { fill: var(--surface); opacity: .9; }
+.body .pt { stroke: var(--surface); stroke-width: 1.5; }
+.body .pt-1 { fill: var(--heat-2); } .body .pt-2 { fill: var(--heat-3); } .body .pt-3 { fill: var(--heat-4); }
+.body .pt-4 { fill: var(--heat-5); } .body .pt-5, .body .pt-6 { fill: var(--heat-6); }
+
+.chart { display: block; width: 100%; height: auto; margin-top: var(--sp-3); overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .l1 { fill: none; stroke: var(--feel-ink); stroke-width: 3; stroke-linecap: round; }
+.chart .l2 { fill: none; stroke: var(--food-ink); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1 6; }
+.chart .dot { fill: var(--surface); stroke: var(--feel-ink); stroke-width: 2.5; }
+.chart .bar { fill: var(--sleep-tint); } .chart .bar.now { fill: var(--sleep-ink); }
+.xaxis { display: flex; justify-content: space-between; font-size: var(--fs-caption); color: var(--text-3); margin-top: 6px; padding: 0 2px; }
+.legend { display: flex; gap: var(--sp-4); font-size: var(--fs-footnote); color: var(--text-2); margin-top: 4px; }
+.legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); margin-top: var(--sp-3); }
+.split .card { margin: 0; }
+.big { font-size: var(--fs-title2); font-weight: var(--fw-bold); }
+.heat { display: flex; gap: var(--sp-4); align-items: center; }
+.heat-legend { display: flex; gap: 2px; margin: 6px 0 2px; }
+.heat-legend span { flex: 1; height: 8px; border-radius: 3px; }
+.gut { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: var(--sp-3); }
+.gcol { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gdots { display: flex; flex-direction: column-reverse; gap: 4px; min-height: 60px; justify-content: flex-start; }
+.gdots span { width: 28px; height: 28px; border-radius: 50%; background: var(--gut-tint); color: var(--gut-ink); display: grid; place-items: center;
+  font-size: var(--fs-footnote); font-weight: var(--fw-bold); }
+.gd { font-size: var(--fs-caption); color: var(--text-3); }
+.after { display: flex; gap: var(--sp-3); padding: 10px 0; border-top: 1px solid var(--line); margin-top: 10px; font-size: var(--fs-callout); }
+.after > div:first-child { flex: 1; display: flex; flex-direction: column; } .after span { color: var(--text-2); font-size: var(--fs-footnote); }
+.after .then { flex: 1; font-size: var(--fs-footnote); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<main class="content">
+  <header class="page-head"><h1 class="large-title">Trends</h1><button class="icon-btn" aria-label="Choose period"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#calendar"/></svg></button></header>
+  <div class="segmented" role="tablist"><button class="on" role="tab" aria-selected="true">Week</button><button role="tab">Month</button><button role="tab">3 months</button><button role="tab">Year</button></div>
+
+  <section class="card" style="margin-top:var(--sp-4)">
+    <div class="card-title">Mood &amp; energy</div><div class="card-sub">12–18 October</div>
+    <svg class="chart" viewBox="0 0 311 120" role="img" aria-label="Mood and energy over the week; mood 3 on Monday rising to 5 on Sunday">
+      <line x1="0" x2="311" y1="6.0" y2="6.0" class="grid"/><line x1="0" x2="311" y1="33.0" y2="33.0" class="grid"/><line x1="0" x2="311" y1="60.0" y2="60.0" class="grid"/><line x1="0" x2="311" y1="87.0" y2="87.0" class="grid"/><line x1="0" x2="311" y1="114.0" y2="114.0" class="grid"/><path d="M6.0 60.0 C14.3 60.0 39.2 55.5 55.8 60.0 C72.4 64.5 89.1 82.5 105.7 87.0 C122.3 91.5 138.9 91.5 155.5 87.0 C172.1 82.5 188.7 69.0 205.3 60.0 C221.9 51.0 238.6 37.5 255.2 33.0 C271.8 28.5 296.7 33.0 305.0 33.0" class="l2"/><path d="M6.0 60.0 C14.3 55.5 39.2 33.0 55.8 33.0 C72.4 33.0 89.1 51.0 105.7 60.0 C122.3 69.0 138.9 91.5 155.5 87.0 C172.1 82.5 188.7 42.0 205.3 33.0 C221.9 24.0 238.6 37.5 255.2 33.0 C271.8 28.5 296.7 10.5 305.0 6.0" class="l1"/>
+      <circle cx="305.0" cy="6.0" r="5" class="dot"/></svg>
+    <div class="xaxis"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+    <div class="legend"><span><i style="background:var(--feel-ink)"></i>Mood</span><span><i style="background:var(--food-ink)"></i>Energy</span></div>
+  </section>
+
+  <div class="split">
+    <section class="card"><div class="card-sub">Sleep, avg</div><div class="big">7 h 17 m</div>
+      <svg class="chart" viewBox="0 0 311 92" style="margin-top:8px" role="img" aria-label="Sleep hours per night"><rect x="6.0" y="24.3" width="26" height="65.7" rx="7" class="bar"/><rect x="50.5" y="31.5" width="26" height="58.5" rx="7" class="bar"/><rect x="95.0" y="17.1" width="26" height="72.9" rx="7" class="bar"/><rect x="139.5" y="36.9" width="26" height="53.1" rx="7" class="bar"/><rect x="184.0" y="27.0" width="26" height="63.0" rx="7" class="bar"/><rect x="228.5" y="19.8" width="26" height="70.2" rx="7" class="bar"/><rect x="273.0" y="14.4" width="26" height="75.6" rx="7" class="bar now"/></svg></section>
+    <section class="card"><div class="card-sub">Weight</div><div class="big">72.4 <span class="small muted">kg</span></div>
+      <svg class="chart" viewBox="0 0 120 44" role="img" aria-label="Weight over 15 days"><path d="M3.0 13.4 C4.4 13.9 8.4 17.4 11.1 16.8 C13.9 16.2 16.6 9.3 19.3 9.9 C22.0 10.5 24.7 19.1 27.4 20.3 C30.1 21.4 32.9 16.2 35.6 16.8 C38.3 17.4 41.0 23.2 43.7 23.7 C46.4 24.3 49.1 19.7 51.9 20.3 C54.6 20.8 57.3 26.6 60.0 27.2 C62.7 27.8 65.4 23.2 68.1 23.7 C70.9 24.3 73.6 30.1 76.3 30.6 C79.0 31.2 81.7 27.8 84.4 27.2 C87.1 26.6 89.9 26.0 92.6 27.2 C95.3 28.3 98.0 33.5 100.7 34.1 C103.4 34.7 106.1 30.6 108.9 30.6 C111.6 30.6 115.6 33.5 117.0 34.1" fill="none" stroke="var(--measure-ink)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <div class="card-sub">−0.6 kg in 15 days</div></section>
+  </div>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title">Where it hurt</div><div class="card-sub">Times logged and average intensity, last 30 days</div>
+    <div class="heat" style="margin-top:var(--sp-3)">
+      <svg class="body" viewBox="0 0 200 440" width="96" role="img" aria-label="Heat map, front view"><ellipse cx="100" cy="36" rx="21" ry="25" class="rg h2" data-region="head"><title>Head</title></ellipse><rect x="91" y="63" width="18" height="13" rx="5" class="rg h1" data-region="neck"><title>Neck</title></rect><ellipse cx="66" cy="89" rx="13" ry="12" class="rg" data-region="shoulder-right"><title>Your right shoulder</title></ellipse><ellipse cx="134" cy="89" rx="13" ry="12" class="rg h2" data-region="shoulder-left"><title>Your left shoulder</title></ellipse><rect x="75" y="79" width="23.5" height="48" rx="12" class="rg" data-region="chest-right"><title>Right side of chest</title></rect><rect x="101.5" y="79" width="23.5" height="48" rx="12" class="rg" data-region="chest-left"><title>Left side of chest</title></rect><rect x="74" y="131" width="52" height="38" rx="10" class="rg" data-region="upper-abdomen"><title>Upper abdomen</title></rect><rect x="76" y="172" width="48" height="32" rx="10" class="rg h3" data-region="lower-abdomen"><title>Lower abdomen</title></rect><rect x="72" y="207" width="26" height="30" rx="10" class="rg" data-region="hip-right"><title>Your right hip</title></rect><rect x="102" y="207" width="26" height="30" rx="10" class="rg" data-region="hip-left"><title>Your left hip</title></rect><rect x="74" y="240" width="24" height="74" rx="11" class="rg" data-region="thigh-right"><title>Your right thigh</title></rect><rect x="102" y="240" width="24" height="74" rx="11" class="rg" data-region="thigh-left"><title>Your left thigh</title></rect><rect x="75" y="317" width="22" height="22" rx="10" class="rg h6" data-region="knee-right"><title>Your right knee</title></rect><rect x="103" y="317" width="22" height="22" rx="10" class="rg" data-region="knee-left"><title>Your left knee</title></rect><rect x="76" y="342" width="20" height="62" rx="9" class="rg" data-region="shin-right"><title>Your right shin</title></rect><rect x="104" y="342" width="20" height="62" rx="9" class="rg" data-region="shin-left"><title>Your left shin</title></rect><rect x="68" y="407" width="28" height="16" rx="8" class="rg" data-region="foot-right"><title>Your right foot</title></rect><rect x="104" y="407" width="28" height="16" rx="8" class="rg" data-region="foot-left"><title>Your left foot</title></rect><g transform="rotate(6 57 104)"><rect x="49.0" y="104" width="17" height="54" rx="8.5" class="rg" data-region="upper-arm-right"><title>Your right upper arm</title></rect><rect x="49.0" y="161" width="17" height="14" rx="7" class="rg" data-region="elbow-right"><title>Your right elbow</title></rect><rect x="49.5" y="178" width="16" height="42" rx="8" class="rg h1" data-region="forearm-right"><title>Your right forearm</title></rect><rect x="48.0" y="223" width="19" height="30" rx="9" class="rg" data-region="hand-right"><title>Your right hand</title></rect></g><g transform="rotate(-6 143 104)"><rect x="134.0" y="104" width="17" height="54" rx="8.5" class="rg" data-region="upper-arm-left"><title>Your left upper arm</title></rect><rect x="134.0" y="161" width="17" height="14" rx="7" class="rg" data-region="elbow-left"><title>Your left elbow</title></rect><rect x="134.5" y="178" width="16" height="42" rx="8" class="rg" data-region="forearm-left"><title>Your left forearm</title></rect><rect x="133.0" y="223" width="19" height="30" rx="9" class="rg" data-region="hand-left"><title>Your left hand</title></rect></g></svg>
+      <div style="flex:1">
+        <div style="font-weight:600">Your right knee</div><div class="card-sub">9 times · average 4.2 of 10</div>
+        <div style="font-weight:600; margin-top:var(--sp-3)">Lower abdomen</div><div class="card-sub">4 times · average 3.0 of 10</div>
+        <div class="heat-legend" aria-hidden="true"><span style="background:var(--heat-0)"></span><span style="background:var(--heat-1)"></span><span style="background:var(--heat-2)"></span><span style="background:var(--heat-3)"></span><span style="background:var(--heat-4)"></span><span style="background:var(--heat-5)"></span><span style="background:var(--heat-6)"></span></div>
+        <div class="xaxis" style="padding:0;margin:0"><span>Less often</span><span>More</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#toilet"/></svg> Bowel movements</div><div class="card-sub">7 this week · type per visit</div>
+    <div class="gut"><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Mon</span></div><div class="gcol"><div class="gdots"><span title="Type 3">3</span></div><span class="gd">Tue</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span><span title="Type 5">5</span></div><span class="gd">Wed</span></div><div class="gcol"><div class="gdots"></div><span class="gd">Thu</span></div><div class="gcol"><div class="gdots"><span title="Type 2">2</span></div><span class="gd">Fri</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Sat</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Sun</span></div></div>
+  </section>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#wheat"/></svg> After meals with gluten</div>
+    <div class="card-sub">Your own entries side by side, from the 24 hours after each meal. The app doesn't draw conclusions.</div>
+    <div class="after"><div><b>Thu 15 · Lunch</b><span>Pasta salad, eating out</span></div><div class="then">Bloated (2) at 16:10<br>Bowel type 6 at 19:30</div></div>
+    <div class="after"><div><b>Sun 11 · Dinner</b><span>Pizza</span></div><div class="then muted">Nothing logged</div></div>
+  </section>
+
+  <button class="btn btn-soft btn-block" style="margin-top:var(--sp-4)"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg> Doctor visit summary (PDF)</button>
+</main>
+<nav class="tabbar" aria-label="Main">
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button>
+</nav>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

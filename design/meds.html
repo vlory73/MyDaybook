@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Medication: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.slot { margin-top: var(--sp-5); }
+.slot h3 { font-size: var(--fs-footnote); font-weight: var(--fw-bold); color: var(--text-2); letter-spacing: .04em; text-transform: uppercase;
+  display: flex; gap: 6px; align-items: center; margin-bottom: var(--sp-2); }
+.med { display: flex; gap: var(--sp-3); align-items: center; }
+.med .grow { flex: 1; } .med .name { font-weight: var(--fw-semibold); }
+.status { font-size: var(--fs-footnote); font-weight: var(--fw-semibold); display: inline-flex; gap: 4px; align-items: center;
+  padding: 4px 10px; border-radius: var(--r-full); }
+.st-taken { background: var(--meds-tint); color: var(--meds-ink); }
+.st-late { background: var(--food-tint); color: var(--food-ink); }
+.st-skip { background: var(--surface-2); color: var(--text-2); }
+.actions { display: flex; gap: 6px; }
+.remind { display: flex; gap: var(--sp-3); align-items: flex-start; background: var(--surface-2); border-radius: var(--r-lg); padding: var(--sp-4); margin-top: var(--sp-5); }
+.toggle { width: 51px; height: 31px; border-radius: 16px; background: var(--meds-ink); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-1); }
+.list-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) 0; }
+.list-row + .list-row { border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<main class="content">
+  <header class="page-head"><h1 class="large-title">Medication</h1>
+    <button class="icon-btn" aria-label="Add medication" style="background:var(--primary-soft);color:var(--primary-press)"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button></header>
+  <div class="segmented" role="tablist"><button class="on" role="tab" aria-selected="true">Today</button><button role="tab">My list</button><button role="tab">History</button></div>
+
+  <div class="slot"><h3><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sunrise"/></svg> Morning · 08:00
+    <button class="btn btn-soft btn-sm" style="margin-left:auto; text-transform:none; letter-spacing:0"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#check-check"/></svg> All taken</button></h3>
+    <div class="card"><div class="med"><span class="cat cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg></span>
+      <div class="grow"><div class="name">Allergy tablet</div><div class="card-sub">10 mg · 1 tablet · <svg class="i i-xs" aria-hidden="true"><use href="assets/icons.svg#repeat"/></svg> every day</div></div>
+      <span class="status st-taken"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#check"/></svg> 08:12</span></div></div>
+    <div class="card"><div class="med"><span class="cat cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg></span>
+      <div class="grow"><div class="name">Vitamin D</div><div class="card-sub">20 µg · 1 tablet · <svg class="i i-xs" aria-hidden="true"><use href="assets/icons.svg#repeat"/></svg> every day</div></div>
+      <div class="actions"><button class="btn btn-quiet btn-sm">Skip</button><button class="btn btn-primary btn-sm">Taken</button></div></div></div>
+  </div>
+  <div class="slot"><h3><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sun"/></svg> Midday · 13:00</h3>
+    <div class="card"><div class="med"><span class="cat cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg></span>
+      <div class="grow"><div class="name">Iron supplement</div><div class="card-sub">14 mg · 1 capsule · <svg class="i i-xs" aria-hidden="true"><use href="assets/icons.svg#repeat"/></svg> Mon, Wed, Fri</div></div>
+      <span class="status st-late"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock-alert"/></svg> Late · 13:40</span></div></div>
+  </div>
+  <div class="slot"><h3><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#moon-star"/></svg> Evening · 20:00</h3>
+    <div class="card"><div class="med"><span class="cat cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg></span>
+      <div class="grow"><div class="name">Magnesium</div><div class="card-sub">250 mg · 1 tablet · <svg class="i i-xs" aria-hidden="true"><use href="assets/icons.svg#repeat"/></svg> until 31 Oct</div></div>
+      <span class="muted small">Upcoming</span></div></div>
+  </div>
+  <div class="slot"><h3><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> When needed</h3>
+    <div class="card"><div class="list-row" style="padding:0"><span class="cat cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg></span>
+      <div style="flex:1"><div style="font-weight:600">Ibuprofen</div><div class="card-sub">200 mg · tablet · as needed · last: Thursday</div></div>
+      <button class="btn btn-soft btn-sm">Log dose</button></div></div>
+  </div>
+
+  <div class="remind"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bell"/></svg><div style="flex:1"><div style="font-weight:600">Reminders on this phone</div>
+    <div class="card-sub">08:00, 13:00 and 20:00. Notifications only say "Time for a check-in", never what you take.</div></div>
+    <span class="toggle" role="switch" aria-checked="true" aria-label="Reminders"></span></div>
+</main>
+<nav class="tabbar" aria-label="Main">
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button>
+</nav>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

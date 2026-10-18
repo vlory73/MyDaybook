@@ -1,0 +1,12 @@
+build/
+.svelte-kit/
+node_modules/
+package-lock.json
+design/
+docs/
+static/icons.svg
+test-results/
+playwright-report/
+*.md
+drizzle/
+.claude/

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quick log: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.bg-blur { filter: blur(1.5px); opacity: .9; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
+.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 84px;
+  border-radius: var(--r-lg); font-weight: var(--fw-semibold); font-size: var(--fs-callout); }
+.tile .i { width: 30px; height: 30px; }
+.recent { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2);
+  font-size: var(--fs-callout); white-space: nowrap; }
+.recent b { font-weight: var(--fw-semibold); }
+.recent .cat { width: 30px; height: 30px; border-radius: 9px; }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<div class="bg-blur" aria-hidden="true"><main class="content">
+  <header class="page-head"><div><p class="eyebrow">Sunday 18 October</p><h1 class="large-title">Good morning, Sam</h1></div>
+  <span class="avatar">S</span></header>
+  <section class="card" style="height:150px"></section><section class="card" style="height:160px"></section>
+</main><nav class="tabbar" aria-label="Main">
+<button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button>
+</nav></div>
+<div class="scrim"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="ql">
+  <div class="grabber"></div>
+  <div class="sheet-head"><h2 id="ql">Log something</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> Now, 09:41 <svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-down"/></svg></span></div>
+  <div class="tiles"><button class="tile cat-food"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg>Meal</button><button class="tile cat-feel"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#smile"/></svg>Feeling</button><button class="tile cat-sleep"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg>Sleep</button><button class="tile cat-pain"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#activity"/></svg>Pain</button><button class="tile cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg>Medicine</button><button class="tile cat-gut"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#toilet"/></svg>Bowel</button><button class="tile cat-measure"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#scale"/></svg>Weight</button><button class="tile cat-measure"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#ruler"/></svg>Measure</button><button class="tile cat-note"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg>Note</button></div>
+  <p class="label" style="margin-top:var(--sp-5)">Again? One tap <span class="hint">based on your recent entries</span></p>
+  <div class="scroll-row"><button class="recent"><span class="cat cat-food"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bookmark"/></svg></span><span><b>Oatmeal</b> <span class="muted">saved meal</span></span></button><button class="recent"><span class="cat cat-meds"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#check-check"/></svg></span><span><b>Morning meds</b> <span class="muted">all taken</span></span></button><button class="recent"><span class="cat cat-sleep"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg></span><span><b>Usual night</b> <span class="muted">23:30 to 07:00</span></span></button></div>
+  <p class="footnote-lock"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#lock"/></svg> Encrypted on this phone before it's saved</p>
+</section>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

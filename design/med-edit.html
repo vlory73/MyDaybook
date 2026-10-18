@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>New medication: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.form-row { display: flex; gap: var(--sp-2); }
+.form-row .field { flex: 1; }
+.timerow { display: flex; align-items: center; gap: var(--sp-3); padding: 10px 0; }
+.timerow + .timerow { border-top: 1px solid var(--line); }
+.timerow .t { font-size: var(--fs-title3); font-weight: var(--fw-bold); width: 68px; }
+.timerow .grow { flex: 1; color: var(--text-2); }
+.toggle { width: 51px; height: 31px; border-radius: 16px; background: var(--meds-ink); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-1); }
+.toggle.off { background: var(--surface-3); } .toggle.off::after { right: auto; left: 2px; }
+.setrow { display: flex; align-items: center; gap: var(--sp-3); padding: 12px 0; }
+.setrow + .setrow { border-top: 1px solid var(--line); }
+.setrow .grow { flex: 1; } .setrow .v { color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<main class="content">
+  <div class="nav-head"><button class="btn btn-sm" style="color:var(--primary-press)">Cancel</button>
+    <span class="title">New medication</span><button class="btn btn-sm" style="color:var(--primary-press); font-weight:700">Save</button></div>
+  <p class="label">Name</p>
+  <div class="field" style="color:var(--text)">Vitamin D</div>
+  <p class="label">Strength <span class="hint">as on the package</span></p>
+  <div class="form-row"><div class="field" style="color:var(--text)">20</div>
+    <div class="field" style="color:var(--text); flex:0 0 110px; justify-content:space-between">µg <svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-down"/></svg></div></div>
+  <p class="label">Form</p>
+  <div class="scroll-row"><span class="chip on">Tablet</span><span class="chip">Capsule</span><span class="chip">Liquid</span><span class="chip">Drops</span><span class="chip">Spray</span><span class="chip">Inhaler</span><span class="chip">Patch</span><span class="chip">Other</span></div>
+  <p class="label">How often</p>
+  <div class="chip-row"><span class="chip on">Every day</span><span class="chip">Some weekdays</span><span class="chip">Every few days</span><span class="chip">As needed</span></div>
+  <p class="label">Times and amount <span class="hint">as you were told to take it</span></p>
+  <div class="card" style="padding-top:4px; padding-bottom:4px">
+    <div class="timerow"><span class="t">08:00</span><span class="grow">1 tablet</span><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#x"/></svg></div>
+    <div class="timerow" style="color:var(--primary-press); font-weight:600"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> Add a time</div>
+  </div>
+  <div class="card" style="margin-top:var(--sp-4); padding-top:4px; padding-bottom:4px">
+    <div class="setrow"><span class="grow">Starts</span><span class="v">Today <svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></span></div>
+    <div class="setrow"><span class="grow">Ends</span><span class="v">No end date <svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></span></div>
+    <div class="setrow"><span class="grow">Remind me on this phone</span><span class="toggle" role="switch" aria-checked="true" aria-label="Reminders"></span></div>
+  </div>
+  <p class="small muted" style="margin-top:var(--sp-3)">Once saved, it shows up on Today at the right times, so you only tap "Taken". You enter the amount;
+    the app never calculates or suggests doses.</p>
+</main>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

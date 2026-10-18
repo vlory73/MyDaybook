@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log sleep: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.tri { display: flex; align-items: center; gap: var(--sp-3); padding: 6px 0; }
+.tri .what { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
+.tri .segmented { flex: none; width: 190px; } .tri .segmented button { min-height: 34px; font-size: var(--fs-footnote); }
+.tri .segmented button.yes { background: var(--food-tint); color: var(--food-ink); font-weight: var(--fw-bold); box-shadow: none; }
+.row2 { display: flex; gap: var(--sp-2); }
+.row2 .btn { flex: 1; }
+
+.sum { text-align: center; padding: var(--sp-2) 0 var(--sp-4); }
+.sum .big { font-size: var(--fs-display); font-weight: var(--fw-bold); line-height: 1.1; }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.tcard { background: var(--sleep-tint); color: var(--sleep-ink); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); }
+.tcard .v { font-size: var(--fs-title2); font-weight: var(--fw-bold); color: var(--text); }
+.tcard .k { display: flex; gap: 6px; align-items: center; font-size: var(--fs-footnote); font-weight: var(--fw-semibold); }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button { height: 46px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2); font-weight: var(--fw-semibold); }
+.scale button.on { background: var(--sleep-tint); color: var(--sleep-ink); box-shadow: inset 0 0 0 2px var(--sleep-ink); }
+.ends { display: flex; justify-content: space-between; font-size: var(--fs-caption); color: var(--text-3); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="top:52px; overflow:hidden">
+  <div class="grabber"></div>
+  <div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button>
+    <h2 id="sh" style="flex:1; margin-left:4px">Sleep</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> Last night</span></div>
+  
+  <div class="sum"><div class="big">7 h 20 min</div><div class="muted small">Last night · filled in from your usual times</div></div>
+  <div class="times">
+    <div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#moon"/></svg> Fell asleep</div><div class="v">23:50</div><div class="small">Saturday</div></div>
+    <div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sunrise"/></svg> Woke up</div><div class="v">07:10</div><div class="small">Sunday</div></div>
+  </div>
+  <p class="label">How did you sleep?</p>
+  <div class="scale"><button class="" aria-label="Quality 1 of 5">1</button><button class="" aria-label="Quality 2 of 5">2</button><button class="" aria-label="Quality 3 of 5">3</button><button class="on" aria-label="Quality 4 of 5">4</button><button class="" aria-label="Quality 5 of 5">5</button></div>
+  <div class="ends"><span>Restless</span><span>Rested</span></div>
+  <p class="label">Woke up during the night</p>
+  <div class="segmented"><button class="">0</button><button class="on">1</button><button class="">2</button><button class="">3+</button></div>
+  <div class="row2" style="margin-top:var(--sp-4)"><button class="btn btn-quiet"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> Nap</button><button class="btn btn-quiet"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg> Note</button></div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save</button>
+
+</section>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>
