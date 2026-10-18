@@ -1,12 +1,30 @@
 <script lang="ts">
 	import '$lib/styles/tokens.css';
 	import '$lib/styles/base.css';
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { startAutoLock } from '$lib/autolock';
 	import { brand } from '$lib/brand';
 	import { i18n, t } from '$lib/i18n/index.svelte';
+	import { HIDDEN_LOCK_SECONDS, loadSession, lock, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
 	import { categories, type Category } from '$lib/components/categories';
-	import { CategoryBadge, Sheet, TabBar, ToastHost, Icon, showToast } from '$lib/components';
+	import {
+		Button,
+		CategoryBadge,
+		Hero,
+		Icon,
+		LanguageSwitch,
+		Sheet,
+		Spinner,
+		TabBar,
+		ToastHost,
+		UnlockView,
+		dismissToast,
+		showToast
+	} from '$lib/components';
 
 	let { children }: { children: Snippet } = $props();
 	let quickLogOpen = $state(false);
@@ -16,6 +34,50 @@
 	});
 	$effect(() => {
 		applyTheme(theme.current);
+	});
+
+	// ---- Gating (ARCHITECTURE §3.2) ----
+	// Public routes work without a session. /styleguide is a developer page that the server hides unless STYLEGUIDE=1.
+	// Signed out: public routes only. Signed in but locked (reload or auto-lock): the Unlock view replaces the page.
+	const path = $derived(page.url.pathname.replace(/\/+$/, '') || '/');
+	const isPublic = $derived(path === '/login' || path === '/join' || path === '/recover');
+	const isOpen = $derived(path === '/styleguide');
+	const signedIn = $derived(session.status === 'locked' || session.status === 'unlocked');
+
+	type View = 'loading' | 'unreachable' | 'blank' | 'public' | 'open' | 'locked' | 'app';
+	const view = $derived.by<View>(() => {
+		if (session.status === 'loading') return session.loadFailed ? 'unreachable' : 'loading';
+		if (isOpen) return 'open';
+		if (isPublic) {
+			// A signed-in person has no business on /login or /join; /recover stays reachable from the Unlock view.
+			if (signedIn && (path !== '/recover' || session.status === 'unlocked')) return 'blank';
+			return 'public';
+		}
+		if (session.status === 'signed-out') return 'blank';
+		return session.status === 'locked' ? 'locked' : 'app';
+	});
+	const chrome = $derived(view === 'app');
+
+	onMount(() => {
+		void loadSession();
+	});
+
+	$effect(() => {
+		if (view !== 'blank') return;
+		goto(resolve(signedIn ? '/' : '/login'), { replaceState: true });
+	});
+
+	// ---- Auto-lock (D9) ----
+	$effect(() => {
+		if (session.status !== 'unlocked') return;
+		const minutes = session.autoLockMinutes;
+		return startAutoLock({ minutes: () => minutes, hiddenSeconds: HIDDEN_LOCK_SECONDS, onLock: lock });
+	});
+	$effect(() => {
+		if (session.status !== 'unlocked') {
+			quickLogOpen = false;
+			dismissToast();
+		}
 	});
 
 	const timeFormat = $derived(
@@ -32,32 +94,72 @@
 <svelte:head><title>{brand.displayName}</title></svelte:head>
 
 <a class="skip-link" href="#main">{t('nav.skip')}</a>
-<main id="main" class="page">
-	{@render children()}
+<main id="main" class={['page', { bare: !chrome }]}>
+	{#if view === 'loading'}
+		<div class="splash" role="status">
+			<Spinner size={36} /><span class="sr-only">{t('common.loading')}</span>
+		</div>
+	{:else if view === 'unreachable'}
+		<section class="splash-text">
+			<Hero icon="info" />
+			<h1 class="large-title">{t('layout.unreachable.title')}</h1>
+			<p class="muted">{t('auth.error.network')}</p>
+			<Button onclick={() => loadSession()}>{t('common.retry')}</Button>
+		</section>
+	{:else if view === 'locked'}
+		<UnlockView />
+	{:else if view === 'public' || view === 'open' || view === 'app'}
+		{@render children()}
+	{/if}
+	{#if view === 'public' || view === 'locked'}
+		<footer class="public-foot"><LanguageSwitch /></footer>
+	{/if}
 </main>
 
-<TabBar onquicklog={() => (quickLogOpen = true)} />
+{#if chrome}
+	<TabBar onquicklog={() => (quickLogOpen = true)} />
 
-<Sheet bind:open={quickLogOpen} title={t('quicklog.title')}>
-	{#snippet header()}
-		<span class="time-chip"
-			><Icon name="clock" size={18} />{t('quicklog.now', { time: timeFormat.format(new Date()) })}</span
-		>
-	{/snippet}
-	<div class="tiles">
-		{#each tiles as key (key)}
-			<button type="button" class="tile tint-{categories[key].tint}" onclick={pick}>
-				<CategoryBadge category={key} size={36} />
-				{t(categories[key].label)}
-			</button>
-		{/each}
-	</div>
-	<p class="foot"><Icon name="lock" size={18} />{t('quicklog.footnote')}</p>
-</Sheet>
+	<Sheet bind:open={quickLogOpen} title={t('quicklog.title')}>
+		{#snippet header()}
+			<span class="time-chip"
+				><Icon name="clock" size={18} />{t('quicklog.now', { time: timeFormat.format(new Date()) })}</span
+			>
+		{/snippet}
+		<div class="tiles">
+			{#each tiles as key (key)}
+				<button type="button" class="tile tint-{categories[key].tint}" onclick={pick}>
+					<CategoryBadge category={key} size={36} />
+					{t(categories[key].label)}
+				</button>
+			{/each}
+		</div>
+		<p class="foot"><Icon name="lock" size={18} />{t('quicklog.footnote')}</p>
+	</Sheet>
+{/if}
 
 <ToastHost />
 
 <style>
+	/* Account screens have no tab bar, so they don't reserve room for it. */
+	.bare {
+		padding-bottom: calc(env(safe-area-inset-bottom) + var(--sp-7));
+	}
+	.splash {
+		display: grid;
+		place-items: center;
+		min-height: 60dvh;
+	}
+	.splash-text {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--sp-3);
+		text-align: center;
+		padding-top: var(--sp-8);
+	}
+	.public-foot {
+		margin-top: var(--sp-7);
+	}
 	.time-chip {
 		display: inline-flex;
 		align-items: center;
