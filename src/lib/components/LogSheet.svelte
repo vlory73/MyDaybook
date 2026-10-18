@@ -21,6 +21,7 @@
 		valid,
 		payload,
 		onopen,
+		onbeforesave,
 		time = $bindable(''),
 		showTime = true,
 		children
@@ -31,6 +32,8 @@
 		/** Builds the record to save, or null when the form is not complete. */
 		payload: () => Payload | null;
 		onopen: (existing: Payload | null, typeId?: string) => void;
+		/** Runs before the entry is saved (for example to also save a saved meal); a failure stops the save. */
+		onbeforesave?: () => Promise<void>;
 		/** Value for the time chip ("YYYY-MM-DDTHH:mm"); the sheet reads it when it builds the payload. */
 		time?: string;
 		showTime?: boolean;
@@ -62,6 +65,7 @@
 		busy = true;
 		failed = null;
 		try {
+			await onbeforesave?.();
 			await save(p, id ?? undefined);
 			closeEditors();
 			showToast(t('entry.saved'));

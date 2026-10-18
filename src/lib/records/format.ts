@@ -8,10 +8,18 @@ import type { MessageKey } from '$lib/i18n/en';
 import { categories } from '$lib/components/categories';
 import { BUILT_IN_CONTEXT } from './log';
 import { minutesBetween } from './time';
+import { exposureTags, inline, suggestionId } from './watch';
+import { store } from './store.svelte';
 import type { StoredRecord } from './codec';
 import type { TimedPayload } from './types';
 
-export type Described = { category: Category; title: string; summary: string };
+export type Described = { category: Category; title: string; summary: string; tags?: string[] };
+
+/** Resolves record ids to names: custom measurement types and watch-list items. */
+export type Names = {
+	type?: (id: string) => string | undefined;
+	sensitivity?: (id: string) => string | undefined;
+};
 
 const join = (parts: (string | undefined | false)[]) => parts.filter(Boolean).join(' · ');
 const firstLine = (text: string) =>
@@ -35,15 +43,21 @@ const clock = (at: string) => at.slice(11, 16);
 const contextLabel = (c: string) =>
 	(BUILT_IN_CONTEXT as readonly string[]).includes(c) ? t(`measure.ctx.${c}` as MessageKey) : c;
 
-/** `typeName` resolves a custom measurement type id to its name. */
-export function describe(
-	record: StoredRecord<TimedPayload>,
-	typeName: (id: string) => string | undefined = () => undefined
-): Described {
+export function describe(record: StoredRecord<TimedPayload>, names: Names = {}): Described {
+	const typeName = names.type ?? (() => undefined);
 	const p = record.payload;
 	switch (p.type) {
 		case 'food':
-			return { category: 'food', title: t(`meal.${p.meal}` as MessageKey), summary: firstLine(p.text) };
+			return {
+				category: 'food',
+				title: t(`meal.${p.meal}` as MessageKey),
+				summary: firstLine(p.text),
+				tags: exposureTags(p.exposures, names.sensitivity ?? (() => undefined), {
+					yes: (name) => t('exposure.yes', { name: inline(name) }),
+					no: (name) => t('exposure.no', { name }),
+					unsure: (name) => t('exposure.unsure', { name: inline(name) })
+				})
+			};
 		case 'feeling': {
 			const symptoms = p.symptoms.map((s) => (s.severity ? `${s.tag} (${s.severity})` : s.tag)).join(', ');
 			return {
@@ -94,3 +108,21 @@ export function describe(
 			return { category: 'note', title: t(categories.note.label), summary: firstLine(p.text) };
 	}
 }
+
+/** A watch-list label in the language in use: suggestions are translated, free text is shown as typed. */
+export function sensitivityName(label: string): string {
+	const id = suggestionId(label);
+	return id ? t(`sens.${id}` as MessageKey) : label;
+}
+
+/** Name lookups backed by the decrypted store (reactive when called inside effects or deriveds). */
+export const lookups: Names = {
+	type(id) {
+		const p = store.items[id]?.payload;
+		return p?.type === 'measurement_type' ? p.name : undefined;
+	},
+	sensitivity(id) {
+		const p = store.items[id]?.payload;
+		return p?.type === 'sensitivity' ? sensitivityName(p.label) : undefined;
+	}
+};

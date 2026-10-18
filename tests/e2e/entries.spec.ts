@@ -128,6 +128,6 @@ test('the week strip selects other days and shows an empty day', async ({ page }
 test('other quick-log tiles still say they are coming', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await page.getByRole('button', { name: 'Log something' }).click();
-	await page.getByRole('button', { name: 'Meal' }).click();
+	await page.getByRole('button', { name: 'Pain', exact: true }).click();
 	await expect(page.getByText('Logging arrives in the next version.')).toBeVisible();
 });
