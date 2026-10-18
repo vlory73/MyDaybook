@@ -210,7 +210,12 @@ sequenceDiagram
   is re-encrypted). After rotation, the guardian cannot read *new* entries even with the old key.
 - Honest limit: a guardian could have exported or screenshotted entries while they had access. That cannot be undone and is
   explained in the handover screen.
-- Who confirms the revocation (the child only, or both) is decision D11.
+- **Two different ages (D11):**
+  - *Consent age* (configurable, default 13, Denmark's GDPR Art. 8 age): from this age a child can give their own consent.
+    It decides who signs the consent record, not who holds the keys.
+  - *Handover age* (configurable, default 18): when the app suggests handing the profile over. A guardian can start a
+    handover earlier (for example, from the consent age) if the family wants.
+- The child confirms the revocation of guardian access; the guardian is notified (D11).
 
 ## 5. Data model (server)
 
@@ -293,8 +298,9 @@ attachments on any record type**, not just food, so "has a photo" does not revea
   caveat:** backups made before the deletion still contain the ciphertext *and* the wrapped keys until rotation (still only
   openable with the user's passphrase or recovery key). The privacy notice will say this, with the backup retention period.
 - **Withdrawing consent** goes through the same flow (export offered, then deletion).
-- An adult who is the only guardian of a dependent cannot delete their account until the dependent is handed over, transferred to
-  another guardian, or deleted (decision D12).
+- An adult with dependents can delete their account as long as every dependent still has at least one other guardian. Their
+  guardianship rows are simply removed. Deletion is blocked only when it would leave a dependent with no guardian; the user is
+  then asked to add another guardian, hand the profile over, or delete it first (D12).
 
 ## 8. Server hardening
 
@@ -320,7 +326,7 @@ Service workers, PWA install, Web Push and `crypto.subtle` all need a secure con
 | **C. Private CA** (Caddy `tls internal`, or step-ca) | Install the CA's root profile on each iPhone (then enable full trust in Settings → General → About → Certificate Trust Settings) and on each computer | Fully offline, no domain needed | Manual setup per device, repeated for every new device and every future self-hoster user. PWA and push work on iOS with a fully trusted root, but this is the least-tested path |
 | D. Self-signed per host | | | Not workable: iOS will not install the PWA or register service workers reliably |
 
-**Recommendation:** A, or B if you already use Tailscale. C is the documented fallback. If you already run a
+**Chosen (tentative, D3): B, Tailscale.** A is the fallback. C is the documented fallback. If you already run a
 reverse proxy (Nginx Proxy Manager, Traefik, Caddy), we reuse it instead of adding Caddy (decision D3). The app itself listens on
 plain HTTP on the internal Docker network only.
 
@@ -351,23 +357,26 @@ plain HTTP on the internal Docker network only.
 - The body map has a searchable list of all regions as an equivalent alternative to tapping the SVG.
 - English + Danish from M1 (message keys only). Danish copy gets reviewed in M7.
 
-## 12. Open decisions for the owner
+## 12. Decisions
 
-| # | Decision | My recommendation |
+Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentative** = work proceeds on it but may change;
+**Open** = needs an answer; **Deferred** = owner will decide later.
+
+| # | Decision | Status |
 | --- | --- | --- |
-| D1 | Confirm the stack: SvelteKit 2/Svelte 5, Node 24, SQLite + better-sqlite3 + Drizzle, libsodium-sumo | Yes |
-| D2 | CSP: accept a hash-based strict CSP (one hashed inline bootstrap script, no `unsafe-inline`), plus `'wasm-unsafe-eval'` for libsodium | Accept. The alternative is Vite SPA + Hono with literally zero inline scripts |
-| D3 | TLS: A (own domain + DNS-01), B (Tailscale), or C (private CA)? Which VPN do you use, and do you already run a reverse proxy? | A or B |
-| D4 | Auth: derived-key (Bitwarden-style) for v1, with OPAQUE possible later | Derived-key now |
-| D5 | Approve libsodium-wrappers-sumo (about 2.2 MB unpacked, about 200 KB gzipped in the client bundle), which exceeds the 1 MB rule | Approve |
-| D6 | **Fonts: allow SIL OFL-1.1 fonts as an asset licence exception?** Almost no quality fonts are CC0/CC-BY. Otherwise: system fonts only (SF Pro Rounded on Apple, Segoe on Windows), which is what the mockups use | Allow OFL for fonts, but start with system fonts and add at most one display font if you want more character |
-| D7 | Web Push without `web-push` (MPL-2.0): payload-less push with our own VAPID code | Yes |
-| D8 | Allow photo attachments on any record type (hides "this is a meal" from the server) | Yes |
-| D9 | Auto-lock: 5 min inactivity or 60 s in the background, user-adjustable (1 to 30 min) | Yes |
-| D10 | Recovery key format: 160-bit, 8 groups of 4 Crockford base32 characters, plus a printable sheet | Yes |
-| D11 | Handover: who must confirm guardian revocation, the child only or child and guardian? | Child confirms, guardian is notified |
-| D12 | Block deletion of a sole guardian's account while they still have dependents | Yes |
-| D13 | Nightly backup inside the app process (recommended) or a host cron script | In-app |
-| D14 | Backup retention default 14 days (sets how long deleted accounts persist in backups, stated in the privacy notice) | 14 days |
-| D15 | PDF via print stylesheet or pdf-lib (19 MB package, needs approval). Decide in M5 after an iOS spike | Spike both in M5 |
-| D16 | Design direction "Linen & Clay" (see `design/`): palette, system fonts, Lucide icons | See the design proposal |
+| D1 | Stack: SvelteKit 2/Svelte 5, Node 24, SQLite + better-sqlite3 + Drizzle, libsodium-sumo | **Approved** |
+| D2 | Hash-based strict CSP (one hashed inline bootstrap script, no `unsafe-inline`) plus `'wasm-unsafe-eval'` | **Approved** |
+| D3 | TLS via Tailscale HTTPS (option B, §9) | **Tentative**: owner is confirming the VPN setup. Option A is the fallback |
+| D4 | Derived-key (Bitwarden-style) auth for v1, OPAQUE possible later | **Approved** |
+| D5 | libsodium-wrappers-sumo despite exceeding the 1 MB rule | **Approved** |
+| D6 | Allow SIL OFL-1.1 as a licence for font files only (the app licence stays PolyForm Noncommercial). Until then: system fonts | **Open**: clarified, waiting for an answer |
+| D7 | Payload-less Web Push with our own VAPID code (no MPL-2.0 `web-push`) | **Open**: UX explained, waiting for an answer |
+| D8 | Photo attachments on any record type | **Approved** |
+| D9 | Auto-lock: 5 min inactivity or 60 s in the background, user-adjustable (1 to 30 min) | **Approved** |
+| D10 | Recovery key: 160-bit, 8 groups of 4 Crockford base32 characters, printable sheet | **Approved** |
+| D11 | Handover suggested at **18** by default (configurable); the child confirms revoking guardian access and the guardian is notified. The GDPR consent threshold (default 13) stays separate, see §4 | **Tentative**: owner to confirm the split between the two ages |
+| D12 | An account may be deleted while it has dependents, **unless** that would leave a dependent with no guardian | **Approved** |
+| D13 | Nightly backup: in-app job or host cron | **Deferred**: owner checking the Pi's existing backups |
+| D14 | Backup retention default | **Deferred** |
+| D15 | Doctor-visit PDF: print stylesheet or pdf-lib | **Open**: difference explained; spike both in M5 |
+| D16 | Design direction "Linen & Clay" (`design/`) | **Open**: owner handling separately |
