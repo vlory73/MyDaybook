@@ -111,7 +111,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, during M2 (feature/totp, stacked on feature/photos)._
+_Last updated: 2026-10-18, during M2 (feature/admin-users, stacked on feature/totp)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
   rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
@@ -122,7 +122,7 @@ _Last updated: 2026-10-18, during M2 (feature/totp, stacked on feature/photos)._
   live duration, naps), weight and custom measurements (steppers, two-value types), bowel (Bristol types, flags), edit and
   delete with Undo, and an "Again?" row in quick-log (screenshots in `docs/screenshots/log-body/`). `feature/log-meals` (stacked on log-body): food watch list in Me (EU allergens + intolerances, own items,
   reorder), meal sheet with Yes / Not sure / No per watched item, saved meals (one-tap fill and "Again?"), timeline tags such
-  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; `BODY_SIZE_LIMIT=5M` needed; screenshots in `docs/screenshots/photos/`). `feature/totp` (stacked on photos): optional TOTP second factor (own RFC 6238 on node:crypto, sealed at rest, replay-protected, recovery key bypasses and switches it off; Me card, enrol sheet, login code step; screenshots in `docs/screenshots/totp/`; `E2E_PORT` env lets several checkouts run e2e side by side). Next: pain/body map and medication sheets.
+  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; `BODY_SIZE_LIMIT=5M` needed; screenshots in `docs/screenshots/photos/`). `feature/totp` (stacked on photos): optional TOTP second factor (own RFC 6238 on node:crypto, sealed at rest, replay-protected, recovery key bypasses and switches it off; Me card, enrol sheet, login code step; screenshots in `docs/screenshots/totp/`; `E2E_PORT` env lets several checkouts run e2e side by side). `feature/admin-users` (stacked on totp): admin API (users list with day-precision last active, disable/enable with session revoke, delete with admin re-auth via shared `eraseUser`, invite list/revoke, audit rows) and `/me/admin` screen (screenshots in `docs/screenshots/admin-users/`). Next: pain/body map and medication sheets.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the

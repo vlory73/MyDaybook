@@ -141,6 +141,12 @@
 		<Button variant="quiet" onclick={doSignOut}>{t('me.account.signOut')}</Button>
 	</div>
 </Card>
+{#if session.identity?.role === 'admin'}
+	<Card title={t('me.admin.heading')}>
+		<p class="small muted hint">{t('me.admin.lead')}</p>
+		<a class="link-button" href={resolve('/me/admin')} data-testid="admin-link">{t('me.admin.open')}</a>
+	</Card>
+{/if}
 <WatchList />
 <Card title={t('me.autolock.heading')}>
 	<SelectField

@@ -427,6 +427,19 @@ that worries you") lives on the About page, never as a reaction to an entry.
   (day only), and invite/disable/enable/delete controls. There is no content, no record counts by type, and no key access. An admin
   **cannot reset a passphrase** (that would require keys). The only remedy for a locked-out user without a recovery key is deletion and
   re-invitation.
+- **Implemented (feature/admin-users).** All admin endpoints need the admin role (403 `forbidden` for members, 401 signed out) and every
+  write adds an `admin_audit` row (`invite`, `revoke_invite`, `disable`, `enable`, `delete`; written in the same transaction).
+  - `GET /api/admin/users` (200): `{ users: [{ id, username, role, kind, status, createdAt, storageBytes, lastActiveDay, totpEnabled }] }`.
+    `lastActiveDay` is `YYYY-MM-DD` (UTC) of the newest session activity, or null. No content, keys, verifiers or IPs.
+  - `POST /api/admin/users/:id/disable` (200) ends all of that user's sessions; 409 `cannot_disable_self`, 409 `last_admin`, 404.
+    `POST /api/admin/users/:id/enable` (200, 404).
+  - `POST /api/admin/users/:id/delete {authKey}` (200): the ADMIN re-authenticates with their own auth key (401 `invalid_credentials`);
+    same erasure as account deletion (`eraseUser`: D12 409 `last_guardian`, security events and blobs removed, audit row kept);
+    409 `cannot_delete_self` (use account deletion), 409 `last_admin`, 404, 400.
+  - `GET /api/admin/invites` (200): open invites `{ id, role, createdAt, expiresAt }`, never the token.
+    `POST /api/admin/invites/:id/revoke` (200, 404) deletes an unused invite. Creating invites is `POST /api/invites` (token returned once).
+  - UI: Me shows an Admin card only for admins; it opens `/me/admin` (people, invites, "Invite someone" with the one-time link).
+    Disable/enable use an Undo toast; delete needs a confirmation sheet and the admin's passphrase.
 - **Account deletion (Art. 17):** the user re-authenticates, gets an export offered, and confirms. Then, in one transaction, the server deletes
   records, attachment files, wrapped keys, sessions, push subscriptions, reminder slots and guardianships. With `PRAGMA secure_delete=ON`
   plus `VACUUM` and a WAL checkpoint, the freed pages are overwritten. Deleting the wrapped keys is the crypto-shredding step. **Honest

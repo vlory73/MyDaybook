@@ -17,7 +17,9 @@
 		{ href: '/meds', icon: 'pill', label: 'nav.meds' },
 		{ href: '/me', icon: 'user-round', label: 'nav.me' }
 	];
-	const isCurrent = (href: Tab['href']) => page.url.pathname === resolve(href);
+	const isCurrent = (href: Tab['href']) =>
+		page.url.pathname === resolve(href) ||
+		(href === '/me' && page.url.pathname.startsWith(resolve(href) + '/'));
 </script>
 
 {#snippet tab(item: Tab)}
