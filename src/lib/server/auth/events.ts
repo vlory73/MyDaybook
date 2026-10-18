@@ -22,7 +22,10 @@ export type SecurityEventType =
 	| 'recovery_failed'
 	| 'recovery_used'
 	| 'passphrase_changed'
-	| 'invite_failed';
+	| 'invite_failed'
+	| 'totp_failed'
+	| 'totp_enabled'
+	| 'totp_disabled';
 
 export function recordEvent(type: SecurityEventType, userId: string | null, ip: string | null): void {
 	db()

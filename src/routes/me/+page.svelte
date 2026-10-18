@@ -12,6 +12,7 @@
 		Sheet,
 		Spinner,
 		TextField,
+		TotpCard,
 		WatchList,
 		showToast
 	} from '$lib/components';
@@ -156,6 +157,7 @@
 		<Icon name="key-round" size={18} />{t('me.passphrase.open')}
 	</Button>
 </Card>
+<TotpCard />
 <Card title={t('me.theme.heading')}>
 	<Segmented label={t('me.theme.heading')} options={themes} bind:value={theme.current} />
 </Card>

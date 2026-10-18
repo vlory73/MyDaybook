@@ -3,7 +3,7 @@
  * here, on the device; the server only receives verifiers (auth keys) and wrapped keys. Passphrases and the
  * recovery key are never sent, stored or logged.
  */
-import { ApiError, apiPost } from '$lib/api';
+import { ApiError, apiGet, apiPost } from '$lib/api';
 import type { Identity, SessionResponse } from '$lib/api';
 import { fromB64, toB64 } from '$lib/crypto/encoding';
 import {
@@ -46,25 +46,80 @@ function zero(...arrays: Uint8Array[]): void {
 	for (const a of arrays) sodium().memzero(a);
 }
 
-/** Sign in: derive keys locally, prove the auth key, then open the wrapped keys with the returned bundle. */
-export async function signIn(rawUsername: string, passphrase: string): Promise<void> {
+/**
+ * Sign in in up to two steps. The first derives keys locally (one Argon2id run) and proves the auth key. If the
+ * account has two-step sign-in, the server answers `totp_required`; the derived keys then stay in memory (in the
+ * returned `PendingSignIn`) so the code step does not repeat the Argon2id run. Call `discardSignIn` if abandoned.
+ */
+export type PendingSignIn = { username: string; pwk: Uint8Array; authKey: Uint8Array };
+
+async function finishSignIn(p: PendingSignIn, totp?: string): Promise<void> {
+	const res = await apiPost<SessionResponse>('/api/auth/login', {
+		username: p.username,
+		authKey: toB64(p.authKey),
+		...(totp === undefined ? {} : { totp })
+	});
+	const stored = bundleFromWire(res.bundle);
+	// The PWK derived earlier already opens the bundle: one Argon2id run per sign-in, not two.
+	const keys = unlockWithPwk(res.userId, p.pwk, stored);
+	zero(p.pwk, p.authKey);
+	establish({ userId: res.userId, username: res.username, role: res.role }, stored, keys);
+}
+
+/** Returns `null` when signed in, or the pending state when a code is needed. Throws ApiError on failure. */
+export async function signIn(rawUsername: string, passphrase: string): Promise<PendingSignIn | null> {
 	await initCrypto();
 	const username = normalizeUsername(rawUsername);
 	const pre = await apiPost<{ kdfSalt: string; kdfParams: KdfParams }>('/api/auth/prelogin', { username });
 	await nextFrame();
 	const { pwk, authKey } = deriveFromPassphrase(passphrase, fromB64(pre.kdfSalt), pre.kdfParams);
-	let res: SessionResponse;
-	let keys: UnlockedKeys;
-	let stored: ReturnType<typeof bundleFromWire>;
+	const pending: PendingSignIn = { username, pwk, authKey };
 	try {
-		res = await apiPost<SessionResponse>('/api/auth/login', { username, authKey: toB64(authKey) });
-		stored = bundleFromWire(res.bundle);
-		// The PWK derived above already opens the bundle: one Argon2id run per sign-in, not two.
-		keys = unlockWithPwk(res.userId, pwk, stored);
-	} finally {
-		zero(pwk, authKey);
+		await finishSignIn(pending);
+		return null;
+	} catch (err) {
+		if (err instanceof ApiError && err.code === 'totp_required') return pending;
+		discardSignIn(pending);
+		throw err;
 	}
-	establish({ userId: res.userId, username: res.username, role: res.role }, stored, keys);
+}
+
+/** Second step: sends the six-digit code with the kept keys. A wrong code throws; the pending state stays usable. */
+export async function signInWithCode(p: PendingSignIn, code: string): Promise<void> {
+	await finishSignIn(p, code);
+}
+
+export function discardSignIn(p: PendingSignIn | null): void {
+	if (p) zero(p.pwk, p.authKey);
+}
+
+// ---- Two-step sign-in (TOTP) ----
+
+export type TotpSetup = { secret: string; uri: string };
+
+export const totpStatus = () => apiGet<{ enabled: boolean }>('/api/auth/totp');
+
+/** Starts enrolment. Throws ApiError 401 (wrong passphrase) or 409 `totp_already_enabled`. */
+export async function startTotpSetup(passphrase: string): Promise<TotpSetup> {
+	const key = await currentAuthKey(passphrase);
+	try {
+		return await apiPost<TotpSetup>('/api/auth/totp/setup', { authKey: toB64(key) });
+	} finally {
+		zero(key);
+	}
+}
+
+/** Throws ApiError 401 `invalid_totp` for a wrong code. */
+export const confirmTotp = (code: string) => apiPost('/api/auth/totp/enable', { code });
+
+/** Throws ApiError 401 `invalid_credentials` (passphrase) or `invalid_totp` (code). */
+export async function disableTotp(passphrase: string, code: string): Promise<void> {
+	const key = await currentAuthKey(passphrase);
+	try {
+		await apiPost('/api/auth/totp/disable', { authKey: toB64(key), code });
+	} finally {
+		zero(key);
+	}
 }
 
 /** The auth key for the current passphrase, from the cached salt and parameters (for sensitive actions). */
