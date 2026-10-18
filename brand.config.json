@@ -1,0 +1,10 @@
+{
+	"displayName": "MyDaybook",
+	"shortName": "Daybook",
+	"description": {
+		"en": "A private diary for food, well-being, health and medication.",
+		"da": "En privat dagbog for mad, trivsel, helbred og medicin."
+	},
+	"themeColor": { "light": "#faf6f0", "dark": "#16131a" },
+	"backgroundColor": "#faf6f0"
+}
