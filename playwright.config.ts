@@ -22,7 +22,8 @@ export default defineConfig({
 			ORIGIN: `http://127.0.0.1:${PORT}`,
 			STYLEGUIDE: '1',
 			HSTS_MAX_AGE: '86400',
-			ACCESS_LOG: 'off'
+			ACCESS_LOG: 'off',
+			DATA_DIR: 'test-results/e2e-data'
 		}
 	},
 	projects: [

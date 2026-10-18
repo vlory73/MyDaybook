@@ -407,7 +407,13 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
   - On demand: `docker compose exec app node build/cli.js backup`.
   - The Home Assistant session's script copies that folder to the NAS at 04:30 and keeps 14 days (D14). **A deleted account therefore
     persists, still encrypted, for up to about 14 days**, which the privacy notice will state.
-- `GET /healthz` returns `{status:"ok"}` after a cheap DB query. It requires no auth and reveals no details. It is used by the Compose healthcheck.
+- **Implementation notes (server-db):** the schema is `src/lib/server/db/schema.ts`; generated SQL migrations are committed in `drizzle/`
+  and applied at startup from `./drizzle` relative to the working directory (override with `MIGRATIONS_DIR`), so the Docker image must
+  copy `drizzle/` next to `build/` and run with that working directory. Environment: `DATA_DIR` (default `./data`; holds `app.db`,
+  `blobs/`, `backups/`), `BACKUP_DIR` (enables the nightly job when set), `BACKUP_TIME`, `BACKUP_KEEP`. Failure of the pre-migration
+  backup or of any migration exits the process with code 1. `invites`, `sessions` and `handovers` store SHA-256 token hashes;
+  `security_events` and `admin_audit` have no foreign key to `users`, so they outlive an account.
+- `GET /healthz` returns `{status:"ok"}` after a cheap DB query (503 `{status:"error"}` if it fails). It requires no auth and reveals no details. It is used by the Compose healthcheck.
 
 ## 11. Accessibility, i18n and platform notes
 

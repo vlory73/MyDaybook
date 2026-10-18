@@ -1,5 +1,9 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { dataDir, migrationsFolder, sqliteHandle } from '$lib/server/db';
+import { migrateWithBackup } from '$lib/server/db/migrate';
+import { scheduleNightlyBackup } from '$lib/server/db/backup';
+import { logLine } from '$lib/server/db/log';
 
 /**
  * Security headers that are not part of the CSP (svelte.config.js) and a minimal access log.
@@ -14,6 +18,21 @@ const STATIC_HEADERS: Record<string, string> = {
 	'cross-origin-opener-policy': 'same-origin',
 	'cross-origin-resource-policy': 'same-origin',
 	'permissions-policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()'
+};
+
+/**
+ * Opens the database and applies pending migrations (after a pre-migration backup) before the first request.
+ * Any failure aborts startup. The Docker image must contain `drizzle/` in the working directory (or set MIGRATIONS_DIR).
+ */
+export const init: ServerInit = async () => {
+	try {
+		const sqlite = sqliteHandle();
+		await migrateWithBackup(sqlite, dataDir(), migrationsFolder());
+		scheduleNightlyBackup(() => ({ sqlite, dataDir: dataDir() }));
+	} catch (err) {
+		logLine({ event: 'startup_failed', reason: err instanceof Error ? err.message : String(err) });
+		process.exit(1);
+	}
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
