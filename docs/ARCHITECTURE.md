@@ -535,15 +535,15 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
   - One log line per run, no user data: `{event:"backup", ok, bytes, blobs, ms}` (on failure `ok:false` and an error code).
   - On demand: `docker compose exec app node scripts/cli.mjs backup` runs the same code once and prints the dump file name. It works
     while the server runs (online backup, `busy_timeout` 5000). Two backups never overlap inside one process.
-  - Schedule: daily at `BACKUP_TIME` (default `04:00`) in the container's local time (`TZ`). After every run, and at start, the next
-    run is computed from the local wall clock, so DST changes (23 h and 25 h days) still land on 04:00, and a missed run is not
+  - Schedule: daily at `BACKUP_TIME` (default `23:30`, owner decision: the NAS is off during the night) in the container's local time (`TZ`). After every run, and at start, the next
+    run is computed from the local wall clock, so DST changes (23 h and 25 h days) still land on the set time, and a missed run is not
     replayed. `BACKUP_TIME=off` disables it (the e2e server does this). Code: `scripts/backup-core.mjs` (shared with the CLI) and
     `src/lib/server/db/backup.ts` (schedule, logging).
   - Settings: `BACKUP_DIR` (default `<DATA_DIR>/../backup`, which is `/backup` for `DATA_DIR=/data`), `BACKUP_TIME`, `BACKUP_KEEP`.
   - First admin: `docker compose exec app node scripts/cli.mjs invite --admin [--hours 72]` prints one line, `<PUBLIC_URL>/join#t=<token>`.
     The CLI opens `<DATA_DIR>/app.db` directly and does not migrate, so the server must have started once. The token is in the URL
     fragment, so it never reaches server logs or Referer headers; only its SHA-256 is stored.
-  - The Home Assistant session's script copies that folder to the NAS at 04:30 and keeps 14 days (D14). **A deleted account therefore
+  - The Home Assistant session's script copies that folder to the NAS at 00:00 (it must finish by 01:00, when the NAS may stop) and keeps 14 days (D14). **A deleted account therefore
     persists, still encrypted, for up to about 14 days**, which the privacy notice will state.
 - **Backups and restore:** the pre-migration backup (above) protects against a bad upgrade, the nightly backup against everything
   else, and the NAS copy against losing the Pi. To restore (HOME_DEPLOYMENT.md has the exact commands): stop the app, move
@@ -586,7 +586,7 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | D10 | Recovery key: 160-bit, 8 groups of 4 Crockford base32 characters, printable sheet | **Approved** |
 | D11 | Handover suggested at **18** by default (configurable); the child confirms revoking guardian access and the guardian is notified. The GDPR consent threshold (default 13) stays separate, see §4 | **Approved** |
 | D12 | An account may be deleted while it has dependents, **unless** that would leave a dependent with no guardian | **Approved** |
-| D13 | Nightly backup: in-app job at 04:00 into `~/mydaybook/backup`, newest 3 kept; the Home Assistant script copies it to the NAS at 04:30 (§10) | **Approved** |
+| D13 | Nightly backup: in-app job at 23:30 into `~/mydaybook/backup`, newest 3 kept; the Home Assistant script copies it to the NAS at 00:00, done by 01:00 (originally 04:00 / 04:30; moved by the owner, 2026-10-18) (§10) | **Approved** |
 | D14 | Retention: 3 local snapshots; 14 days on the NAS (set by the Home Assistant backup script) | **Approved** |
 | D15 | Doctor-visit PDF: try a print stylesheet first in M5; fall back to pdf-lib if the installed iPhone app fails | **Approved** (plan) |
 | D16 | Design direction "Linen & Clay" (`design/`) | **Approved** |

@@ -19,7 +19,8 @@ import { join, resolve } from 'node:path';
 /** Stable name pattern the NAS job relies on (docs/HOME_DEPLOYMENT.md, "Agreed" item 6). */
 export const DUMP_PATTERN = /^app-\d{4}-\d{2}-\d{2}T\d{6}Z\.sqlite$/;
 export const DEFAULT_KEEP = 3;
-export const DEFAULT_TIME = '04:00';
+/** Late evening: the owner's NAS is switched off during the night, and its copy job must finish by 01:00. */
+export const DEFAULT_TIME = '23:30';
 
 /**
  * `app-YYYY-MM-DDTHHMMSSZ.sqlite` for the given instant, in UTC.

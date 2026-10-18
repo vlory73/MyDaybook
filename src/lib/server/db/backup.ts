@@ -35,7 +35,7 @@ export async function writeNightlyBackup(opts: NightlyOptions): Promise<BackupRe
 	}
 }
 
-/** Next occurrence of HH:MM in server local time (TZ), strictly after `now`. Invalid input falls back to 04:00. */
+/** Next occurrence of HH:MM in server local time (TZ), strictly after `now`. Invalid input falls back to the default (23:30). */
 export function nextRun(now: Date, time: string): Date {
 	const m = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
 	let h = m ? Number(m[1]) : 4;
@@ -61,7 +61,7 @@ export interface BackupSettings {
 	backupDir: string;
 }
 
-/** BACKUP_TIME=off disables the schedule; an invalid time falls back to 04:00. */
+/** BACKUP_TIME=off disables the schedule; an invalid time falls back to the default (23:30). */
 export function backupSettings(env: Record<string, string | undefined> = process.env): BackupSettings {
 	const raw = (env.BACKUP_TIME ?? '').trim();
 	const enabled = raw.toLowerCase() !== 'off';

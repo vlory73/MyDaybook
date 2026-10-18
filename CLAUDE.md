@@ -106,6 +106,7 @@ Other key documents:
 | 2026-10-18 | M3 approved: medication, doses, reminders (Web Push opt-in, needs an installed PWA on iOS 16.4+; iPhone check after 0.1.0), plus nausea/heartburn logging moved from the backlog into M3 | Owner |
 | 2026-10-18 | Medication: weekdays not preselected, amount may be empty, times follow the phone's 12/24-hour setting (not forced). Nausea/heartburn gets its own stomach icon (CC0, drawn in-house) | Owner, PRs #15/#16 |
 | 2026-10-18 | Doses: "All taken" only for slots with 2+ open doses; doses of archived/changed medications stay on the timeline only; duplicate times on one medication to be refused in the set-up sheet (follow-up). Order changed: Pi setup (Docker image, GHCR publishing, compose, nightly backup) and 0.1.0 before reminders | Owner, PR #19 |
+| 2026-10-18 | Backups: the NAS is off during the night, so everything must be done by 01:00. App dump moves to 23:30 (new default `BACKUP_TIME`), NAS copy to 00:00; both adjustable. Replaces the 04:00 / 04:30 of D13 (to confirm with the HA session) | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -124,7 +125,7 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   Screenshots per feature in `docs/screenshots/<feature>/`.
 - **M3 plan (owner-approved order):** `feature/log-gut` (merged #15), `feature/medication` (merged #16), `feature/doses`
   (due doses computed on the device, "All taken", taken / skipped / late, as-needed), then the **Pi setup** (`feature/docker`:
-  image, `compose.yaml`, `.env.example`, `gen-secrets`; `feature/backup`: nightly dump at 04:00; GHCR image publishing in CI)
+  image, `compose.yaml`, `.env.example`, `gen-secrets`; `feature/backup`: nightly dump at 23:30; GHCR image publishing in CI)
   and **0.1.0**, then `feature/reminders` (opt-in, payload-less Web Push with own VAPID, D7; checked on a real iPhone on the Pi).
 - **M3 progress:** `feature/medication` merged (#16): `medication` record, Meds list (active and archived), set-up sheet, pure schedule
   helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.

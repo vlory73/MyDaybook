@@ -210,9 +210,9 @@ describe('blob mirror', () => {
 });
 
 describe('settings', () => {
-	it('defaults to 04:00, keep 3 and <DATA_DIR>/../backup', () => {
+	it('defaults to 23:30, keep 3 and <DATA_DIR>/../backup', () => {
 		const s = backupSettings({ DATA_DIR: '/data' });
-		expect(s).toEqual({ enabled: true, time: '04:00', keep: 3, backupDir: '/backup' });
+		expect(s).toEqual({ enabled: true, time: '23:30', keep: 3, backupDir: '/backup' });
 	});
 	it('reads BACKUP_DIR, BACKUP_TIME and BACKUP_KEEP; off disables', () => {
 		expect(backupSettings({ BACKUP_DIR: '/b', BACKUP_TIME: '23:30', BACKUP_KEEP: '7' })).toEqual({
@@ -223,7 +223,7 @@ describe('settings', () => {
 		});
 		expect(backupSettings({ BACKUP_TIME: 'off' }).enabled).toBe(false);
 		expect(backupSettings({ BACKUP_TIME: 'OFF' }).enabled).toBe(false);
-		expect(backupSettings({ BACKUP_TIME: '25:99' }).time).toBe('04:00');
+		expect(backupSettings({ BACKUP_TIME: '25:99' }).time).toBe('23:30');
 		expect(resolveKeep('0')).toBe(3);
 		expect(resolveKeep('abc')).toBe(3);
 		expect(resolveBackupDir({ BACKUP_DIR: '/x', DATA_DIR: '/data' })).toBe('/x');
