@@ -8,6 +8,13 @@
       "when": 1792319030387,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792320128615,
+      "tag": "0001_curly_phil_sheldon",
+      "breakpoints": true
     }
   ]
 }

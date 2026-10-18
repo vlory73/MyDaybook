@@ -118,6 +118,18 @@ export const sessions = sqliteTable(
 	(t) => [index('sessions_user_idx').on(t.userId)]
 );
 
+// Short-lived, single-use proof that the recovery key was presented (ARCHITECTURE §3.3).
+export const recoveryTokens = sqliteTable(
+	'recovery_tokens',
+	{
+		id: text('id').primaryKey(),
+		tokenHash: bytes('token_hash').notNull().unique(), // SHA-256 of the token
+		userId: userId(),
+		expiresAt: integer('expires_at').notNull()
+	},
+	(t) => [index('recovery_tokens_user_idx').on(t.userId)]
+);
+
 export const handovers = sqliteTable(
 	'handovers',
 	{
