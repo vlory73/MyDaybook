@@ -39,3 +39,13 @@ export function wrongCode(secret: string): string {
 	}
 	return '000001';
 }
+
+/**
+ * The previous step's code, taken at least `marginMs` before the step ends. The server accepts one step back, so a
+ * code fetched in the last moment of a step would be two steps old by the time it is checked and rightly refused.
+ */
+export async function previousStepCode(secret: string, marginMs = 5_000): Promise<string> {
+	const left = 30_000 - (Date.now() % 30_000);
+	if (left < marginMs) await new Promise((r) => setTimeout(r, left + 50));
+	return codeFor(secret, -1);
+}

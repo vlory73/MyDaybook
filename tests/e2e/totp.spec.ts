@@ -20,7 +20,7 @@ import {
 	signUpAndSignIn,
 	type ApiAccount
 } from './helpers';
-import { codeFor, wrongCode } from './totp-code';
+import { codeFor, wrongCode, previousStepCode } from './totp-code';
 
 // Synthetic data only. Codes are computed here with a test-side copy of RFC 6238.
 
@@ -56,7 +56,10 @@ test('turn on in Me, sign in needs a code, wrong and replayed codes fail, turn o
 	await expect(
 		page.getByRole('dialog').getByText("That code didn't work. Wait for a new one and try again.")
 	).toBeVisible();
-	await page.getByRole('dialog').getByLabel('Six-digit code from the app').fill(codeFor(secret, -1));
+	await page
+		.getByRole('dialog')
+		.getByLabel('Six-digit code from the app')
+		.fill(await previousStepCode(secret));
 	await page.getByRole('button', { name: 'Confirm and turn on' }).click();
 	await expect(toast(page, 'Two-step sign-in is on.')).toBeVisible();
 	await expect(card.getByTestId('totp-state')).toHaveText('On');
@@ -113,7 +116,10 @@ test('turning off works with a fresh code, then sign-in needs no code', async ({
 	await page.getByRole('dialog').getByLabel('Passphrase', { exact: true }).fill(user.passphrase);
 	await page.getByRole('button', { name: 'Show setup key' }).click();
 	const secret = (await page.getByTestId('totp-secret').locator('span').allTextContents()).join('');
-	await page.getByRole('dialog').getByLabel('Six-digit code from the app').fill(codeFor(secret, -1));
+	await page
+		.getByRole('dialog')
+		.getByLabel('Six-digit code from the app')
+		.fill(await previousStepCode(secret));
 	await page.getByRole('button', { name: 'Confirm and turn on' }).click();
 	await expect(card.getByTestId('totp-state')).toHaveText('On');
 
@@ -146,7 +152,7 @@ test.describe('API', () => {
 		const { secret, uri } = await setup.json();
 		expect(secret).toMatch(/^[A-Z2-7]{32}$/);
 		expect(uri).toContain(`secret=${secret}`);
-		const on = await postJson(ctx, '/api/auth/totp/enable', { code: codeFor(secret, -1) });
+		const on = await postJson(ctx, '/api/auth/totp/enable', { code: await previousStepCode(secret) });
 		expect(on.status()).toBe(200);
 		return secret;
 	}

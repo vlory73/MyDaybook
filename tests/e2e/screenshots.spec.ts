@@ -1,5 +1,5 @@
 import { test, type Page } from '@playwright/test';
-import { codeFor } from './totp-code';
+import { previousStepCode } from './totp-code';
 import { createInvite, newPassphrase, newUsername, signUpAndSignIn, signUpViaApi } from './helpers';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
@@ -275,7 +275,10 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.waitForTimeout(400);
 			await snap(page, 'enable-sheet', scheme);
 			const secret = (await page.getByTestId('totp-secret').locator('span').allTextContents()).join('');
-			await page.getByRole('dialog').getByLabel('Six-digit code from the app').fill(codeFor(secret, -1));
+			await page
+				.getByRole('dialog')
+				.getByLabel('Six-digit code from the app')
+				.fill(await previousStepCode(secret));
 			await page.getByRole('button', { name: 'Confirm and turn on' }).click();
 			await page.getByTestId('totp-state').filter({ hasText: 'On' }).waitFor();
 			await page.waitForTimeout(400);
