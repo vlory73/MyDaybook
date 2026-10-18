@@ -235,7 +235,7 @@
 				<ul class="people" data-testid="admin-invites">
 					{#each invites as invite (invite.id)}
 						{@const when = whenFormat.format(invite.expiresAt)}
-						<li class="invite">
+						<li class="invite" data-expires={invite.expiresAt}>
 							<span>{t('admin.invites.row', { role: roleLabel(invite.role), when })}</span>
 							<Button
 								variant="quiet"

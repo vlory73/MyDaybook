@@ -299,17 +299,22 @@ test('admin: people list, disable with Undo, delete with passphrase, invite link
 
 	// Invite someone: the link shows once, with Copy and an expiry note; then it is listed and can be revoked.
 	await page.getByRole('radio', { name: 'Admin' }).click();
+	const created = page.waitForResponse(
+		(r) => r.url().endsWith('/api/invites') && r.request().method() === 'POST'
+	);
 	await page.getByRole('button', { name: 'Create invite link' }).click();
+	const { expiresAt } = await (await created).json();
 	const link = page.getByTestId('invite-link');
 	await expect(link).toHaveValue(/\/join#t=[A-Za-z0-9_-]{43}$/);
 	await expect(page.getByText(/shown only once and expires/)).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Copy link' })).toBeVisible();
 	const token = (await link.inputValue()).split('#t=')[1]!;
-	const open = page.getByTestId('admin-invites').locator('li', { hasText: 'Admin, expires' });
+	// Find this invite by its exact expiry: other tests share the database and create open invites of their own.
+	const open = page.getByTestId('admin-invites').locator(`li[data-expires="${expiresAt}"]`);
 	await expect(open).toHaveCount(1);
+	await expect(open).toContainText('Admin, expires');
 	await open.getByRole('button', { name: /^Revoke Admin invite/ }).click();
 	await expect(toast(page, 'Invite revoked.')).toBeVisible();
-	// Only this invite: other tests share the database and may have open invites of their own.
 	await expect(open).toHaveCount(0);
 	const stranger = await newCtx();
 	expect((await postJson(stranger, '/api/invites/check', { token })).status()).toBe(404);
