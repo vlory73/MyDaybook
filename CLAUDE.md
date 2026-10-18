@@ -115,7 +115,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, start of M3 (feature/medication)._
+_Last updated: 2026-10-18, M3 (feature/doses)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -127,6 +127,8 @@ _Last updated: 2026-10-18, start of M3 (feature/medication)._
   `feature/log-gut` (quick nausea and heartburn logging, from the backlog).
 - **M3 progress:** `feature/medication` built: `medication` record, Meds list (active and archived), set-up sheet, pure schedule
   helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.
+  `feature/doses` built: `dose` record, due doses computed on the device (`src/lib/meds/due.ts`), "All taken" per slot with one Undo,
+  Today / Meds / quick-log "Medicine" cards, timeline entries; screenshots in `docs/screenshots/doses/`.
   `feature/log-gut` merged (#15): nausea / heartburn quick-log tile and sheet (`gut` record); screenshots in
   `docs/screenshots/log-gut/`.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
