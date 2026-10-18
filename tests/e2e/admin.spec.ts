@@ -309,7 +309,8 @@ test('admin: people list, disable with Undo, delete with passphrase, invite link
 	await expect(open).toHaveCount(1);
 	await open.getByRole('button', { name: /^Revoke Admin invite/ }).click();
 	await expect(toast(page, 'Invite revoked.')).toBeVisible();
-	await expect(page.getByText('No open invites.')).toBeVisible();
+	// Only this invite: other tests share the database and may have open invites of their own.
+	await expect(open).toHaveCount(0);
 	const stranger = await newCtx();
 	expect((await postJson(stranger, '/api/invites/check', { token })).status()).toBe(404);
 });
