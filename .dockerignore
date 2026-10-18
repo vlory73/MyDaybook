@@ -30,3 +30,4 @@ scripts/*.test.*
 scripts/check-*.mjs
 scripts/license-policy.mjs
 scripts/render-icons.mjs
+scripts/changelog.mjs

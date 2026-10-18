@@ -62,3 +62,67 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # The Docker image builds and starts on both architectures, natively (arm64 = the Pi). Nothing is published.
+  image-check:
+    name: Docker image (${{ matrix.arch }})
+    if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: mydaybook:ci
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+      - name: Smoke test (read-only, as compose runs it)
+        run: scripts/ci-smoke.sh mydaybook:ci linux/${{ matrix.arch }}
+
+  # Every merge into develop publishes ghcr.io/<owner>/<repo>:edge for amd64 and arm64 (the Pi), after the checks pass.
+  publish-edge:
+    name: Publish :edge image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=edge
+            type=sha,prefix=edge-
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the arm64 image (emulated)
+        run: scripts/ci-smoke.sh "ghcr.io/${GITHUB_REPOSITORY,,}:edge" linux/arm64
