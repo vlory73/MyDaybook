@@ -12,7 +12,7 @@ import {
 	deriveFromRecoveryKey,
 	rewrapForNewRecoveryKey,
 	rewrapForPassphrase,
-	unlockWithPassphrase,
+	unlockWithPwk,
 	unlockWithRecoveryKey,
 	wipe
 } from '$lib/crypto/keys';
@@ -54,14 +54,16 @@ export async function signIn(rawUsername: string, passphrase: string): Promise<v
 	await nextFrame();
 	const { pwk, authKey } = deriveFromPassphrase(passphrase, fromB64(pre.kdfSalt), pre.kdfParams);
 	let res: SessionResponse;
+	let keys: UnlockedKeys;
+	let stored: ReturnType<typeof bundleFromWire>;
 	try {
 		res = await apiPost<SessionResponse>('/api/auth/login', { username, authKey: toB64(authKey) });
+		stored = bundleFromWire(res.bundle);
+		// The PWK derived above already opens the bundle: one Argon2id run per sign-in, not two.
+		keys = unlockWithPwk(res.userId, pwk, stored);
 	} finally {
 		zero(pwk, authKey);
 	}
-	const stored = bundleFromWire(res.bundle);
-	await nextFrame();
-	const keys = unlockWithPassphrase(res.userId, passphrase, stored);
 	establish({ userId: res.userId, username: res.username, role: res.role }, stored, keys);
 }
 

@@ -17,6 +17,7 @@ import {
 	rewrapForPassphrase,
 	rewrapRecordKey,
 	unlockWithPassphrase,
+	unlockWithPwk,
 	unlockWithRecoveryKey,
 	unwrap,
 	wipe,
@@ -137,6 +138,13 @@ describe('account lifecycle', () => {
 		expect(u.privateKey).toEqual(acc.keys.privateKey);
 		expect(u.kek).toEqual(acc.keys.kek);
 		expect(u.publicKey).toEqual(acc.keys.publicKey);
+	});
+	it('unlocks with an already-derived PWK (single Argon2id run at sign-in)', () => {
+		const acc = createAccount(userId, 'pass phrase one', FAST);
+		const { pwk } = deriveFromPassphrase('pass phrase one', acc.bundle.kdfSalt, FAST);
+		expect(unlockWithPwk(userId, pwk, acc.bundle).masterKey).toEqual(acc.keys.masterKey);
+		const wrong = deriveFromPassphrase('pass phrase two', acc.bundle.kdfSalt, FAST);
+		expect(() => unlockWithPwk(userId, wrong.pwk, acc.bundle)).toThrow();
 	});
 	it('rejects a wrong passphrase', () => {
 		const acc = createAccount(userId, 'pass phrase one', FAST);

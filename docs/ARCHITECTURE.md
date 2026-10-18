@@ -159,7 +159,7 @@ calibrated in M2 on a real iPhone. The target is under 1.5 s.
    locks after N minutes (1, 2, 5, 10, 15 or 30; localStorage preference, default 5) without pointer, key, touch or scroll
    events, or 60 s after the page becomes hidden; returning to a long-hidden page re-checks the clock before showing anything.
    `lock()` wipes the keys and runs registered `onLock` hooks for any decrypted caches. A 401 `unauthenticated` from any API
-   call drops the UI to signed-out. Recovery tokens last 5 minutes, so the recovery flow must finish within that time.
+   call drops the UI to signed-out. Recovery tokens last 15 minutes, enough to save and confirm the new recovery key.
 
 Sessions use a 256-bit random token in a `__Host-sid` cookie (`HttpOnly; Secure; SameSite=Strict; Path=/`). The server
 stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API calls also require a same-origin
@@ -183,7 +183,7 @@ stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API call
 | `POST /api/invites/check`, `POST /api/invites` | token check (404 `invalid_invite`); admin-only creation (default 72 h, role `member` or `admin`), audited |
 | `POST /api/auth/signup` | one transaction: consume invite, insert user, consent (server timestamp, actor `self`), `signup` security event; 409 `username_taken` leaves the invite unused |
 | `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/logout` | login and session return the wrapped-key bundle (`kdfSalt`, `kdfParams`, `wrappedMkByPassphrase`, `wrappedPrivateKey`, `publicKey`) |
-| `POST /api/auth/recover/start`, `POST /api/auth/recover/finish` | start checks `H(RAK)` and issues a 5-minute single-use token (hash in `recovery_tokens`); finish replaces passphrase and recovery secrets, revokes all sessions and signs in |
+| `POST /api/auth/recover/start`, `POST /api/auth/recover/finish` | start checks `H(RAK)` and issues a 15-minute single-use token (hash in `recovery_tokens`); finish replaces passphrase and recovery secrets, revokes all sessions and signs in |
 | `POST /api/auth/passphrase` | needs the current auth key; revokes all other sessions |
 | `POST /api/account/delete` | needs the auth key; see §7 |
 
