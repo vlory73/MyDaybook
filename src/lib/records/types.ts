@@ -1,7 +1,7 @@
 /**
  * Record payloads, version 1 (ARCHITECTURE §5.3). This is what lives inside the ciphertext.
  * Every payload has `v: 1` and a `type`; entries that happen at a moment also have `at`, an ISO 8601 timestamp with
- * the UTC offset the person was in when they logged it ("2026-10-18T08:10:00+02:00"). Pain, medication and dose
+ * the UTC offset the person was in when they logged it ("2026-10-18T08:10:00+02:00"). Pain and dose
  * types arrive in later milestones; `parsePayload` returns null for types it does not know yet, and the store keeps
  * such records out of the UI instead of failing.
  * Validators are small and hand-written: a payload that fails them is skipped, never trusted.
@@ -96,6 +96,47 @@ export type SavedMealPayload = Base<'saved_meal'> & {
 	tags: string[];
 	exposures: Exposure[];
 };
+
+export const MED_FORMS = [
+	'tablet',
+	'capsule',
+	'liquid',
+	'drops',
+	'spray',
+	'inhaler',
+	'cream',
+	'patch',
+	'injection',
+	'other'
+] as const;
+/** Suggested units; `unit` itself is free text (up to 40 characters), so "other" is simply what the person typed. */
+export const MED_UNITS = ['mg', 'g', 'µg', 'ml', 'IU', '%', 'drops', 'puffs'] as const;
+export type MedForm = (typeof MED_FORMS)[number];
+/** Weekdays are numbered like JavaScript's `getDay()`: 0 = Sunday ... 6 = Saturday. */
+export type MedSchedule =
+	| { kind: 'daily' }
+	| { kind: 'weekdays'; days: number[] }
+	| { kind: 'every_n_days'; n: number; from: string }
+	| { kind: 'as_needed' };
+/** `amount` is free text exactly as the person entered it ("1 tablet", "5 ml"); the app never interprets it. */
+export type MedTime = { time: string; amount: string };
+export const MAX_MED_TIMES = 12;
+export type MedicationPayload = Base<'medication'> & {
+	name: string;
+	strength?: number;
+	unit?: string;
+	form: MedForm;
+	schedule: MedSchedule;
+	/** Empty for `as_needed`, otherwise at least one. */
+	times: MedTime[];
+	/** First day ("YYYY-MM-DD") the medication is due. */
+	start: string;
+	end?: string;
+	/** Stored for the reminders update; nothing fires yet. */
+	reminders: boolean;
+	archived: boolean;
+	note?: string;
+};
 export type SettingsPayload = Base<'settings'> & { values: Record<string, string | number | boolean> };
 export type TagPayload = Base<'tag'> & { name: string };
 
@@ -109,6 +150,7 @@ export type Payload =
 	| NotePayload
 	| SensitivityPayload
 	| SavedMealPayload
+	| MedicationPayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -163,6 +205,52 @@ const isExposures = (x: unknown): x is Exposure[] =>
 	Array.isArray(x) &&
 	x.length <= 50 &&
 	x.every((e) => isObj(e) && isStr(e.id, 100) && oneOf(EXPOSURE_STATES, e.state));
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** A real calendar day written "YYYY-MM-DD". */
+export function isDay(x: unknown): x is string {
+	if (typeof x !== 'string' || !DAY_RE.test(x)) return false;
+	const [y, m, d] = x.split('-').map(Number) as [number, number, number];
+	const probe = new Date(Date.UTC(y, m - 1, d));
+	return probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
+}
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const isClock = (x: unknown): x is string => typeof x === 'string' && TIME_RE.test(x);
+
+function isSchedule(x: unknown): x is MedSchedule {
+	if (!isObj(x)) return false;
+	switch (x.kind) {
+		case 'daily':
+		case 'as_needed':
+			return true;
+		case 'weekdays':
+			return (
+				Array.isArray(x.days) &&
+				x.days.length >= 1 &&
+				x.days.length <= 7 &&
+				x.days.every((d) => isInt(d, 0, 6)) &&
+				new Set(x.days).size === x.days.length
+			);
+		case 'every_n_days':
+			return isInt(x.n, 2, 365) && isDay(x.from);
+		default:
+			return false;
+	}
+}
+
+const isStrength = (x: unknown) =>
+	x === undefined || (typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 1_000_000);
+
+function isMedication(o: Obj): boolean {
+	if (!isStr(o.name, 100) || o.name.trim() === '') return false;
+	if (!isStrength(o.strength) || !optStr(o.unit, 40)) return false;
+	if (!oneOf(MED_FORMS, o.form) || !isSchedule(o.schedule)) return false;
+	if (!Array.isArray(o.times) || o.times.length > MAX_MED_TIMES) return false;
+	if (!o.times.every((x) => isObj(x) && isClock(x.time) && isStr(x.amount, 100))) return false;
+	if (o.schedule.kind === 'as_needed' ? o.times.length !== 0 : o.times.length < 1) return false;
+	if (!isDay(o.start) || !(o.end === undefined || (isDay(o.end) && o.end >= o.start))) return false;
+	return typeof o.reminders === 'boolean' && typeof o.archived === 'boolean' && optStr(o.note, 2000);
+}
 
 function isTimed(o: Obj): boolean {
 	return isAt(o.at);
@@ -222,6 +310,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		isStr(o.text) &&
 		strList(o.tags) &&
 		isExposures(o.exposures),
+	medication: isMedication,
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),
