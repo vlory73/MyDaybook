@@ -96,7 +96,7 @@ For the first deployment you are both the operator and a user, so case d reduces
 | T14 | Guardian keeps access after handover | Master key rotation at handover (headers re-wrapped); guardian rows deleted after explicit confirmation. **Residual:** anything the guardian already saw or exported |
 | T15 | Lost passphrase and recovery key | Unrecoverable by design; clear warning; recovery key confirmed by re-typing groups; printable sheet; recovery key rotated after use |
 | T16 | Logs leak content or identity | No request bodies logged; no IPs on stdout; IPs only in `security_events` with retention; reverse-proxy access log off; client logger stripped in production |
-| T17 | Deleted account lingers | Hard delete, `secure_delete`, `VACUUM`. **Residual:** persists in backups until rotation (default 14 days), still encrypted; stated in the privacy notice |
+| T17 | Deleted account lingers | Hard delete, `secure_delete`, `VACUUM`. **Residual:** persists in backups until rotation (about 14 days on the home NAS), still encrypted; stated in the privacy notice |
 | T18 | Stolen phone | Locked app needs the passphrase. The IndexedDB cache holds only ciphertext and wrapped keys. iOS data protection adds encryption at rest |
 | T19 | Network attacker on LAN/VPN | TLS everywhere; HSTS; VPN-only exposure |
 | T20 | Denial of service against the Pi | Argon2id runs on the client (no server memory spike); rate limits; body size limits; 256 MB memory limit isolates other services (Home Assistant, Pi-hole) |

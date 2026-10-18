@@ -326,9 +326,21 @@ Service workers, PWA install, Web Push and `crypto.subtle` all need a secure con
 | **C. Private CA** (Caddy `tls internal`, or step-ca) | Install the CA's root profile on each iPhone (then enable full trust in Settings → General → About → Certificate Trust Settings) and on each computer | Fully offline, no domain needed | Manual setup per device, repeated for every new device and every future self-hoster user. PWA and push work on iOS with a fully trusted root, but this is the least-tested path |
 | D. Self-signed per host | | | Not workable: iOS will not install the PWA or register service workers reliably |
 
-**Chosen (tentative, D3): B, Tailscale.** A is the fallback. C is the documented fallback. If you already run a
-reverse proxy (Nginx Proxy Manager, Traefik, Caddy), we reuse it instead of adding Caddy (decision D3). The app itself listens on
-plain HTTP on the internal Docker network only.
+**Chosen (D3): option A, using the reverse proxy you already run.** The Home Assistant stack's Caddy already holds a valid
+certificate for `lory-home.duckdns.org`, which resolves to the Pi's LAN IP. Caddy serves the app at
+`https://lory-home.duckdns.org:8444` and forwards it to the app on port 8090. Nothing is opened on the router. Remote use goes
+through the router VPN (Synology VPN Plus) today, and Tailscale later. The same URL must keep working over Tailscale (Pi as a
+subnet router, or DNS pointing there), because a PWA's identity is its origin: changing the URL means reinstalling and logging
+in again (no data is lost; the local cache holds only ciphertext). For self-hosters, A/B/C above remain the documented options.
+
+The app container speaks plain HTTP on port 8090. Plain-HTTP requests that did not come through the trusted proxy get a page
+pointing to the HTTPS URL instead of the app: no secure context means no service worker, and the auth key should never cross
+Wi-Fi without TLS. `TRUSTED_PROXY` names the proxy whose `X-Forwarded-*` headers are believed. The proxy's access log for this
+site is switched off (IP retention, §8).
+
+**HSTS caveat:** HSTS applies to a host name on *every* port. If any service is still reached over plain HTTP at
+`lory-home.duckdns.org:<port>`, a long HSTS header would break it. `HSTS_MAX_AGE` is therefore configurable, and stays 0
+on this host until the Home Assistant session confirms everything on that name is HTTPS-only.
 
 ## 10. Build, release and deployment
 
@@ -337,15 +349,29 @@ plain HTTP on the internal Docker network only.
   We use prebuilt better-sqlite3 binaries to avoid slow compilation under QEMU. Native arm64 runners are used if available on your plan.
 - **On tag `vX.Y.Z` on main (created by you):** build `:X.Y.Z` + `:latest`, and publish the changelog generated from Conventional Commits
   (git-cliff, MIT/Apache) in the GitHub release.
-- **Pull-based deployment:** Portainer stacks pull from GHCR using a read-only token. `compose.staging.yml` tracks `:edge` on its own port and volume, with
-  synthetic seed data. `compose.family.yml` is pinned to `:X.Y.Z`. You update by editing the tag.
-- **Configuration:** `.env` on the host only. `docker run --rm <image> gen-secrets` prints `SESSION_SECRET`, `SERVER_SECRET` and the VAPID key pair.
+- **Pull-based deployment:** the Pi pulls from GHCR. The repo is public, so once the GHCR package is set to public, no token is needed.
+  - Home Pi convention (from the Home Assistant session): each app is its own Compose project in its own folder (`~/mydaybook/compose.yaml`,
+    `name: mydaybook`), with pinned tags, `restart: unless-stopped`, and data in `~/mydaybook/data`. It is deployed over SSH, not
+    as part of the Home Assistant stack. The same Compose files also paste into Portainer for other self-hosters.
+  - `compose.family.yml` is pinned to `:X.Y.Z` on port 8090. You update by editing the tag.
+  - `compose.staging.yml` (optional on the Pi: project `mydaybook-staging`, port 8091, its own data folder, synthetic seed data) is
+    pinned to `:edge-<short-sha>`. CI publishes that tag alongside `:edge`, so staging follows the "no floating tags" rule too.
+  - The app must survive the Pi restarting at night: migrations are idempotent, startup never waits on the network, and the healthcheck
+    reports ready only after migrations.
+- **Configuration:** `.env` on the host only (mode 600). `docker run --rm <image> gen-secrets` writes `SESSION_SECRET`, `VAPID_PUBLIC_KEY`
+  and `VAPID_PRIVATE_KEY` directly into `.env`, so the values never appear on screen. `SESSION_SECRET` also keys the fake-salt HMAC and
+  encrypts TOTP secrets. Losing `.env` costs sessions, TOTP enrolments and push subscriptions, never diary data.
 - **Startup migrations:** before applying any pending migration, the server writes
   `/data/backups/pre-migrate-<UTC timestamp>-<from>-<to>.db` using SQLite's online backup API. **If the backup fails, startup aborts**
   with a clear log line. The last 5 pre-migration backups are kept.
-- **Nightly backup** (proposal): a small scheduled job in the same process (`BACKUP_CRON`, default 03:30) writes a consistent
-  SQLite snapshot plus the new blob files to a mounted NAS path (`/backup`), keeping `BACKUP_RETENTION_DAYS` (default 14).
-  It is also runnable on demand: `docker exec <container> node build/backup.js`. The alternative is a host cron script (decision D13).
+- **Nightly backup (D13):** a scheduled job inside the app (`BACKUP_TIME`, default 04:00 local) writes into `/backup`, which is
+  `~/mydaybook/backup` on the Pi:
+  - `db/app-<UTC timestamp>.sqlite`: a consistent snapshot via SQLite's online backup API, newest `BACKUP_KEEP` kept (default 3).
+  - `blobs/`: a mirror of the encrypted photo store. Blobs are immutable and written atomically, so mirroring them after the DB
+    snapshot is consistent.
+  - On demand: `docker compose exec app node build/cli.js backup`.
+  - The Home Assistant session's script copies that folder to the NAS at 04:30 and keeps 14 days (D14). **A deleted account therefore
+    persists, still encrypted, for up to about 14 days**, which the privacy notice will state.
 - `GET /healthz` returns `{status:"ok"}` after a cheap DB query. It requires no auth and reveals no details. It is used by the Compose healthcheck.
 
 ## 11. Accessibility, i18n and platform notes
@@ -366,17 +392,17 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | --- | --- | --- |
 | D1 | Stack: SvelteKit 2/Svelte 5, Node 24, SQLite + better-sqlite3 + Drizzle, libsodium-sumo | **Approved** |
 | D2 | Hash-based strict CSP (one hashed inline bootstrap script, no `unsafe-inline`) plus `'wasm-unsafe-eval'` | **Approved** |
-| D3 | TLS via Tailscale HTTPS (option B, §9) | **Tentative**: owner is confirming the VPN setup. Option A is the fallback |
+| D3 | TLS via the existing Home Assistant Caddy at `https://lory-home.duckdns.org:8444`; remote access via VPN Plus now, Tailscale later (§9) | **Approved** |
 | D4 | Derived-key (Bitwarden-style) auth for v1, OPAQUE possible later | **Approved** |
 | D5 | libsodium-wrappers-sumo despite exceeding the 1 MB rule | **Approved** |
-| D6 | Allow SIL OFL-1.1 as a licence for font files only (the app licence stays PolyForm Noncommercial). Until then: system fonts | **Open**: clarified, waiting for an answer |
-| D7 | Payload-less Web Push with our own VAPID code (no MPL-2.0 `web-push`) | **Open**: UX explained, waiting for an answer |
+| D6 | Allow SIL OFL-1.1 as a licence for font files only (the app licence stays PolyForm Noncommercial). Start with system fonts | **Approved** |
+| D7 | Payload-less Web Push with our own VAPID code (no MPL-2.0 `web-push`); verify on a real iPhone in M3 | **Approved** |
 | D8 | Photo attachments on any record type | **Approved** |
 | D9 | Auto-lock: 5 min inactivity or 60 s in the background, user-adjustable (1 to 30 min) | **Approved** |
 | D10 | Recovery key: 160-bit, 8 groups of 4 Crockford base32 characters, printable sheet | **Approved** |
-| D11 | Handover suggested at **18** by default (configurable); the child confirms revoking guardian access and the guardian is notified. The GDPR consent threshold (default 13) stays separate, see §4 | **Tentative**: owner to confirm the split between the two ages |
+| D11 | Handover suggested at **18** by default (configurable); the child confirms revoking guardian access and the guardian is notified. The GDPR consent threshold (default 13) stays separate, see §4 | **Approved** |
 | D12 | An account may be deleted while it has dependents, **unless** that would leave a dependent with no guardian | **Approved** |
-| D13 | Nightly backup: in-app job or host cron | **Deferred**: owner checking the Pi's existing backups |
-| D14 | Backup retention default | **Deferred** |
-| D15 | Doctor-visit PDF: print stylesheet or pdf-lib | **Open**: difference explained; spike both in M5 |
+| D13 | Nightly backup: in-app job at 04:00 into `~/mydaybook/backup`, newest 3 kept; the Home Assistant script copies it to the NAS at 04:30 (§10) | **Approved** |
+| D14 | Retention: 3 local snapshots; 14 days on the NAS (set by the Home Assistant backup script) | **Approved** |
+| D15 | Doctor-visit PDF: try a print stylesheet first in M5; fall back to pdf-lib if the installed iPhone app fails | **Approved** (plan) |
 | D16 | Design direction "Linen & Clay" (`design/`) | **Open**: owner handling separately |

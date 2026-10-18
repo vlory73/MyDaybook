@@ -21,8 +21,8 @@ Other key documents:
 - No analytics, telemetry, external CDNs, external fonts or third-party calls at runtime.
 - Not a medical device: no dose calculations, interaction checks, diagnostic insights, advice,
   reference ranges or threshold-triggered alerts.
-- Licences: code dependencies MIT/BSD/ISC/Apache-2.0 only; assets CC0/CC-BY only (font exception pending,
-  see open decisions). The CI licence check must stay green.
+- Licences: code dependencies MIT/BSD/ISC/Apache-2.0 only; assets CC0/CC-BY only, except fonts, which may
+  also be SIL OFL-1.1 (D6). The CI licence check must stay green.
 - Seed data and fixtures are synthetic. Never use real health data.
 - No hard-coded user-facing strings: everything goes through i18n (English + Danish).
 
@@ -84,17 +84,19 @@ Other key documents:
 | 2026-10-18 | Approved: D1 stack, D2 hash-based CSP + `wasm-unsafe-eval`, D4 derived-key auth, D5 libsodium-sumo, D8 attachments on any record, D9 auto-lock, D10 recovery key format, D12 deletion allowed unless a dependent is left without a guardian | Owner, M0 review |
 | 2026-10-18 | Tentative: D3 Tailscale HTTPS; D11 handover suggested at 18, consent age 13 kept separate | Owner, M0 review |
 | 2026-10-18 | Deferred: D13 backup mechanism, D14 backup retention. Open: D6 font licence, D7 push UX, D15 PDF approach, D16 design | Owner, M0 review |
+| 2026-10-18 | Approved: D6 OFL-1.1 allowed for font files only (system fonts first), D7 payload-less push, D11 consent age 13 / handover age 18, D15 print first then pdf-lib | Owner |
+| 2026-10-18 | Home Pi facts from the Home Assistant session: D3 = existing Caddy at https://lory-home.duckdns.org:8444, app on port 8090; D13 = in-app dump at 04:00 into ~/mydaybook/backup (3 kept); D14 = 14 days on the NAS. See docs/HOME_DEPLOYMENT.md | Owner, HA session |
 
 ## Current status
 
-_Last updated: 2026-10-18, end of M0 session._
+_Last updated: 2026-10-18, M0 session (after owner review)._
 
 - **Milestone:** M0 delivered, waiting for owner review. No application code exists yet.
 - **Done:** initial commit on `main`; `develop` created; `docs/SPEC.md`, this file,
   `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, design proposal (`design/`, HTML mockups + screenshots).
-- **Owner review done for most decisions** (see Decisions log and `docs/ARCHITECTURE.md` §12).
-- **Waiting on the owner:** D6 (OFL for fonts), D7 (payload-less push), D11 confirmation (consent age 13 vs handover age 18),
-  D15 (PDF, can wait for M5), D16 (design). Deferred: D13, D14. D3 Tailscale is tentative.
+- **All decisions D1–D15 settled** (see Decisions log and `docs/ARCHITECTURE.md` §12). Home Pi integration request is in
+  `docs/HOME_DEPLOYMENT.md`, waiting for the Home Assistant session's answers (HSTS, trusted proxy address, staging).
+- **Waiting on the owner:** D16 (design direction).
 - **Next:** M1 (scaffold, tooling, CI on PRs, design tokens, core components), once the decisions are made.
 - **Not yet written (later milestones):** `docs/gdpr/*`, `SECURITY.md`, `CONTRIBUTING.md`, `docs/SELF_HOSTING.md`,
   Compose files, `.env.example`.
