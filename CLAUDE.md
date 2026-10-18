@@ -108,6 +108,8 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 - **Nausea and heartburn** (requested 2026-10-18): a dedicated, quick way to log them. Today they could only be logged as
   symptom tags with a severity. Fits next to bowel movements in the gut area.
+- **Per-user storage quota** (deferred 2026-10-18, "much later"): e.g. `STORAGE_QUOTA_MB`, refusing uploads over it with a
+  friendly message. `users.storage_bytes` already tracks usage. Raise it again only much later (not at the next milestone).
 
 ## Current status
 
