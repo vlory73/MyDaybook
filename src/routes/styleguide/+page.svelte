@@ -25,6 +25,33 @@
 	let sheetOpen = $state(false);
 	let qualities = $state<Record<string, boolean>>({ Aching: true });
 	const cats = Object.keys(categories) as Category[];
+
+	let cryptoResult = $state('running…');
+	$effect(() => {
+		void runCryptoSelfTest();
+	});
+
+	/** Proves libsodium's WASM loads under the strict CSP. Synthetic data only; key bytes are never rendered. */
+	async function runCryptoSelfTest() {
+		try {
+			const c = await import('$lib/crypto');
+			await c.initCrypto();
+			const userId = 'selftest-user';
+			const account = c.createAccount(userId, 'synthetic self-test passphrase', c.DEFAULT_KDF);
+			const keys = c.unlockWithPassphrase(userId, 'synthetic self-test passphrase', account.bundle);
+			const sample = { v: 1, type: 'food', text: 'Oatmeal' };
+			const enc = c.encryptRecord(keys.kek, userId, 'selftest-record', sample);
+			const back = c.decryptRecord<typeof sample>(keys.kek, userId, 'selftest-record', enc);
+			if (back.text !== sample.text) throw new Error('round trip mismatch');
+			c.wipe(keys);
+			c.wipe(account.keys);
+			const t0 = performance.now();
+			c.deriveFromPassphrase('synthetic self-test passphrase', account.bundle.kdfSalt, c.DEFAULT_KDF);
+			cryptoResult = `ok · Argon2id 64 MiB: ${Math.round(performance.now() - t0)} ms`;
+		} catch (err) {
+			cryptoResult = `failed: ${err instanceof Error ? err.message : String(err)}`;
+		}
+	}
 </script>
 
 <header class="page-head"><h1 class="large-title">Components</h1></header>
@@ -82,6 +109,10 @@
 
 <Card title="Empty state">
 	<EmptyState icon="sunrise" title="A fresh page" body="Nothing logged yet today." />
+</Card>
+
+<Card title="Crypto self-test">
+	<p data-testid="crypto-selftest">{cryptoResult}</p>
 </Card>
 
 <Sheet bind:open={sheetOpen} title="Example sheet">
