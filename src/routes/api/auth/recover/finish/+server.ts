@@ -1,5 +1,5 @@
 import { and, eq, gt } from 'drizzle-orm';
-import { db } from '$lib/server/db';
+import { db, writeTx } from '$lib/server/db';
 import { recoveryTokens, users } from '$lib/server/db/schema';
 import { recordEvent } from '$lib/server/auth/events';
 import { ApiError, api, clientIp, rateGuard, readJson, reply } from '$lib/server/auth/http';
@@ -30,7 +30,7 @@ export const POST = api(async (event) => {
 	rateGuard(event, 'recover');
 
 	const now = Date.now();
-	const userId = db().transaction((tx) => {
+	const userId = writeTx((tx) => {
 		const row = tx
 			.select({ id: recoveryTokens.id, userId: recoveryTokens.userId })
 			.from(recoveryTokens)

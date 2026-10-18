@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
-import { dataDir, db, sqliteHandle } from '$lib/server/db';
+import { dataDir, sqliteHandle, writeTx } from '$lib/server/db';
 import { securityEvents, users } from '$lib/server/db/schema';
 import { findById } from '$lib/server/auth/accounts';
 import { recordEvent } from '$lib/server/auth/events';
@@ -52,7 +52,7 @@ export const POST = api(async (event) => {
 	}
 	noteSuccess('sensitive', event, key);
 
-	db().transaction((tx) => {
+	writeTx((tx) => {
 		if (soleGuardianOf(user.id) > 0) throw new ApiError(409, 'last_guardian');
 		tx.delete(securityEvents).where(eq(securityEvents.userId, user.id)).run();
 		tx.delete(users).where(eq(users.id, user.id)).run();
