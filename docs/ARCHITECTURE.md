@@ -1,0 +1,373 @@
+# Architecture
+
+Status: **proposal (M0)**. Nothing here is final until the owner confirms the open decisions at the end of this file.
+Spec: [`SPEC.md`](SPEC.md). Threat model: [`THREAT_MODEL.md`](THREAT_MODEL.md).
+
+## 1. Shape of the system
+
+E2EE forces one design choice above all: **the server cannot render or query content.** The server is a
+small, untrusted "encrypted blob store with accounts". All product logic (timeline, search, charts, heat
+map, PDF, export) runs in the browser after decryption.
+
+```mermaid
+flowchart LR
+  subgraph Phone["iPhone / laptop (trusted while unlocked)"]
+    UI["PWA UI (Svelte)"] --> Core["Crypto core (libsodium WASM)"]
+    Core --> Mem["Decrypted data: memory only"]
+    Core --> IDB["IndexedDB: ciphertext cache + wrapped keys"]
+    SW["Service worker: app shell cache"]
+  end
+  subgraph Pi["Raspberry Pi (untrusted for content)"]
+    Proxy["TLS reverse proxy (Caddy)"] --> App["Node process (SvelteKit, adapter-node)"]
+    App --> DB[("SQLite: accounts, wrapped keys, ciphertext")]
+    App --> Blobs[("Blob store: encrypted photos")]
+    App --> Bk["Backups: pre-migration + nightly to NAS"]
+  end
+  Phone -- "HTTPS over home VPN" --> Proxy
+  App -. "opt-in, payload-less Web Push" .-> Push["Apple / Google push services"]
+```
+
+The Pi only makes outbound connections (image pulls, optional push, optional ACME DNS challenge).
+Nothing is exposed to the internet.
+
+## 2. Stack proposal
+
+I agree with the suggested direction, with a few adjustments flagged in **bold**.
+
+| Concern | Proposal | Why | Alternatives considered |
+| --- | --- | --- | --- |
+| App framework | SvelteKit 2 + Svelte 5 + TypeScript, `adapter-node`, single process | Smallest client bundles of the mainstream frameworks (matters on phones and for a Pi), file-based routing, API routes and the UI in one process, built-in service worker support with no Workbox needed | **Vite SPA + Hono API**: equally small and avoids SvelteKit's inline bootstrap script (see CSP below), but needs two toolchains glued together. **Next.js/React**: heavier runtime, and RSC/SSR give nothing when the server cannot read content. **SolidStart**: fine, but a smaller ecosystem |
+| Rendering mode | **App routes render client-side only (`ssr = false`); only the static shell is prerendered** | The server cannot read content, so SSR has nothing to render. CSR also keeps decrypted data from ever touching server code paths | Full SSR: no benefit, and a bigger attack surface |
+| Runtime | **Node 24 LTS** | Supported until April 2028; Node 22 is in maintenance and reaches end of life in April 2027 | Bun/Deno: smaller ecosystem for native SQLite on arm64 |
+| Database | SQLite (WAL mode) via better-sqlite3 + Drizzle ORM | Zero extra containers, a single file to back up, fast on SSD, about 10 MB of RAM. Drizzle gives typed queries and SQL migrations without a heavy runtime | **Postgres**: about 100 MB more RAM and another container, with no benefit for 4–50 users. **Node's built-in `node:sqlite`**: promising, but Drizzle support and the online-backup API are less mature; we can revisit later. **Kysely**: good, but Drizzle's migration tooling is simpler |
+| Crypto | libsodium-wrappers-sumo (ISC) | One audited library for XChaCha20-Poly1305, Argon2id, BLAKE2b KDF, X25519 sealed boxes and secretstream, using fast WASM. **Only the sumo build contains Argon2id (`crypto_pwhash`)**: verified, the standard build does not | WebCrypto: no XChaCha20 or Argon2. @noble/ciphers + @noble/hashes (MIT, audited): pure-JS Argon2 at 64 MiB is several times slower on iPhones. hash-wasm (MIT) for Argon2 + noble for AEAD: smaller, but two libraries instead of one |
+| i18n | Paraglide JS (MIT) | Compile-time and tree-shaken: only used strings ship. Type-safe message keys make hard-coded strings easy to catch in lint | svelte-i18n (MIT): runtime and larger. typesafe-i18n: unmaintained |
+| Styling | Hand-written CSS with design tokens (CSS custom properties) and a small in-house Svelte component library | The spec rules out admin UI kits; tokens make light/dark mode and Dynamic Type straightforward | Tailwind: fine, but tokens + scoped Svelte styles need no extra dependency |
+| Icons | Lucide (ISC), only the used SVGs vendored | Friendly rounded strokes; ISC is on the allow-list | Phosphor (MIT): also good, with a warmer duotone style. Could swap |
+| Charts | Hand-built SVG charts with d3-scale/d3-shape (ISC) | A few KB. Full control over calm styling, and no "red zone" defaults (MDR) | uPlot (MIT): fast but canvas, so harder to make accessible. Chart.js: about 200 KB |
+| PDF | Decide in M5: a print stylesheet (zero dependencies) or pdf-lib (MIT) | A print stylesheet reuses the SVG heat map as-is. pdf-lib is more deterministic on iOS standalone PWAs, but it is a 19 MB package (needs approval) | jsPDF: bundles code under various licences |
+| Web Push | **No push library. Payload-less pushes signed with our own VAPID (ES256) via `node:crypto`** | `web-push` is **MPL-2.0, which is not on the allow-list**. A payload-less push needs no payload encryption at all, and it is the most private option: Apple and Google receive nothing but timing. The service worker shows the generic text locally | Implementing RFC 8291 payload encryption ourselves: about 150 lines, but unnecessary |
+| Tests | Vitest (unit, including all crypto), Playwright (e2e, using the preinstalled Chromium plus WebKit for iOS behaviour) | Standard, fast, and MIT/Apache | |
+| Licence check | `license-checker-rseidelsohn` (BSD-3) with an allow-list, plus a custom asset manifest check | Fails CI on anything outside MIT/BSD/ISC/Apache-2.0 and CC0/CC-BY | |
+| Container | Multi-stage Dockerfile, `node:24-bookworm-slim` runtime, non-root user, read-only root filesystem, `/data` volume | Prebuilt better-sqlite3 binaries exist for glibc arm64/amd64. Slim Debian avoids musl surprises | Alpine: about 40 MB smaller, but native-module risk. Distroless: no shell for `docker exec` maintenance |
+
+**Footprint target:** a compressed image of about 80 MB and an idle RSS of about 70 MB. The Compose
+`mem_limit` is 256 MB. Argon2id never runs on the server (see §3), so login cannot spike server memory.
+
+### 2.1 Central branding config
+
+`brand.config.json` (M1) holds `displayName`, `shortName`, `description` and `themeColor`. The PWA
+manifest, `<title>`, About page and i18n "app name" variable are generated from it. `package.json` keeps a
+neutral `"name": "app", "private": true`. CI derives the Docker image name from `github.repository`, and the
+Compose files read the image from an `IMAGE` variable in `.env`. **A rename is one file plus the repo name**
+(plus updating `IMAGE` on hosts that are already deployed).
+
+### 2.2 Content Security Policy and the "no inline scripts" rule
+
+SvelteKit's client bootstrap includes one small inline `<script>`. SvelteKit's built-in `kit.csp` in
+**hash mode** emits a `sha256-…` hash for it, so the policy never needs `'unsafe-inline'`. This is what Google's
+"strict CSP" guidance calls hash-based CSP. Planned header:
+
+```
+default-src 'none'; script-src 'self' 'sha256-<bootstrap>' 'wasm-unsafe-eval';
+style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self';
+manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'self';
+frame-ancestors 'none'; object-src 'none'
+```
+
+`'wasm-unsafe-eval'` is **required** for libsodium's WASM. Without it, libsodium silently falls back to
+asm.js, and Argon2id becomes unusably slow on phones. Styles are emitted as external CSS files; M1 will verify
+with a CSP violation test in e2e that no `'unsafe-inline'` is needed for styles either. Trusted Types are left out
+because Svelte builds templates via `innerHTML`. If you want literally zero inline script tags, the alternative is the Vite SPA +
+Hono stack in the table (decision D2).
+
+## 3. Key hierarchy
+
+All primitives come from libsodium. "AEAD" means XChaCha20-Poly1305-IETF with a random 24-byte nonce.
+Every AEAD call binds associated data (AD) to the user and object it belongs to, so a malicious server
+cannot swap ciphertexts between records or users without detection.
+
+```mermaid
+flowchart TD
+  P["Passphrase (never leaves the device)"] -->|"NFKC normalise, Argon2id(salt_u, t=3, m=64 MiB)"| R["Root (32 B)"]
+  R -->|"KDF id=1"| PWK["Passphrase wrapping key"]
+  R -->|"KDF id=2"| AK["Auth key: sent to server at login"]
+  RK["Recovery key (160-bit, shown once)"] -->|"BLAKE2b + KDF id=1"| RWK["Recovery wrapping key"]
+  RK -->|"KDF id=2"| RAK["Recovery auth key"]
+  PWK -->|"wraps"| MK["Master key MK (random 32 B)"]
+  RWK -->|"wraps"| MK
+  MK -->|"KDF id=10"| KEK["Record KEK"]
+  MK -->|"wraps"| SK["X25519 private key (identity)"]
+  KEK -->|"wraps (AD = user, record)"| EK["Per-record key EK (random)"]
+  EK -->|"AEAD, padded"| C["Record ciphertext"]
+  EK -.->|"key stored inside the record plaintext"| AKey["Per-attachment key → secretstream photo blob"]
+```
+
+| Key | Generated | Stored on server as | Purpose |
+| --- | --- | --- | --- |
+| Root | Argon2id(passphrase, per-user random 16-byte salt). Parameters stored per user and upgradable at login | never | Derives the passphrase wrapping key and the auth key via `crypto_kdf_derive_from_key` (BLAKE2b) with context `MDBkdf01` |
+| Passphrase wrapping key (PWK) | KDF(root, 1) | never | Wraps MK |
+| Auth key (AK) | KDF(root, 2) | `BLAKE2b-256(AK)` (the verifier) | Login proof. Cryptographically independent of PWK, so the server learning AK reveals nothing about PWK |
+| Recovery key (RK) | 160 random bits, shown once as 8 groups of 4 Crockford-base32 characters | never | Wraps a second copy of MK |
+| Recovery wrapping key (RWK) / recovery auth key (RAK) | KDF(BLAKE2b("MDB-recovery-v1", RK), 1 / 2) | `BLAKE2b-256(RAK)` | Recovery login proof + MK unwrap |
+| Master key (MK) | random 32 bytes at signup | `AEAD_PWK(MK)` and `AEAD_RWK(MK)`, AD = `mk/v1/<userId>` | Root of everything a user owns |
+| Record KEK | KDF(MK, 10), context `MDBkeys1` | never | Wraps per-record keys |
+| Identity keypair | X25519 at signup | public key in clear; `AEAD_MK(privateKey)` | Guardianship now; sharing between adults later |
+| Per-record key (EK) | random 32 bytes per record | `AEAD_KEK(EK)` with AD = `rec/v1/<userId>/<recordId>`, in a separate column | Encrypts one record. Enables cheap MK rotation (re-wrap 72-byte headers instead of re-encrypting content), per-record shredding and future sharing |
+| Attachment key | random per photo | inside the record plaintext only | `crypto_secretstream_xchacha20poly1305` over the photo |
+
+**Why no server pepper on the verifiers:** AK has 256 bits of entropy, so `BLAKE2b(AK)` cannot be
+reversed. An attacker holding the database can test passphrase guesses against the wrapped MK anyway (one
+Argon2id per guess), so a pepper would add a lockout risk (losing `.env` would lock out every user) without
+adding protection.
+
+**Why Argon2id runs only on the client:** the server never receives anything passphrase-equivalent,
+and the Pi never spends 64 MiB of RAM per login attempt, which also makes login a poor denial-of-service
+target. Parameters (t=3, m=64 MiB, p=1, which matches Bitwarden's Argon2id defaults apart from parallelism) are
+calibrated in M2 on a real iPhone. The target is under 1.5 s.
+
+### 3.1 Signup (invite-only)
+
+1. The admin creates an invite. The link carries a random token **in the URL fragment** (`/join#t=…`), so it never
+   reaches server logs or Referer headers. The server stores only `SHA-256(token)`, role and expiry (72 h by default).
+2. The client generates the salt, MK, identity keypair and RK, and runs Argon2id to derive PWK and AK.
+3. Onboarding explains privacy in plain language. It shows the recovery key with save, print and copy
+   options. **To confirm, the user re-types two randomly chosen groups**, not just ticks a checkbox. Then the user
+   accepts the versioned consent text.
+4. The client uploads: username, salt, KDF parameters, `H(AK)`, `H(RAK)`, both wrapped MKs, the public key, the wrapped
+   private key, and `{consentVersion, consentTextHash, locale}`. The server timestamps the consent itself.
+
+### 3.2 Login and unlock
+
+1. `POST /api/auth/prelogin {username}` returns the salt and KDF parameters. **For unknown usernames, the server returns
+   a deterministic fake salt** (`HMAC(serverSecret, username)`), so the endpoint cannot be used to enumerate accounts.
+2. The client derives AK and sends `POST /api/auth/login {username, AK, totp?}`. The server compares hashes in
+   constant time and sets the session cookie.
+3. The server returns the wrapped MK and wrapped private key. The client unwraps them and holds MK **in memory only**.
+4. **Lock vs. logout:** auto-lock (default 5 min of inactivity, or 60 s in the background; decision D9) wipes MK
+   and all decrypted state from memory but keeps the session. Unlocking re-runs Argon2id locally against the
+   wrapped MK cached in IndexedDB, and needs no server round trip. Logout destroys both the session and the local cache.
+
+Sessions use a 256-bit random token in a `__Host-sid` cookie (`HttpOnly; Secure; SameSite=Strict; Path=/`). The server
+stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API calls also require a same-origin
+`Origin` header and `Content-Type: application/json`.
+
+### 3.3 Passphrase change and recovery
+
+- **Change passphrase:** new salt, new PWK and AK, MK re-wrapped. Content is not touched. Other sessions are revoked.
+- **Recovery:** the user enters RK. The client derives RAK and sends it. The server checks `H(RAK)` and returns `AEAD_RWK(MK)`.
+  The user sets a new passphrase. **A new recovery key is then issued and must be confirmed again**, because the old one
+  has now been typed on a device.
+- **Losing both the passphrase and the recovery key means the data is gone.** This is stated at signup in plain words:
+  "Nobody, including the person who runs this server, can get your diary back."
+
+### 3.4 Optional TOTP
+
+TOTP protects the *login session* (for example, against someone who has learned the passphrase but not the device). It does
+not change encryption. The TOTP secret is stored encrypted with a server key from `.env`. TOTP gives modest
+additional value under E2EE; it stays optional as specified.
+
+### 3.5 Better than Bitwarden-style? OPAQUE
+
+OPAQUE (an augmented PAKE, RFC 9807) would mean the server never sees AK, even at login, and would remove the salt
+oracle entirely. `@serenity-kit/opaque` (MIT, about 0.9 MB) is a credible implementation. **Recommendation: use
+derived-key authentication for v1** (simpler, auditable, libsodium-only, adequate on a VPN-only household server),
+with a versioned `auth_scheme` column so OPAQUE can be introduced per user at a later login without migrating data
+(decision D4).
+
+## 4. Guardians, dependent profiles and handover
+
+**Dependent profile:** a user row with `kind = dependent` and no credentials. Its own MK_d, identity
+keypair and records work exactly like an adult's.
+
+- MK_d is wrapped **to each guardian's X25519 public key** (`crypto_box_seal`), one row per guardian in
+  `guardianships`. This lets two parents both manage a child without ever knowing each other's keys.
+- Guardians recover access to dependents through their *own* recovery key (RK, then MK, then their private key, then MK_d).
+- The child's birth month is stored **encrypted** in the dependent's profile record. The client, not the server,
+  notices when the configurable age threshold (default 13) is reached and suggests a handover.
+- Consent for a dependent is recorded with `actor = guardian:<id>`.
+
+**Handover flow:**
+
+```mermaid
+sequenceDiagram
+  participant G as Guardian device (unlocked)
+  participant S as Server
+  participant C as Child device
+  G->>G: create handover code T (128-bit, shown as QR + words)
+  G->>S: AEAD_KDF(T)(MK_d), H(KDF(T)), expiry 24 h
+  C->>S: enter T → fetch wrapped MK_d
+  C->>C: unwrap MK_d, child picks passphrase + gets own recovery key (re-typed to confirm)
+  C->>C: rotate: generate MK_d', re-wrap all record keys (headers only)
+  C->>S: credentials, both wrapped MK_d', re-wrapped headers, own consent (atomic)
+  Note over S: account active for child, guardian access still present: "pending revocation"
+  C->>S: child confirms "Remove guardian access"
+  S->>S: delete guardianship rows + handover blob, notify guardian
+```
+
+- **Rotation matters:** deleting the guardian's wrapped copy is not enough, because a guardian device could have kept MK_d
+  in memory. Rotating to MK_d' is cheap thanks to per-record keys (only 72-byte headers are re-wrapped, no content
+  is re-encrypted). After rotation, the guardian cannot read *new* entries even with the old key.
+- Honest limit: a guardian could have exported or screenshotted entries while they had access. That cannot be undone and is
+  explained in the handover screen.
+- Who confirms the revocation (the child only, or both) is decision D11.
+
+## 5. Data model (server)
+
+The server sees only what it needs to route and authorise. **Everything the user creates is a "record"**,
+including settings, tag lists, measurement types and the medication list. So the server cannot even tell
+configuration from diary entries.
+
+| Table | Columns (server-visible) |
+| --- | --- |
+| `users` | id (UUIDv4), username, kind (adult/dependent), role (member/admin), status, created_at, kdf_salt, kdf_params, auth_scheme, auth_verifier, recovery_verifier, wrapped_mk_pw, wrapped_mk_rk, public_key, wrapped_private_key, totp_secret_enc?, storage_bytes |
+| `guardianships` | dependent_id, guardian_id, sealed_mk, created_at |
+| `records` | id (client-generated UUIDv4), user_id, wrapped_key, ciphertext, size, created_at, updated_at, rev, deleted_at (tombstone, content nulled) |
+| `attachments` | id, user_id, size, created_at (the link to a record lives **only inside the encrypted record**) |
+| `consents` | user_id, version, text_hash, locale, actor, accepted_at, withdrawn_at |
+| `invites`, `sessions`, `handovers` | hashes of tokens, expiry, minimal metadata |
+| `push_subscriptions` | user_id, endpoint, keys, created_at |
+| `reminder_slots` | user_id, local time, weekday mask, IANA time zone, enabled. **Not linked to any medication** (see the threat model) |
+| `security_events` | type (login_failed, rate_limited, …), user_id?, ip?, at. Pruned after `IP_RETENTION_DAYS` (default 7) |
+| `admin_audit` | admin actions (invite, disable, enable, delete); no content |
+
+**Record envelope v1:** `wrapped_key = nonce‖AEAD_KEK(EK)`, `ciphertext = 0x01‖nonce‖AEAD_EK(pad(JSON))`.
+Padding uses `sodium_pad` to buckets of 256 B, 512 B, 1 KiB, 2 KiB and 4 KiB, then 4 KiB multiples, so ciphertext size
+does not reveal the record type (most records fall into the first two buckets). Photos are padded to 64 KiB multiples.
+
+**Record plaintext (examples):**
+
+```json
+{ "v": 1, "type": "food", "at": "2026-10-18T08:10:00+02:00", "meal": "breakfast",
+  "text": "Oatmeal with berries", "tags": ["t_home"], "attachments": [{ "id": "…", "key": "…" }] }
+
+{ "v": 1, "type": "pain", "at": "…", "points": [
+  { "region": "knee", "side": "right", "space": "2d-front-v1", "u": 0.42, "v": 0.61,
+    "intensity": 6, "quality": "aching", "note": "after running" } ] }
+```
+
+**Body map, ready for 3D later without migration:** `region` + `side` come from a stable, view-independent
+catalogue (for example `knee`, `lower_back`, `temple`; side `left|right|midline`). The catalogue maps each region to its
+SVG path and, optionally, an FMA anatomy ID (FMA is CC-BY). Coordinates are region-local `(u, v)` in a **named,
+versioned coordinate space** (`2d-front-v1`, `2d-back-v1`, `2d-head-v1`, …). A future 3D view adds a `3d-mesh-v1` space
+(for example, barycentric coordinates on a mesh face). Old 2D points still render on the 3D model at their region's
+anchor plus a projected (u, v). Nothing is rewritten. Children's profiles use a scaled outline with the **same region IDs and
+spaces**, so heat maps stay comparable.
+
+### 5.1 Sync and client storage
+
+- `GET /api/records?since=<cursor>` returns changed records and tombstones. The client keeps **ciphertext** in IndexedDB,
+  so later visits download only changes. This also prepares for offline-first in a later version.
+- Decrypted data lives only in memory (Svelte stores) and is wiped on lock. Nothing decrypted goes to localStorage,
+  sessionStorage, IndexedDB, the service worker cache or logs.
+- The service worker precaches **all** app chunks at install. Navigating to, say, the body map therefore makes no network request
+  that would tell the server which feature is in use.
+- Search, filters, charts, the heat map, CSV/JSON export and the PDF are computed client-side from memory.
+
+### 5.2 Photos
+
+Images are decoded with `createImageBitmap` (respecting EXIF orientation), drawn to a canvas at a maximum of 1600 px, and
+re-encoded as JPEG/WebP at 0.8 quality. Re-encoding drops all EXIF/GPS metadata, and a unit test asserts this. The image is then
+encrypted with secretstream and uploaded as an opaque blob to `/data/blobs/<userId>/<id>`. **Proposal: allow
+attachments on any record type**, not just food, so "has a photo" does not reveal "this is a meal".
+
+## 6. Medication reminders (Web Push)
+
+- Opt-in per device. The user picks reminder *times* (for example 08:00 and 20:00 on weekdays). The server stores only the times
+  and time zone, not which medication they relate to.
+- At each slot the server sends a **payload-less** push signed with VAPID. The service worker shows "Time for a check-in" from
+  local i18n strings. Opening it unlocks the app, which computes locally what is due.
+- Push transits Apple (iOS) or Google/Mozilla (others). On iOS it requires an **installed PWA (Add to Home Screen) on iOS 16.4+**,
+  and permission must be requested from a user gesture. This is documented in-app and in `SELF_HOSTING.md`.
+- The server never sends pushes based on measurements (MDR).
+
+## 7. Accounts and admin
+
+- The admin is a role on a normal account. Admin screens show: username, status, created date, storage used, last active
+  (day only), and invite/disable/enable/delete controls. There is no content, no record counts by type, and no key access. An admin
+  **cannot reset a passphrase** (that would require keys). The only remedy for a locked-out user without a recovery key is deletion and
+  re-invitation.
+- **Account deletion (Art. 17):** the user re-authenticates, gets an export offered, and confirms. Then, in one transaction, the server deletes
+  records, attachment files, wrapped keys, sessions, push subscriptions, reminder slots and guardianships. With `PRAGMA secure_delete=ON`
+  plus `VACUUM` and a WAL checkpoint, the freed pages are overwritten. Deleting the wrapped keys is the crypto-shredding step. **Honest
+  caveat:** backups made before the deletion still contain the ciphertext *and* the wrapped keys until rotation (still only
+  openable with the user's passphrase or recovery key). The privacy notice will say this, with the backup retention period.
+- **Withdrawing consent** goes through the same flow (export offered, then deletion).
+- An adult who is the only guardian of a dependent cannot delete their account until the dependent is handed over, transferred to
+  another guardian, or deleted (decision D12).
+
+## 8. Server hardening
+
+- Headers: CSP (§2.2), `Strict-Transport-Security: max-age=63072000; includeSubDomains`, `X-Content-Type-Options`,
+  `Referrer-Policy: no-referrer`, `Permissions-Policy` (camera only on capture inputs), `Cross-Origin-Opener-Policy: same-origin`,
+  `Cross-Origin-Resource-Policy: same-origin`.
+- In-memory token-bucket rate limits on prelogin, login, recover, invite-accept and handover, keyed **per IP and per username**
+  (on a VPN, all phones may share one NAT address).
+- Logs: structured JSON to stdout with method, route template, status, duration and user ID. **No bodies, no IPs on stdout.** IPs appear
+  only in `security_events`, which is pruned after `IP_RETENTION_DAYS` (default 7; 0 disables it). The reverse proxy's access log
+  is turned off in the shipped Caddyfile, because it would otherwise keep IPs outside our retention control.
+- No decrypted content can reach the server, so it cannot be logged there. On the client, the logger is a wrapper that drops
+  arguments in production builds, and a lint rule forbids `console.*` in app code.
+
+## 9. TLS for a VPN-only home deployment
+
+Service workers, PWA install, Web Push and `crypto.subtle` all need a secure context. Options:
+
+| Option | How | Pros | Cons |
+| --- | --- | --- | --- |
+| **A. Public domain + Let's Encrypt via DNS-01** (recommended if you own a domain) | Caddy in the stack gets a wildcard certificate `*.home.example.dk` through your DNS provider's API. Pi-hole local DNS maps `daybook.home.example.dk` to the Pi's VPN/LAN IP | Trusted by every device out of the box. No inbound ports (DNS-01 is outbound only). Auto-renewal. Best for iOS push and PWA behaviour | Needs a domain (about 100 DKK/yr) and a DNS API token on the Pi. The hostname appears in Certificate Transparency logs (a wildcard hides the subdomain) |
+| **B. Tailscale HTTPS** (if your VPN is Tailscale) | `tailscale cert` or `tailscale serve` gives a Let's Encrypt certificate for `pi.<tailnet>.ts.net` | Zero DNS work, trusted everywhere | Only applies if you use Tailscale. The tailnet name is in CT logs |
+| **C. Private CA** (Caddy `tls internal`, or step-ca) | Install the CA's root profile on each iPhone (then enable full trust in Settings → General → About → Certificate Trust Settings) and on each computer | Fully offline, no domain needed | Manual setup per device, repeated for every new device and every future self-hoster user. PWA and push work on iOS with a fully trusted root, but this is the least-tested path |
+| D. Self-signed per host | | | Not workable: iOS will not install the PWA or register service workers reliably |
+
+**Recommendation:** A, or B if you already use Tailscale. C is the documented fallback. If you already run a
+reverse proxy (Nginx Proxy Manager, Traefik, Caddy), we reuse it instead of adding Caddy (decision D3). The app itself listens on
+plain HTTP on the internal Docker network only.
+
+## 10. Build, release and deployment
+
+- **CI on pull requests to develop/main:** lint, typecheck, unit tests, licence check, `npm audit --audit-level=high`, Playwright e2e.
+- **On merge to develop:** the same checks, then `docker buildx` for linux/arm64 + linux/amd64, pushed to `ghcr.io/<owner>/<repo>:edge`.
+  We use prebuilt better-sqlite3 binaries to avoid slow compilation under QEMU. Native arm64 runners are used if available on your plan.
+- **On tag `vX.Y.Z` on main (created by you):** build `:X.Y.Z` + `:latest`, and publish the changelog generated from Conventional Commits
+  (git-cliff, MIT/Apache) in the GitHub release.
+- **Pull-based deployment:** Portainer stacks pull from GHCR using a read-only token. `compose.staging.yml` tracks `:edge` on its own port and volume, with
+  synthetic seed data. `compose.family.yml` is pinned to `:X.Y.Z`. You update by editing the tag.
+- **Configuration:** `.env` on the host only. `docker run --rm <image> gen-secrets` prints `SESSION_SECRET`, `SERVER_SECRET` and the VAPID key pair.
+- **Startup migrations:** before applying any pending migration, the server writes
+  `/data/backups/pre-migrate-<UTC timestamp>-<from>-<to>.db` using SQLite's online backup API. **If the backup fails, startup aborts**
+  with a clear log line. The last 5 pre-migration backups are kept.
+- **Nightly backup** (proposal): a small scheduled job in the same process (`BACKUP_CRON`, default 03:30) writes a consistent
+  SQLite snapshot plus the new blob files to a mounted NAS path (`/backup`), keeping `BACKUP_RETENTION_DAYS` (default 14).
+  It is also runnable on demand: `docker exec <container> node build/backup.js`. The alternative is a host cron script (decision D13).
+- `GET /healthz` returns `{status:"ok"}` after a cheap DB query. It requires no auth and reveals no details. It is used by the Compose healthcheck.
+
+## 11. Accessibility, i18n and platform notes
+
+- 375 px first, `viewport-fit=cover`, and `env(safe-area-inset-*)` for the notch and home indicator.
+- **Dynamic Type:** the root font is `-apple-system-body` on iOS (falling back to 100%), and all sizes are in `rem`, so the system text size setting scales the UI.
+- WCAG 2.2 AA: 4.5:1 text contrast (the palette is checked in `design/`), 44×44 pt targets (24×24 minimum per 2.5.8), visible focus,
+  no colour-only meaning (pain intensity always shows a number), and `prefers-reduced-motion`.
+- The body map has a searchable list of all regions as an equivalent alternative to tapping the SVG.
+- English + Danish from M1 (message keys only). Danish copy gets reviewed in M7.
+
+## 12. Open decisions for the owner
+
+| # | Decision | My recommendation |
+| --- | --- | --- |
+| D1 | Confirm the stack: SvelteKit 2/Svelte 5, Node 24, SQLite + better-sqlite3 + Drizzle, libsodium-sumo | Yes |
+| D2 | CSP: accept a hash-based strict CSP (one hashed inline bootstrap script, no `unsafe-inline`), plus `'wasm-unsafe-eval'` for libsodium | Accept. The alternative is Vite SPA + Hono with literally zero inline scripts |
+| D3 | TLS: A (own domain + DNS-01), B (Tailscale), or C (private CA)? Which VPN do you use, and do you already run a reverse proxy? | A or B |
+| D4 | Auth: derived-key (Bitwarden-style) for v1, with OPAQUE possible later | Derived-key now |
+| D5 | Approve libsodium-wrappers-sumo (about 2.2 MB unpacked, about 200 KB gzipped in the client bundle), which exceeds the 1 MB rule | Approve |
+| D6 | **Fonts: allow SIL OFL-1.1 fonts as an asset licence exception?** Almost no quality fonts are CC0/CC-BY. Otherwise: system fonts only (SF Pro Rounded on Apple, Segoe on Windows), which is what the mockups use | Allow OFL for fonts, but start with system fonts and add at most one display font if you want more character |
+| D7 | Web Push without `web-push` (MPL-2.0): payload-less push with our own VAPID code | Yes |
+| D8 | Allow photo attachments on any record type (hides "this is a meal" from the server) | Yes |
+| D9 | Auto-lock: 5 min inactivity or 60 s in the background, user-adjustable (1 to 30 min) | Yes |
+| D10 | Recovery key format: 160-bit, 8 groups of 4 Crockford base32 characters, plus a printable sheet | Yes |
+| D11 | Handover: who must confirm guardian revocation, the child only or child and guardian? | Child confirms, guardian is notified |
+| D12 | Block deletion of a sole guardian's account while they still have dependents | Yes |
+| D13 | Nightly backup inside the app process (recommended) or a host cron script | In-app |
+| D14 | Backup retention default 14 days (sets how long deleted accounts persist in backups, stated in the privacy notice) | 14 days |
+| D15 | PDF via print stylesheet or pdf-lib (19 MB package, needs approval). Decide in M5 after an iOS spike | Spike both in M5 |
+| D16 | Design direction "Linen & Clay" (see `design/`): palette, system fonts, Lucide icons | See the design proposal |
