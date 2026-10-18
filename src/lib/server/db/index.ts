@@ -51,3 +51,14 @@ export function db(): Db {
 export function sqliteHandle(): Database.Database {
 	return ensure().sqlite;
 }
+
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+
+/**
+ * Runs `fn` in an IMMEDIATE transaction: the write lock is taken up front. A deferred transaction that reads and
+ * then writes fails at once (SQLITE_BUSY_SNAPSHOT) if another process, such as the invite CLI, committed in
+ * between; with IMMEDIATE the other writer waits for busy_timeout instead. Use this for every write.
+ */
+export function writeTx<T>(fn: (tx: Tx) => T): T {
+	return db().transaction(fn, { behavior: 'immediate' });
+}

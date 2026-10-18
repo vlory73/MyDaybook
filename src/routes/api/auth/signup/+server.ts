@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, gt, isNull } from 'drizzle-orm';
-import { db } from '$lib/server/db';
+import { writeTx } from '$lib/server/db';
 import { consents, invites, securityEvents, users } from '$lib/server/db/schema';
 import { ipRetentionDays } from '$lib/server/auth/events';
 import { ApiError, api, clientIp, rateGuard, readJson, reply } from '$lib/server/auth/http';
@@ -53,7 +53,7 @@ export const POST = api(async (event) => {
 
 	const now = Date.now();
 	const ip = clientIp(event);
-	const role = db().transaction((tx) => {
+	const role = writeTx((tx) => {
 		const invite = tx
 			.select({ id: invites.id, role: invites.role })
 			.from(invites)

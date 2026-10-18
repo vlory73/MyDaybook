@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { db } from '$lib/server/db';
+import { writeTx } from '$lib/server/db';
 import { adminAudit, invites } from '$lib/server/db/schema';
 import { ApiError, api, readJson, reply, requireAdmin } from '$lib/server/auth/http';
 import { newToken, sha256 } from '$lib/server/auth/tokens';
@@ -18,7 +18,7 @@ export const POST = api(async (event) => {
 	const now = Date.now();
 	const expiresAt = now + hours * 3_600_000;
 	const id = randomUUID();
-	db().transaction((tx) => {
+	writeTx((tx) => {
 		tx.insert(invites)
 			.values({ id, tokenHash: sha256(token), createdBy: user.id, role, createdAt: now, expiresAt })
 			.run();

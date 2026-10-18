@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
+import { writeTx } from '$lib/server/db';
 import { recoveryTokens } from '$lib/server/db/schema';
 import { findByUsername } from '$lib/server/auth/accounts';
 import { recordEvent } from '$lib/server/auth/events';
@@ -40,7 +40,7 @@ export const POST = api(async (event) => {
 	noteSuccess('recover', event, username);
 
 	const token = newToken();
-	db().transaction((tx) => {
+	writeTx((tx) => {
 		tx.delete(recoveryTokens).where(eq(recoveryTokens.userId, user.id)).run();
 		tx.insert(recoveryTokens)
 			.values({
