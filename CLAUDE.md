@@ -104,7 +104,7 @@ Other key documents:
 | 2026-10-18 | Photos: 1280 px JPEG q0.7 (~150 KB), 256 px thumbnails, 1.25 MiB blob cap, `BODY_SIZE_LIMIT=2M`. Declined for now: separate JSON body cap; per-user storage quota deferred to the backlog | Owner, PR #11 |
 | 2026-10-18 | TOTP: using the recovery key bypasses and switches off two-step sign-in; no backup codes in v1; optional `E2E_PORT` test setting kept | Owner, PR #12 |
 | 2026-10-18 | M3 approved: medication, doses, reminders (Web Push opt-in, needs an installed PWA on iOS 16.4+; iPhone check after 0.1.0), plus nausea/heartburn logging moved from the backlog into M3 | Owner |
-| 2026-10-18 | Medication: weekdays not preselected, amount may be empty, times always shown in 24-hour format. Nausea/heartburn gets its own stomach icon (CC0, drawn in-house) | Owner, PRs #15/#16 |
+| 2026-10-18 | Medication: weekdays not preselected, amount may be empty, times follow the phone's 12/24-hour setting (not forced). Nausea/heartburn gets its own stomach icon (CC0, drawn in-house) | Owner, PRs #15/#16 |
 
 ## Backlog (owner requests to raise later)
 
