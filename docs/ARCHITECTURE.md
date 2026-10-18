@@ -41,14 +41,14 @@ I agree with the suggested direction, with a few adjustments flagged in **bold**
 | Runtime | **Node 24 LTS** | Supported until April 2028; Node 22 is in maintenance and reaches end of life in April 2027 | Bun/Deno: smaller ecosystem for native SQLite on arm64 |
 | Database | SQLite (WAL mode) via better-sqlite3 + Drizzle ORM | Zero extra containers, a single file to back up, fast on SSD, about 10 MB of RAM. Drizzle gives typed queries and SQL migrations without a heavy runtime | **Postgres**: about 100 MB more RAM and another container, with no benefit for 4–50 users. **Node's built-in `node:sqlite`**: promising, but Drizzle support and the online-backup API are less mature; we can revisit later. **Kysely**: good, but Drizzle's migration tooling is simpler |
 | Crypto | libsodium-wrappers-sumo (ISC) | One audited library for XChaCha20-Poly1305, Argon2id, BLAKE2b KDF, X25519 sealed boxes and secretstream, using fast WASM. **Only the sumo build contains Argon2id (`crypto_pwhash`)**: verified, the standard build does not | WebCrypto: no XChaCha20 or Argon2. @noble/ciphers + @noble/hashes (MIT, audited): pure-JS Argon2 at 64 MiB is several times slower on iPhones. hash-wasm (MIT) for Argon2 + noble for AEAD: smaller, but two libraries instead of one |
-| i18n | Paraglide JS (MIT) | Compile-time and tree-shaken: only used strings ship. Type-safe message keys make hard-coded strings easy to catch in lint | svelte-i18n (MIT): runtime and larger. typesafe-i18n: unmaintained |
+| i18n | **Small in-house typed module** (`src/lib/i18n`, no dependency, D21) | Message keys are TypeScript-checked, the Danish catalogue must contain every English key (compile error otherwise), `Intl` handles numbers and plurals, and `npm run lint` rejects hard-coded text in components | Paraglide JS (MIT): good, but its project loads the message-format plugin **from a CDN (jsdelivr) at build time**, a third-party fetch and supply-chain risk. svelte-i18n (MIT): runtime and larger |
 | Styling | Hand-written CSS with design tokens (CSS custom properties) and a small in-house Svelte component library | The spec rules out admin UI kits; tokens make light/dark mode and Dynamic Type straightforward | Tailwind: fine, but tokens + scoped Svelte styles need no extra dependency |
 | Icons | Lucide (ISC), only the used SVGs vendored | Friendly rounded strokes; ISC is on the allow-list | Phosphor (MIT): also good, with a warmer duotone style. Could swap |
 | Charts | Hand-built SVG charts with d3-scale/d3-shape (ISC) | A few KB. Full control over calm styling, and no "red zone" defaults (MDR) | uPlot (MIT): fast but canvas, so harder to make accessible. Chart.js: about 200 KB |
 | PDF | Decide in M5: a print stylesheet (zero dependencies) or pdf-lib (MIT) | A print stylesheet reuses the SVG heat map as-is. pdf-lib is more deterministic on iOS standalone PWAs, but it is a 19 MB package (needs approval) | jsPDF: bundles code under various licences |
 | Web Push | **No push library. Payload-less pushes signed with our own VAPID (ES256) via `node:crypto`** | `web-push` is **MPL-2.0, which is not on the allow-list**. A payload-less push needs no payload encryption at all, and it is the most private option: Apple and Google receive nothing but timing. The service worker shows the generic text locally | Implementing RFC 8291 payload encryption ourselves: about 150 lines, but unnecessary |
-| Tests | Vitest (unit, including all crypto), Playwright (e2e, using the preinstalled Chromium plus WebKit for iOS behaviour) | Standard, fast, and MIT/Apache | |
-| Licence check | `license-checker-rseidelsohn` (BSD-3) with an allow-list, plus a custom asset manifest check | Fails CI on anything outside MIT/BSD/ISC/Apache-2.0 and CC0/CC-BY | |
+| Tests | Vitest 5 (unit, including all crypto), Playwright (e2e against the production build, phone viewport; Chromium locally, Chromium + WebKit in CI) | Standard, fast, and MIT/Apache | |
+| Licence check | `license-checker-rseidelsohn` (BSD-3) driven by `scripts/check-licenses.mjs`, plus `static/ASSET_LICENSES.json` for assets | Shipped code (production dependencies and the SvelteKit/Svelte runtime bundled into the build) must be MIT/BSD/ISC/Apache-2.0 (CC0/CC-BY for data). Build/test tooling may also be BlueOak-1.0.0 or Python-2.0 (D22). Every static file needs a listed licence | |
 | Container | Multi-stage Dockerfile, `node:24-bookworm-slim` runtime, non-root user, read-only root filesystem, `/data` volume | Prebuilt better-sqlite3 binaries exist for glibc arm64/amd64. Slim Debian avoids musl surprises | Alpine: about 40 MB smaller, but native-module risk. Distroless: no shell for `docker exec` maintenance |
 
 **Footprint target:** a compressed image of about 80 MB and an idle RSS of about 70 MB. The Compose
@@ -69,8 +69,8 @@ SvelteKit's client bootstrap includes one small inline `<script>`. SvelteKit's b
 "strict CSP" guidance calls hash-based CSP. Planned header:
 
 ```
-default-src 'none'; script-src 'self' 'sha256-<bootstrap>' 'wasm-unsafe-eval';
-style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self';
+default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-<bootstrap>';
+style-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-<announcer style>'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self';
 manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'self';
 frame-ancestors 'none'; object-src 'none'
 ```
@@ -78,7 +78,9 @@ frame-ancestors 'none'; object-src 'none'
 `'wasm-unsafe-eval'` is **required** for libsodium's WASM. Without it, libsodium silently falls back to
 asm.js, and Argon2id becomes unusably slow on phones. Styles are emitted as external CSS files; M1 will verify
 with a CSP violation test in e2e that no `'unsafe-inline'` is needed for styles either. Trusted Types are left out
-because Svelte builds templates via `innerHTML`. If you want literally zero inline script tags, the alternative is the Vite SPA +
+because Svelte builds templates via `innerHTML`. The only inline style is SvelteKit's screen-reader route announcer; its
+fixed `style` attribute is allowed by hash alone (`style-src-attr`), and an e2e test fails on any CSP violation, so a framework
+update that changes it cannot slip through. If you want literally zero inline script tags, the alternative is the Vite SPA +
 Hono stack in the table (decision D2).
 
 ## 3. Key hierarchy
@@ -440,6 +442,8 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | D15 | Doctor-visit PDF: try a print stylesheet first in M5; fall back to pdf-lib if the installed iPhone app fails | **Approved** (plan) |
 | D16 | Design direction "Linen & Clay" (`design/`) | **Approved** |
 | D17 | Scope additions ★: food watch list (intolerances and allergens) with saved meals; bowel movements; recurring medication schedules with "All taken"; dedicated sleep and weight logging (§5.3) | **Approved** (owner request) |
-| D18 | Food and symptom views stay descriptive: side-by-side entries, no correlation scores or conclusions; no alerts on bowel entries (MDR) | **Proposed** |
-| D19 | No BMI, target weights or reference ranges anywhere; weight is shown as plain numbers and change over time | **Proposed** |
-| D20 | Pill counts and refill reminders left out of v1 | **Proposed** |
+| D18 | Food and symptom views stay descriptive: side-by-side entries, no correlation scores or conclusions; no alerts on bowel entries (MDR) | **Approved** |
+| D19 | No BMI, target weights or reference ranges anywhere; weight is shown as plain numbers and change over time | **Approved** |
+| D20 | Pill counts and refill reminders left out of v1 | **Approved** |
+| D21 | Replace Paraglide with a small in-house typed i18n module (Paraglide fetches a plugin from a CDN at build time) | **Proposed** (implemented in M1, easy to revert) |
+| D22 | Licence policy: strict for shipped code; build/test tooling may also be BlueOak-1.0.0 (glob/minimatch family) or Python-2.0 (ESLint's argparse) | **Proposed** |

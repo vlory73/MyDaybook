@@ -88,20 +88,33 @@ Other key documents:
 | 2026-10-18 | Home Pi facts from the Home Assistant session: D3 = existing Caddy at https://lory-home.duckdns.org:8444, app on port 8090; D13 = in-app dump at 04:00 into ~/mydaybook/backup (3 kept); D14 = 14 days on the NAS. See docs/HOME_DEPLOYMENT.md | Owner, HA session |
 | 2026-10-18 | Home Pi details agreed with the HA session: port 127.0.0.1:8090, fixed subnet 172.30.90.0/24 (TRUSTED_PROXY=172.30.90.1), HSTS 86400 then 31536000 with no includeSubDomains, stable dump name, no staging on the Pi, root `compose.yaml` + `.env.example` required. See docs/HOME_DEPLOYMENT.md | HA session |
 | 2026-10-18 | D16 design "Linen & Clay" approved. D17 scope additions approved: food watch list (intolerances/allergens) + saved meals, bowel movements, recurring medication with "All taken", dedicated sleep and weight logging. D18–D20 proposed (descriptive food/symptom views only, no BMI/targets, no pill counts) | Owner |
+| 2026-10-18 | D18–D20 approved: food/symptom views descriptive only, no alerts on bowel entries; no BMI, targets or reference ranges; no pill counts or refill reminders in v1 | Owner |
+| 2026-10-18 | M1: SvelteKit 2.70 / Svelte 5 / Vite 7 / TypeScript 5.9 / Vitest 5 pinned (newer majors skipped deliberately). `cookie` overridden to 0.7.2 (audit). D21 (in-house i18n) and D22 (tooling licences) proposed | M1 |
+
+## Backlog (owner requests to raise later)
+
+Remind the owner of these when planning the next feature milestone; don't build them unasked.
+
+- **Nausea and heartburn** (requested 2026-10-18): a dedicated, quick way to log them. Today they could only be logged as
+  symptom tags with a severity. Fits next to bowel movements in the gut area.
 
 ## Current status
 
-_Last updated: 2026-10-18, M0 session (after owner review)._
+_Last updated: 2026-10-18, M1 session._
 
-- **Milestone:** M0 delivered, waiting for owner review. No application code exists yet.
-- **Done:** initial commit on `main`; `develop` created; `docs/SPEC.md`, this file,
-  `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, design proposal (`design/`, HTML mockups + screenshots).
-- **All decisions D1–D15 settled** (see Decisions log and `docs/ARCHITECTURE.md` §12). Home Pi integration is agreed in
-  `docs/HOME_DEPLOYMENT.md`; no more back-and-forth until there is something to deploy.
-- **D16 approved; D17 additions designed** (see `design/README.md`, `docs/ARCHITECTURE.md` §5.3).
-- **Waiting on the owner:** D18–D20 (proposed MDR-safe limits); then M1 can start.
+- **Milestone:** M1 delivered (direct to develop, the last direct commit ever). From now on every change goes through a
+  `feature/*` branch and a PR.
+- **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
+  (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
+  intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
+  strict CSP, `/healthz`, CI workflow (lint, types, unit, licences, audit, build, e2e on Chromium + WebKit), CONTRIBUTING,
+  SECURITY. Screenshots in `docs/screenshots/m1/`.
+- **Waiting on the owner:** D21 (in-house i18n instead of Paraglide), D22 (tooling licence allowance), approval of the
+  dev dependencies over 1 MB (TypeScript, Prettier, svelte-check, Svelte, ESLint, Vitest, @types/node, Vite, eslint-plugin-svelte,
+  SvelteKit). Also: protect `develop` and `main` in GitHub settings now that direct commits are over.
+- **Next:** M2 (auth, crypto, entry CRUD) on feature branches: likely `feature/crypto-core`, `feature/server-db`,
+  `feature/auth-signup`, `feature/entries`.
 - **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
-  invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant.
-- **Next:** M1 (scaffold, tooling, CI on PRs, design tokens, core components).
-- **Not yet written (later milestones):** `docs/gdpr/*`, `SECURITY.md`, `CONTRIBUTING.md`, `docs/SELF_HOSTING.md`,
-  Compose files, `.env.example`.
+  invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant. Raise the backlog items when
+  planning the next milestone.
+- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`, Dockerfile, `compose.yaml`, `.env.example`.
