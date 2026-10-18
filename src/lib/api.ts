@@ -37,15 +37,19 @@ export function setUnauthenticatedHandler(handler: (() => void) | null): void {
 	onUnauthenticated = handler;
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function request<T>(
+	method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+	path: string,
+	body?: unknown
+): Promise<T> {
 	let res: Response;
 	try {
 		res = await fetch(path, {
 			method,
 			credentials: 'same-origin',
 			cache: 'no-store',
-			headers: method === 'POST' ? { 'content-type': 'application/json' } : undefined,
-			body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined
+			headers: method === 'GET' ? undefined : { 'content-type': 'application/json' },
+			body: method === 'GET' ? undefined : JSON.stringify(body ?? {})
 		});
 	} catch {
 		throw new ApiError(0, 'network');
@@ -71,3 +75,5 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
 
 export const apiGet = <T>(path: string) => request<T>('GET', path);
 export const apiPost = <T>(path: string, body?: unknown) => request<T>('POST', path, body);
+export const apiPut = <T>(path: string, body?: unknown) => request<T>('PUT', path, body);
+export const apiDelete = <T>(path: string) => request<T>('DELETE', path);
