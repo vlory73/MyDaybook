@@ -1,8 +1,8 @@
 /**
  * Record payloads, version 1 (ARCHITECTURE §5.3). This is what lives inside the ciphertext.
  * Every payload has `v: 1` and a `type`; entries that happen at a moment also have `at`, an ISO 8601 timestamp with
- * the UTC offset the person was in when they logged it ("2026-10-18T08:10:00+02:00"). Pain and dose
- * types arrive in later milestones; `parsePayload` returns null for types it does not know yet, and the store keeps
+ * the UTC offset the person was in when they logged it ("2026-10-18T08:10:00+02:00"). Pain
+ * arrives in a later milestone; `parsePayload` returns null for types it does not know yet, and the store keeps
  * such records out of the UI instead of failing.
  * Validators are small and hand-written: a payload that fails them is skipped, never trusted.
  */
@@ -147,6 +147,23 @@ export type MedicationPayload = Base<'medication'> & {
 	archived: boolean;
 	note?: string;
 };
+export const DOSE_STATUSES = ['taken', 'skipped', 'late'] as const;
+export type DoseStatus = (typeof DOSE_STATUSES)[number];
+/** The scheduled moment a dose belongs to: a local day and a clock time of the medication's time row. */
+export type DoseSlot = { date: string; time: string };
+/**
+ * One thing the person did about a dose. Nothing is stored until they act; due doses are computed from the active
+ * medications. `at` is when it was logged or taken (for `late` the time the person picked). `amount` is copied
+ * verbatim from the medication's time row (or typed for an as-needed dose) and never computed. `slot` is absent for
+ * as-needed doses.
+ */
+export type DosePayload = Timed<'dose'> & {
+	medicationId: string;
+	slot?: DoseSlot;
+	status: DoseStatus;
+	amount?: string;
+	note?: string;
+};
 export type SettingsPayload = Base<'settings'> & { values: Record<string, string | number | boolean> };
 export type TagPayload = Base<'tag'> & { name: string };
 
@@ -162,6 +179,7 @@ export type Payload =
 	| SensitivityPayload
 	| SavedMealPayload
 	| MedicationPayload
+	| DosePayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -263,6 +281,12 @@ function isMedication(o: Obj): boolean {
 	return typeof o.reminders === 'boolean' && typeof o.archived === 'boolean' && optStr(o.note, 2000);
 }
 
+function isDose(o: Obj): boolean {
+	if (!isAt(o.at) || !isStr(o.medicationId, 100) || o.medicationId === '') return false;
+	if (!oneOf(DOSE_STATUSES, o.status) || !optStr(o.amount, 100) || !optStr(o.note, 2000)) return false;
+	return o.slot === undefined || (isObj(o.slot) && isDay(o.slot.date) && isClock(o.slot.time));
+}
+
 function isTimed(o: Obj): boolean {
 	return isAt(o.at);
 }
@@ -334,6 +358,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		strList(o.tags) &&
 		isExposures(o.exposures),
 	medication: isMedication,
+	dose: isDose,
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),
