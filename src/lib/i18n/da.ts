@@ -411,5 +411,24 @@ export const da: Record<MessageKey, string> = {
 	'watch.up': 'Flyt {name} op',
 	'watch.down': 'Flyt {name} ned',
 	'watch.remove': 'Fjern {name}',
-	'watch.removed': '{name} fjernet fra din liste'
+	'watch.removed': '{name} fjernet fra din liste',
+
+	'photo.label': 'Fotos',
+	'photo.add': 'Tilføj foto',
+	'photo.addAnother': 'Tilføj endnu et foto',
+	'photo.remove': 'Fjern foto {n}',
+	'photo.alt': 'Foto knyttet til denne registrering',
+	'photo.open': 'Åbn foto',
+	'photo.viewer': 'Foto',
+	'photo.loadFailed': 'Kunne ikke hente fotoet.',
+	'photo.preparing': 'Gør foto klar…',
+	'photo.uploading': 'Uploader foto {done} af {total}…',
+	'photo.privacy':
+		'Fotos krypteres på denne enhed, før de uploades. Placering og andre oplysninger i filen fjernes.',
+	'photo.error.notImage': 'Den fil er ikke et billede.',
+	'photo.error.tooBig': 'Billedet er for stort. Grænsen er 25 MB.',
+	'photo.error.decode': 'Kunne ikke åbne billedet.',
+	'photo.error.encode': 'Kunne ikke gøre billedet klar.',
+	'photo.error.limit': 'Du kan tilføje op til 4 fotos til en registrering.',
+	'photo.error.upload': 'Kunne ikke uploade fotos. Tjek din forbindelse og prøv igen.'
 };

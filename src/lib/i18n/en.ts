@@ -405,7 +405,26 @@ export const en = {
 	'watch.up': 'Move {name} up',
 	'watch.down': 'Move {name} down',
 	'watch.remove': 'Remove {name}',
-	'watch.removed': '{name} removed from your list'
+	'watch.removed': '{name} removed from your list',
+
+	'photo.label': 'Photos',
+	'photo.add': 'Add photo',
+	'photo.addAnother': 'Add another photo',
+	'photo.remove': 'Remove photo {n}',
+	'photo.alt': 'Photo attached to this entry',
+	'photo.open': 'Open photo',
+	'photo.viewer': 'Photo',
+	'photo.loadFailed': "Couldn't load the photo.",
+	'photo.preparing': 'Preparing photo…',
+	'photo.uploading': 'Uploading photo {done} of {total}…',
+	'photo.privacy':
+		'Photos are encrypted on this device before they are uploaded. The location and other details in the file are removed.',
+	'photo.error.notImage': 'That file is not a picture.',
+	'photo.error.tooBig': 'That picture is too large. The limit is 25 MB.',
+	'photo.error.decode': "Couldn't open that picture.",
+	'photo.error.encode': "Couldn't prepare that picture.",
+	'photo.error.limit': 'You can add up to 4 photos to one entry.',
+	'photo.error.upload': "Couldn't upload the photos. Check your connection and try again."
 } as const;
 
 export type MessageKey = keyof typeof en;

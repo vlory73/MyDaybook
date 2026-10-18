@@ -21,7 +21,24 @@ export type Exposure = { id: string; state: ExposureState };
 /** `severity` is 1 to 3 in the app (mild, medium, strong); it is optional because noting a tag is enough. */
 export type Symptom = { tag: string; severity?: number };
 
-type Base<T extends string> = { v: 1; type: T };
+/**
+ * A photo attached to a record (ARCHITECTURE §5.2). The keys live only here, inside the encrypted record, so the
+ * server cannot tell which record a blob belongs to. `thumbId` is a second, small blob for the timeline.
+ */
+export type AttachmentRef = {
+	id: string;
+	/** URL-safe base64 of the 32-byte attachment key. */
+	key: string;
+	thumbId: string;
+	thumbKey: string;
+	w: number;
+	h: number;
+	mime: 'image/jpeg';
+};
+export const MAX_ATTACHMENTS = 4;
+
+/** Any record type may carry photos (D8), so that "has a photo" does not reveal "this is a meal". */
+type Base<T extends string> = { v: 1; type: T; attachments?: AttachmentRef[] };
 type Timed<T extends string> = Base<T> & { at: string };
 
 export type FoodPayload = Timed<'food'> & {
@@ -122,6 +139,26 @@ export function isAt(x: unknown): x is string {
 	return probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const KEY_RE = /^[A-Za-z0-9_-]{43}$/;
+
+const isAttachmentRef = (x: unknown): x is AttachmentRef =>
+	isObj(x) &&
+	typeof x.id === 'string' &&
+	UUID_RE.test(x.id) &&
+	typeof x.thumbId === 'string' &&
+	UUID_RE.test(x.thumbId) &&
+	typeof x.key === 'string' &&
+	KEY_RE.test(x.key) &&
+	typeof x.thumbKey === 'string' &&
+	KEY_RE.test(x.thumbKey) &&
+	isInt(x.w, 1, 20_000) &&
+	isInt(x.h, 1, 20_000) &&
+	x.mime === 'image/jpeg';
+
+const isAttachments = (x: unknown): x is AttachmentRef[] =>
+	x === undefined || (Array.isArray(x) && x.length <= MAX_ATTACHMENTS && x.every(isAttachmentRef));
+
 const isExposures = (x: unknown): x is Exposure[] =>
 	Array.isArray(x) &&
 	x.length <= 50 &&
@@ -195,6 +232,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 export function parsePayload(x: unknown): Payload | null {
 	if (!isObj(x) || x.v !== PAYLOAD_VERSION || typeof x.type !== 'string') return null;
 	if (!Object.hasOwn(validators, x.type)) return null;
+	if (!isAttachments(x.attachments)) return null;
 	return validators[x.type as PayloadType](x) ? (x as Payload) : null;
 }
 

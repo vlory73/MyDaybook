@@ -172,6 +172,57 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'today-meal', scheme);
 		});
 
+		test(`photos meal sheet, timeline and viewer ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'photos', 'photos screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			// Synthetic pictures painted at test time (nothing real).
+			const png = async (hue: number) =>
+				Buffer.from(
+					await page.evaluate(async (h) => {
+						const c = document.createElement('canvas');
+						c.width = 1200;
+						c.height = 900;
+						const x = c.getContext('2d')!;
+						const g = x.createLinearGradient(0, 0, 1200, 900);
+						g.addColorStop(0, `hsl(${h} 60% 75%)`);
+						g.addColorStop(1, `hsl(${h + 50} 55% 45%)`);
+						x.fillStyle = g;
+						x.fillRect(0, 0, 1200, 900);
+						x.fillStyle = `hsl(${h + 20} 50% 92%)`;
+						x.beginPath();
+						x.arc(600, 450, 260, 0, Math.PI * 2);
+						x.fill();
+						const b = await new Promise<Blob>((r) => c.toBlob((v) => r(v!), 'image/png'));
+						return Array.from(new Uint8Array(await b.arrayBuffer()));
+					}, hue)
+				);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			const sheet = page.getByRole('dialog');
+			await sheet.getByLabel('What did you have?').fill('Tomato soup with bread');
+			const input = sheet.locator('input[type=file]');
+			await input.setInputFiles({ name: 'a.png', mimeType: 'image/png', buffer: await png(20) });
+			await sheet.getByRole('img', { name: 'Photo attached to this entry' }).waitFor();
+			await input.setInputFiles({ name: 'b.png', mimeType: 'image/png', buffer: await png(140) });
+			await sheet.getByRole('img', { name: 'Photo attached to this entry' }).nth(1).waitFor();
+			await sheet.getByRole('button', { name: 'Remove photo 2' }).scrollIntoViewIfNeeded();
+			await snap(page, 'sheet-meal-photos', scheme);
+			await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+			await page.getByRole('button', { name: 'Open photo' }).first().waitFor();
+			await page.waitForFunction(() =>
+				Array.from(document.querySelectorAll('button[aria-label="Open photo"] img')).every(
+					(i) => (i as HTMLImageElement).naturalWidth > 0
+				)
+			);
+			await page.waitForTimeout(300);
+			await snap(page, 'today-photos', scheme);
+			await page.getByRole('button', { name: 'Open photo' }).first().click();
+			await page.getByRole('dialog', { name: 'Photo' }).getByRole('img').waitFor();
+			await snap(page, 'viewer', scheme);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');

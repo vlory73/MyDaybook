@@ -37,6 +37,17 @@ export function setUnauthenticatedHandler(handler: (() => void) | null): void {
 	onUnauthenticated = handler;
 }
 
+function toApiError(res: Response, data: unknown): ApiError {
+	const code =
+		typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
+			? data.error
+			: 'server_error';
+	const retry = Number(res.headers.get('retry-after'));
+	const error = new ApiError(res.status, code, Number.isFinite(retry) && retry > 0 ? retry : null);
+	if (code === 'unauthenticated') onUnauthenticated?.();
+	return error;
+}
+
 async function request<T>(
 	method: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	path: string,
@@ -60,16 +71,7 @@ async function request<T>(
 	} catch {
 		// An empty or non-JSON body; the status decides.
 	}
-	if (!res.ok) {
-		const code =
-			typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
-				? data.error
-				: 'server_error';
-		const retry = Number(res.headers.get('retry-after'));
-		const error = new ApiError(res.status, code, Number.isFinite(retry) && retry > 0 ? retry : null);
-		if (code === 'unauthenticated') onUnauthenticated?.();
-		throw error;
-	}
+	if (!res.ok) throw toApiError(res, data);
 	return data as T;
 }
 
@@ -77,3 +79,34 @@ export const apiGet = <T>(path: string) => request<T>('GET', path);
 export const apiPost = <T>(path: string, body?: unknown) => request<T>('POST', path, body);
 export const apiPut = <T>(path: string, body?: unknown) => request<T>('PUT', path, body);
 export const apiDelete = <T>(path: string) => request<T>('DELETE', path);
+
+/** Uploads raw bytes (an encrypted attachment) as `application/octet-stream`. */
+export async function apiPutBytes<T>(path: string, bytes: Uint8Array): Promise<T> {
+	let res: Response;
+	try {
+		res = await fetch(path, {
+			method: 'PUT',
+			credentials: 'same-origin',
+			cache: 'no-store',
+			headers: { 'content-type': 'application/octet-stream' },
+			body: bytes as BodyInit
+		});
+	} catch {
+		throw new ApiError(0, 'network');
+	}
+	const data: unknown = await res.json().catch(() => null);
+	if (!res.ok) throw toApiError(res, data);
+	return data as T;
+}
+
+/** Downloads raw bytes (an encrypted attachment). */
+export async function apiGetBytes(path: string): Promise<Uint8Array> {
+	let res: Response;
+	try {
+		res = await fetch(path, { credentials: 'same-origin', cache: 'no-store' });
+	} catch {
+		throw new ApiError(0, 'network');
+	}
+	if (!res.ok) throw toApiError(res, await res.json().catch(() => null));
+	return new Uint8Array(await res.arrayBuffer());
+}

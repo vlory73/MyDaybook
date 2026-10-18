@@ -2,11 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Chip from './Chip.svelte';
+	import PhotoPicker from './PhotoPicker.svelte';
 	import Icon from './Icon.svelte';
 	import { iconNames, type IconName } from './icon-names';
 	import LogSheet from './LogSheet.svelte';
 	import Toggle from './Toggle.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { PhotoDrafts } from '$lib/photos/drafts.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { closeEditors } from '$lib/records/editor.svelte';
 	import { sensitivityName } from '$lib/records/format';
@@ -25,6 +27,7 @@
 	} from '$lib/records/types';
 	import { mealByHour, savedMealName, watchedItems } from '$lib/records/watch';
 
+	const photos = new PhotoDrafts();
 	let time = $state('');
 	let mealChoice = $state<Meal | undefined>();
 	let text = $state('');
@@ -119,7 +122,16 @@
 	}
 </script>
 
-<LogSheet kind="food" title={t('cat.food')} {valid} {payload} {onopen} onbeforesave={saveMealToo} bind:time>
+<LogSheet
+	kind="food"
+	title={t('cat.food')}
+	{valid}
+	{payload}
+	{onopen}
+	onbeforesave={saveMealToo}
+	{photos}
+	bind:time
+>
 	<div class="chip-row" role="group" aria-label={t('meal.type')}>
 		{#each MEALS as m (m)}
 			<Chip selected={meal === m} onclick={() => (mealChoice = m)}>{t(`meal.${m}` as MessageKey)}</Chip>
@@ -204,6 +216,8 @@
 			>
 		{/each}
 	</div>
+
+	<PhotoPicker drafts={photos} />
 
 	<div class="often">
 		<span>{t('meal.saveAs')}</span>

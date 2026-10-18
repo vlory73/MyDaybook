@@ -9,7 +9,8 @@
 	import { closeEditors, editor, type LogKind } from '$lib/records/editor.svelte';
 	import { remove, save, store } from '$lib/records/store.svelte';
 	import { formatAt, toLocalInput } from '$lib/records/time';
-	import type { Payload } from '$lib/records/types';
+	import type { PhotoDrafts } from '$lib/photos/drafts.svelte';
+	import type { AttachmentRef, Payload } from '$lib/records/types';
 
 	/**
 	 * The frame shared by the entry sheets: opens for one `kind`, fills the form when it opens (`onopen` gets the
@@ -24,6 +25,7 @@
 		onbeforesave,
 		time = $bindable(''),
 		showTime = true,
+		photos,
 		children
 	}: {
 		kind: LogKind;
@@ -37,11 +39,14 @@
 		/** Value for the time chip ("YYYY-MM-DDTHH:mm"); the sheet reads it when it builds the payload. */
 		time?: string;
 		showTime?: boolean;
+		/** Photos of the entry (sheets that offer them). Uploaded when saving; sheets without it keep existing photos as they are. */
+		photos?: PhotoDrafts;
 		children: Snippet;
 	} = $props();
 
 	let busy = $state(false);
 	let failed = $state<'save' | 'delete' | null>(null);
+	let kept: AttachmentRef[] | undefined;
 
 	const target = $derived(editor.log?.kind === kind ? editor.log : null);
 	const id = $derived(target?.id ?? null);
@@ -53,7 +58,10 @@
 		untrack(() => {
 			const existing = current.id ? (store.items[current.id]?.payload ?? null) : null;
 			time = toLocalInput(formatAt(new Date()));
-			onopen(existing && existing.type === kind ? existing : null, current.typeId);
+			const same = existing && existing.type === kind ? existing : null;
+			kept = same?.attachments;
+			photos?.reset(kept);
+			onopen(same, current.typeId);
 			busy = false;
 			failed = null;
 		});
@@ -66,11 +74,20 @@
 		failed = null;
 		try {
 			await onbeforesave?.();
+			if (photos) {
+				const refs = await photos.commit();
+				if (refs.length > 0) p.attachments = refs;
+				else delete p.attachments;
+			} else if (kept?.length) {
+				p.attachments = kept;
+			}
 			await save(p, id ?? undefined);
+			void photos?.settle();
 			closeEditors();
 			showToast(t('entry.saved'));
 		} catch {
-			failed = 'save';
+			// A failed upload is reported by the photo picker itself.
+			failed = photos?.problem === 'upload' ? null : 'save';
 		} finally {
 			busy = false;
 		}

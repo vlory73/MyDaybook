@@ -143,6 +143,18 @@ describe('origin guard', () => {
 		);
 		expect(checkApiRequest('POST', h({ origin: own }), own)).toBe('bad_content_type');
 	});
+	it('accepts raw bytes only under /api/attachments/, still with the own Origin', () => {
+		const raw = { 'content-type': 'application/octet-stream', origin: own };
+		expect(checkApiRequest('PUT', h(raw), own, '/api/attachments/abc')).toBeNull();
+		expect(checkApiRequest('PUT', h(raw), own, '/api/records/abc')).toBe('bad_content_type');
+		expect(checkApiRequest('PUT', h(raw), own)).toBe('bad_content_type');
+		expect(
+			checkApiRequest('PUT', h({ ...raw, origin: 'https://evil.test' }), own, '/api/attachments/abc')
+		).toBe('bad_origin');
+		expect(
+			checkApiRequest('PUT', h({ origin: own, 'content-type': 'text/plain' }), own, '/api/attachments/abc')
+		).toBe('bad_content_type');
+	});
 });
 
 describe('input validation', () => {

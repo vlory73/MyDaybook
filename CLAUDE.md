@@ -108,10 +108,12 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 - **Nausea and heartburn** (requested 2026-10-18): a dedicated, quick way to log them. Today they could only be logged as
   symptom tags with a severity. Fits next to bowel movements in the gut area.
+- **Per-user storage quota** (deferred 2026-10-18, "much later"): e.g. `STORAGE_QUOTA_MB`, refusing uploads over it with a
+  friendly message. `users.storage_bytes` already tracks usage. Raise it again only much later (not at the next milestone).
 
 ## Current status
 
-_Last updated: 2026-10-18, during M2 (feature/log-meals, stacked on feature/log-body)._
+_Last updated: 2026-10-18, during M2 (feature/photos, stacked on feature/log-meals)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
   rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
@@ -122,7 +124,7 @@ _Last updated: 2026-10-18, during M2 (feature/log-meals, stacked on feature/log-
   live duration, naps), weight and custom measurements (steppers, two-value types), bowel (Bristol types, flags), edit and
   delete with Undo, and an "Again?" row in quick-log (screenshots in `docs/screenshots/log-body/`). `feature/log-meals` (stacked on log-body): food watch list in Me (EU allergens + intolerances, own items,
   reorder), meal sheet with Yes / Not sure / No per watched item, saved meals (one-tap fill and "Again?"), timeline tags such
-  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). Next: pain/body map and medication sheets.
+  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; photos about 150 KB each, 1.25 MiB cap, `BODY_SIZE_LIMIT=2M` needed; screenshots in `docs/screenshots/photos/`). Next: pain/body map and medication sheets.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the

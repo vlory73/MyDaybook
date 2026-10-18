@@ -21,6 +21,7 @@ import {
 	type StoredRecord,
 	type Wire
 } from './codec';
+import { flushPendingAttachmentDeletes, scheduleAttachmentDelete } from '$lib/photos/pending';
 import type { Payload } from './types';
 
 export type { StoredRecord } from './codec';
@@ -96,6 +97,7 @@ export async function startRecords(): Promise<void> {
 	cursor = cached.cursor;
 	apply(cached.records);
 	store.status = 'ready';
+	void flushPendingAttachmentDeletes(userId());
 	await sync();
 }
 
@@ -177,7 +179,11 @@ export async function save(payload: Payload, id: string = crypto.randomUUID()): 
 	return id;
 }
 
-/** Deletes a record. Returns `undo()`, which puts the same payload back under the same id. */
+/**
+ * Deletes a record. Returns `undo()`, which puts the same payload back under the same id.
+ * The record's photos are deleted on the server only after a grace period longer than the Undo toast
+ * (see photos/pending.ts); Undo keeps them.
+ */
 export async function remove(id: string): Promise<() => Promise<void>> {
 	const previous = store.items[id];
 	const gen = generation;
@@ -197,8 +203,12 @@ export async function remove(id: string): Promise<() => Promise<void>> {
 			deletedAt: res.updatedAt
 		}
 	]);
+	const photos = previous?.payload.attachments;
+	const pending = photos?.length ? scheduleAttachmentDelete(uid, photos) : null;
 	return async () => {
-		if (previous) await save(previous.payload, id);
+		if (!previous) return;
+		await save(previous.payload, id);
+		pending?.cancel();
 	};
 }
 
