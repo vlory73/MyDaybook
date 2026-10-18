@@ -1,0 +1,186 @@
+<script lang="ts">
+	import { untrack, type Snippet } from 'svelte';
+	import Button from './Button.svelte';
+	import Icon from './Icon.svelte';
+	import Notice from './Notice.svelte';
+	import Sheet from './Sheet.svelte';
+	import { showToast } from './toast.svelte';
+	import { t } from '$lib/i18n/index.svelte';
+	import { closeEditors, editor, type LogKind } from '$lib/records/editor.svelte';
+	import { remove, save, store } from '$lib/records/store.svelte';
+	import { formatAt, toLocalInput } from '$lib/records/time';
+	import type { Payload } from '$lib/records/types';
+
+	/**
+	 * The frame shared by the entry sheets: opens for one `kind`, fills the form when it opens (`onopen` gets the
+	 * saved payload when editing), saves what `payload()` returns, and deletes with an Undo toast (no confirmation).
+	 */
+	let {
+		kind,
+		title,
+		valid,
+		payload,
+		onopen,
+		time = $bindable(''),
+		showTime = true,
+		children
+	}: {
+		kind: LogKind;
+		title: string;
+		valid: boolean;
+		/** Builds the record to save, or null when the form is not complete. */
+		payload: () => Payload | null;
+		onopen: (existing: Payload | null, typeId?: string) => void;
+		/** Value for the time chip ("YYYY-MM-DDTHH:mm"); the sheet reads it when it builds the payload. */
+		time?: string;
+		showTime?: boolean;
+		children: Snippet;
+	} = $props();
+
+	let busy = $state(false);
+	let failed = $state<'save' | 'delete' | null>(null);
+
+	const target = $derived(editor.log?.kind === kind ? editor.log : null);
+	const id = $derived(target?.id ?? null);
+
+	// Fill the form whenever the sheet is opened (new entry: now; existing entry: its saved values).
+	$effect(() => {
+		const current = target;
+		if (!current) return;
+		untrack(() => {
+			const existing = current.id ? (store.items[current.id]?.payload ?? null) : null;
+			time = toLocalInput(formatAt(new Date()));
+			onopen(existing && existing.type === kind ? existing : null, current.typeId);
+			busy = false;
+			failed = null;
+		});
+	});
+
+	async function onSave() {
+		const p = payload();
+		if (!p || busy) return;
+		busy = true;
+		failed = null;
+		try {
+			await save(p, id ?? undefined);
+			closeEditors();
+			showToast(t('entry.saved'));
+		} catch {
+			failed = 'save';
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function onDelete() {
+		if (!id || busy) return;
+		busy = true;
+		failed = null;
+		try {
+			const undo = await remove(id);
+			closeEditors();
+			showToast(t('entry.deleted'), () => {
+				undo().then(
+					() => showToast(t('entry.restored')),
+					() => showToast(t('entry.error.save'))
+				);
+			});
+		} catch {
+			failed = 'delete';
+		} finally {
+			busy = false;
+		}
+	}
+</script>
+
+<Sheet bind:open={() => target !== null, (v) => !v && closeEditors()} {title}>
+	<div class="form">
+		{#if showTime}
+			<label class="time-chip">
+				<Icon name="clock" size={18} />
+				<input type="datetime-local" aria-label={t('entry.time')} bind:value={time} />
+			</label>
+		{/if}
+		{@render children()}
+		{#if failed}
+			<Notice tone="error">{failed === 'save' ? t('entry.error.save') : t('entry.error.delete')}</Notice>
+		{/if}
+		<div class="actions">
+			{#if id}
+				<Button variant="quiet" disabled={busy} onclick={onDelete}>{t('common.delete')}</Button>
+			{/if}
+			<Button disabled={!valid || busy} onclick={onSave}>{t('common.save')}</Button>
+		</div>
+	</div>
+</Sheet>
+
+<style>
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-3);
+	}
+	.actions {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--sp-3);
+		margin-top: var(--sp-2);
+	}
+	.actions :global(.btn:last-child) {
+		margin-left: auto;
+	}
+	.time-chip {
+		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 2px 12px;
+		border-radius: var(--r-full);
+		background: var(--surface-2);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-medium);
+	}
+	.time-chip input {
+		border: 0;
+		background: transparent;
+		min-height: 32px;
+		font-size: inherit;
+		font-weight: inherit;
+		max-width: 11.5em;
+	}
+	/* Shared look of the sheet contents, which render inside this frame. */
+	.form :global(.label) {
+		display: flex;
+		justify-content: space-between;
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-semibold);
+		color: var(--text-2);
+		margin: var(--sp-2) 0 calc(-1 * var(--sp-1));
+	}
+	.form :global(.label .hint) {
+		font-weight: var(--fw-regular);
+		color: var(--text-3);
+	}
+	.form :global(.chip-row) {
+		display: flex;
+		gap: var(--sp-2);
+		flex-wrap: wrap;
+	}
+	.form :global(textarea) {
+		width: 100%;
+		min-height: 88px;
+		padding: var(--sp-3) var(--sp-4);
+		border-radius: var(--r-md);
+		border: 1.5px solid transparent;
+		background: var(--surface-2);
+		font-size: var(--fs-body);
+		resize: vertical;
+	}
+	.form :global(textarea::placeholder) {
+		color: var(--text-3);
+	}
+	.form :global(textarea:focus-visible) {
+		outline: none;
+		border-color: var(--focus);
+	}
+</style>

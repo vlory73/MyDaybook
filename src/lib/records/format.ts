@@ -6,7 +6,8 @@ import type { Category } from '$lib/components/categories';
 import { t, tn } from '$lib/i18n/index.svelte';
 import type { MessageKey } from '$lib/i18n/en';
 import { categories } from '$lib/components/categories';
-import { instant } from './time';
+import { BUILT_IN_CONTEXT } from './log';
+import { minutesBetween } from './time';
 import type { StoredRecord } from './codec';
 import type { TimedPayload } from './types';
 
@@ -28,11 +29,11 @@ export function formatDuration(minutes: number): string {
 	return t('fmt.duration.minutes', { m });
 }
 
-export function minutesBetween(from: string, to: string): number {
-	return Math.max(0, Math.round((instant(to) - instant(from)) / 60_000));
-}
-
 const clock = (at: string) => at.slice(11, 16);
+
+/** Built-in measurement contexts are stored as keys and shown translated; free text is shown as typed. */
+const contextLabel = (c: string) =>
+	(BUILT_IN_CONTEXT as readonly string[]).includes(c) ? t(`measure.ctx.${c}` as MessageKey) : c;
 
 /** `typeName` resolves a custom measurement type id to its name. */
 export function describe(
@@ -44,7 +45,7 @@ export function describe(
 		case 'food':
 			return { category: 'food', title: t(`meal.${p.meal}` as MessageKey), summary: firstLine(p.text) };
 		case 'feeling': {
-			const symptoms = p.symptoms.map((s) => `${s.tag} ${s.severity}/5`).join(', ');
+			const symptoms = p.symptoms.map((s) => (s.severity ? `${s.tag} (${s.severity})` : s.tag)).join(', ');
 			return {
 				category: 'feel',
 				title: t(categories.feel.label),
@@ -65,6 +66,7 @@ export function describe(
 					t('fmt.sleep.range', { from: clock(p.asleepAt), to: clock(p.at) }),
 					p.quality !== undefined && t('fmt.quality', { n: p.quality }),
 					p.awakenings ? tn('fmt.awakenings', p.awakenings) : undefined,
+					p.naps?.length ? tn('fmt.naps', p.naps.length) : undefined,
 					p.note && firstLine(p.note)
 				])
 			};
@@ -75,7 +77,7 @@ export function describe(
 			return {
 				category: isWeight ? 'weight' : 'measure',
 				title: `${name} ${values} ${p.unit}`.trim(),
-				summary: join([p.context.join(', '), p.note && firstLine(p.note)])
+				summary: join([p.context.map(contextLabel).join(', '), p.note && firstLine(p.note)])
 			};
 		}
 		case 'bowel':
@@ -83,7 +85,7 @@ export function describe(
 				category: 'gut',
 				title: t('fmt.bowel.title'),
 				summary: join([
-					t('fmt.bowel.type', { n: p.bristol }),
+					t('fmt.bowel.type', { n: p.bristol, name: t(`bowel.type.${p.bristol}` as MessageKey) }),
 					...p.flags.map((f) => t(`bowel.flag.${f}` as MessageKey)),
 					p.note && firstLine(p.note)
 				])

@@ -42,6 +42,10 @@ export const timeOf = (at: string): string => at.slice(11, 16);
 
 export const instant = (at: string): number => Date.parse(at);
 
+/** Whole minutes from one `at` to another (never negative). Offsets are honoured, so midnight and DST are exact. */
+export const minutesBetween = (from: string, to: string): number =>
+	Math.max(0, Math.round((instant(to) - instant(from)) / 60_000));
+
 export function todayKey(now = new Date()): string {
 	return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }

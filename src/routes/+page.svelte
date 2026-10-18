@@ -1,10 +1,19 @@
 <script lang="ts">
-	import { CategoryBadge, EmptyState, Notice, Spinner, WeekStrip } from '$lib/components';
+	import {
+		CategoryBadge,
+		EmptyState,
+		Icon,
+		Notice,
+		Spinner,
+		WeekStrip,
+		type IconName
+	} from '$lib/components';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
-	import { openDetail, openNote } from '$lib/records/editor.svelte';
+	import { openDetail, openLog, openNote } from '$lib/records/editor.svelte';
 	import { describe } from '$lib/records/format';
+	import { quickSave } from '$lib/records/quick';
 	import { daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
-	import { dayDate, timeOf, todayKey, weekDays } from '$lib/records/time';
+	import { dayDate, formatAt, timeOf, todayKey, weekDays } from '$lib/records/time';
 
 	const now = new Date();
 	const hour = now.getHours();
@@ -33,7 +42,21 @@
 
 	function open(id: string, type: string) {
 		if (type === 'note') openNote(id);
+		else if (type === 'feeling' || type === 'sleep' || type === 'bowel') openLog(type, { id });
+		else if (type === 'measurement') openLog('measurement', { id });
 		else openDetail(id);
+	}
+
+	// One-tap mood: saves a feeling with just the mood and offers Undo.
+	const moodLabels = ['mood.1', 'mood.2', 'mood.3', 'mood.4', 'mood.5'] as const;
+	const latestMood = $derived(
+		[...entries].reverse().find((r) => r.payload.type === 'feeling' && r.payload.mood !== undefined)?.payload
+	);
+	function logMood(mood: number) {
+		void quickSave(
+			{ v: 1, type: 'feeling', at: formatAt(new Date()), mood, symptoms: [] },
+			'today.mood.saved'
+		);
 	}
 </script>
 
@@ -50,6 +73,27 @@
 	<Notice tone="warn">{tn('today.skipped', store.skipped)}</Notice>
 {:else if store.syncFailed}
 	<Notice>{t('today.syncFailed')}</Notice>
+{/if}
+
+{#if isToday}
+	<section class="card" aria-labelledby="feel">
+		<h2 class="card-title" id="feel">{t('today.mood.title')}</h2>
+		<p class="card-sub">{t('today.mood.sub')}</p>
+		<div class="moods">
+			{#each moodLabels as label, i (label)}
+				{@const n = i + 1}
+				<button
+					type="button"
+					class="mood"
+					class:on={latestMood?.type === 'feeling' && latestMood.mood === n}
+					aria-label={t(label)}
+					aria-pressed={latestMood?.type === 'feeling' && latestMood.mood === n}
+					onclick={() => logMood(n)}><Icon name={`face-${n}` as IconName} size={30} /></button
+				>
+			{/each}
+		</div>
+		<button type="button" class="more" onclick={() => openLog('feeling')}>{t('today.mood.more')}</button>
+	</section>
 {/if}
 
 <h2 class="section-title">{heading}</h2>
@@ -81,6 +125,47 @@
 {/if}
 
 <style>
+	.card {
+		background: var(--surface);
+		border-radius: var(--r-lg);
+		padding: var(--sp-4);
+		box-shadow: var(--shadow-1);
+		margin-top: var(--sp-3);
+	}
+	.card-title {
+		font-size: var(--fs-body);
+		font-weight: var(--fw-semibold);
+	}
+	.card-sub {
+		font-size: var(--fs-callout);
+		color: var(--text-2);
+		margin: 2px 0 var(--sp-3);
+	}
+	.moods {
+		display: grid;
+		grid-template-columns: repeat(5, 1fr);
+		gap: 6px;
+	}
+	.mood {
+		height: 52px;
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		color: var(--text-2);
+		display: grid;
+		place-items: center;
+	}
+	.mood.on {
+		background: var(--feel-tint);
+		color: var(--feel-ink);
+		box-shadow: inset 0 0 0 2px var(--feel-ink);
+	}
+	.more {
+		margin-top: var(--sp-2);
+		min-height: 36px;
+		color: var(--primary);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-semibold);
+	}
 	.section-title {
 		font-size: var(--fs-title3);
 		font-weight: var(--fw-bold);
@@ -117,9 +202,12 @@
 	.s {
 		font-size: var(--fs-callout);
 		color: var(--text-2);
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		overflow-wrap: anywhere;
 	}
 	.loading {
 		display: grid;
