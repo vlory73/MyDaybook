@@ -84,7 +84,7 @@ For the first deployment you are both the operator and a user, so case d reduces
 | T2 | Household member reads another member's diary on a shared or unlocked device | Per-user keys; auto-lock (5 min / 60 s background); lock wipes decrypted state; separate iOS profiles not needed |
 | T3 | Database or backup theft | Content encrypted; offline Argon2id attack only; strong-passphrase guidance; backups on NAS contain only ciphertext |
 | T4 | Server swaps or replays ciphertext between users or records | AEAD associated data binds `userId` + `recordId` to each record and key. **Residual:** rollback of a record to an older version, or deletion, is not detectable in v1 (a signed per-user manifest is a possible later improvement) |
-| T5 | Account enumeration through prelogin | Deterministic fake salt for unknown users; uniform error messages and timing |
+| T5 | Account enumeration through prelogin | Deterministic fake salt for unknown users; uniform error messages and timing. **Residual:** fake answers always carry the default KDF parameters, so an account whose parameters were changed (e.g. a future strength upgrade) is distinguishable from a non-existent one until the defaults catch up |
 | T6 | Online passphrase guessing | Rate limits per IP and per username; exponential backoff; optional TOTP; security events logged with short retention |
 | T7 | Session theft or CSRF | `__Host-` cookie: HttpOnly, Secure, SameSite=Strict; Origin check; JSON-only API; sessions revocable; CSP blocks injected scripts |
 | T8 | XSS leading to key theft | Strict hash-based CSP with no `unsafe-inline` and `default-src 'none'`; Svelte auto-escaping; no `{@html}` with user data (lint rule); user text is never rendered as HTML |
