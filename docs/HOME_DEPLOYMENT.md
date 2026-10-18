@@ -16,7 +16,7 @@ APP INTEGRATION REQUEST
 - Needs access from outside the home? (no / via VPN Plus is fine / needs Tailscale): via VPN Plus is fine. When Tailscale arrives, the SAME URL https://lory-home.duckdns.org:8444 must work over it (Pi as subnet router or equivalent); changing the URL forces everyone to reinstall the app.
 - Users/login in the app? (none / own login / other): own login: invite-only accounts, passphrase + optional TOTP, end-to-end encryption; the admin cannot read anyone's data.
 - Persistent data (volume names or folders): ~/mydaybook/data (SQLite database, encrypted photo files, automatic pre-migration backups) and ~/mydaybook/backup (nightly dumps). Bind mounts; container runs as uid:gid 1000:1000 (PUID/PGID in .env if different).
-- Backup method (dump command + schedule, dump folder, how many kept) or volumes to export: The app does it itself every night at 04:00 (Pi local time): consistent SQLite online backup to ~/mydaybook/backup/db/app-<timestamp>.sqlite (newest 3 kept) plus a mirror of the encrypted photo store in ~/mydaybook/backup/blobs/. Please copy ~/mydaybook/backup/ to the NAS in the 04:30 job (14 days). Manual run: cd ~/mydaybook && docker compose exec app node scripts/cli.mjs backup (the backup command arrives with the Docker work)
+- Backup method (dump command + schedule, dump folder, how many kept) or volumes to export: The app does it itself every night at 04:00 (Pi local time): consistent SQLite online backup to ~/mydaybook/backup/db/app-<timestamp>.sqlite (newest 3 kept) plus a mirror of the encrypted photo store in ~/mydaybook/backup/blobs/. Please copy ~/mydaybook/backup/ to the NAS in the 04:30 job (14 days). Manual run: cd ~/mydaybook && docker compose exec app node scripts/cli.mjs backup 
 - Restore procedure (short): 1) cd ~/mydaybook && docker compose down. 2) mv data/app.db data/app.db.old; rm -f data/app.db-wal data/app.db-shm. 3) cp backup/db/app-<timestamp>.sqlite data/app.db and rsync -a --delete backup/blobs/ data/blobs/ (take both from the NAS if the Pi copy is gone). 4) If the dump came from a NEWER app version than the running one, set the image tag in compose.yaml back to that version. 5) docker compose up -d, then check http://192.168.10.52:8090/healthz says ok. Note: users get back their passphrase as of the dump date.
 - Secrets (names only, never values) and where they live on the Pi: SESSION_SECRET, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY in ~/mydaybook/.env (mode 600, gitignored). Nobody types them: "docker run --rm ghcr.io/vlory73/mydaybook:<X.Y.Z> gen-secrets >> ~/mydaybook/.env" generates them without printing. Non-secret settings in the same file: PUBLIC_URL=https://lory-home.duckdns.org:8444, TRUSTED_PROXY=<Caddy's address as seen by the container>, TZ=Europe/Copenhagen, IP_RETENTION_DAYS=7, BACKUP_TIME=04:00, BACKUP_KEEP=3, HSTS_MAX_AGE=0 (see question 2).
 - Expected RAM / CPU: ~70 MB idle, hard limit 256 MB (mem_limit), CPU near zero (encryption runs on the phones, not the Pi); short spike during the 04:00 backup. Staging, if added, the same again.
@@ -45,6 +45,13 @@ These override the request above where they differ.
    127.0.0.1 port, the fixed network, `mem_limit`, the bind mounts and `env_file: .env`. Also ship `.env.example` with the
    non-secret settings, and the `gen-secrets` command in the README. Upgrades happen only on purpose, by changing the pinned tag.
 9. **First admin invite:** the owner runs it in their own terminal.
+
+**Backup time changed (owner request, confirmed by the Home Assistant session, 2026-10-18):** the NAS is switched off during
+the night on a schedule, so nothing may touch it after **01:00**, and 04:00 / 04:30 no longer apply. New times: the app's dump at
+**23:30** (`BACKUP_TIME=23:30`, now also the app's default) and the NAS copy job at **00:00**, finished by 01:00. Both stay
+adjustable: `BACKUP_TIME=HH:MM` in `~/mydaybook/.env` (Pi local time, apply with `docker compose up -d`); keep the copy at least
+30 minutes after the dump. File names, folders, retention and the "newer than 26 h" check are unchanged. The NAS is off from
+01:00 until the morning; both times also stay clear of the 02:00–03:00 hour that daylight-saving changes skip or repeat.
 
 **Our follow-ups:** tell the owner when 0.1.0 is published, and report any change to the above. Ask the owner about the first
 admin invite (question 1) when 0.1.0 is ready, and about a staging copy (question 4) if it becomes relevant.

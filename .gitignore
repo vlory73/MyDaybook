@@ -37,3 +37,4 @@ Thumbs.db
 
 # Claude Code local state and agent worktrees
 .claude/
+backup/
