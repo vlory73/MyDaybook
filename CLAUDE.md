@@ -68,6 +68,14 @@ Other key documents:
 5. If something in the spec is contradictory or unwise, say so and propose an alternative rather than silently working around it.
 6. Use Sonnet sub-agents for well-scoped implementation work to curb costs; the main session designs, reviews and opens PRs (owner request, 2026-10-18).
 
+7. Testing economy (owner request, 2026-10-18). GitHub Actions is the official gate; local runs exist to avoid red CI cycles:
+   - Docs-only changes: no local test run; let CI confirm.
+   - While iterating: run only the fast, relevant checks (lint, typecheck, the affected unit tests or one e2e spec).
+   - Before pushing code: one full local run (`npm run lint`, `npm run check`, `npm test`, `npm run licenses`,
+     `npm run audit`, `npx playwright test --project=phone-chromium`), as the spec requires e2e in the sandbox.
+   - Keep tool output trimmed (tail/grep); never paste full logs.
+   - Give sub-agents the same rule.
+
 ## Conventions
 
 - Branding (display name, short name, manifest name, description) lives in one file: `brand.config.json`
