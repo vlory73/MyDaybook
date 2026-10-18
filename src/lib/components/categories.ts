@@ -9,7 +9,7 @@ export const categories = {
 	pain: { icon: 'activity', label: 'cat.pain', tint: 'pain' },
 	meds: { icon: 'pill', label: 'cat.meds', tint: 'meds' },
 	gut: { icon: 'toilet', label: 'cat.gut', tint: 'gut' },
-	stomach: { icon: 'bean', label: 'cat.stomach', tint: 'gut' },
+	stomach: { icon: 'stomach', label: 'cat.stomach', tint: 'gut' },
 	weight: { icon: 'scale', label: 'cat.weight', tint: 'measure' },
 	measure: { icon: 'ruler', label: 'cat.measure', tint: 'measure' },
 	note: { icon: 'notebook-pen', label: 'cat.note', tint: 'note' }
