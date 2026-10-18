@@ -1,6 +1,7 @@
 import { json, type RequestEvent, type RequestHandler } from '@sveltejs/kit';
 import { logLine } from '../db/log';
 import { recordEvent } from './events';
+import { resolveClientAddress } from './proxy';
 import { limiters } from './rate-limit';
 import { isObject } from './validate';
 
@@ -61,10 +62,10 @@ export function requireAdmin(event: RequestEvent) {
 	return s;
 }
 
-/** Address of the client as adapter-node sees it (honours TRUSTED_PROXY settings). Never logged. */
+/** Address of the client; X-Forwarded-For is believed only from TRUSTED_PROXY (proxy.ts). Never logged. */
 export function clientIp(event: RequestEvent): string | null {
 	try {
-		return event.getClientAddress();
+		return resolveClientAddress(event.getClientAddress(), event.request.headers.get('x-forwarded-for'));
 	} catch {
 		return null;
 	}
