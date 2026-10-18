@@ -1,0 +1,27 @@
+{
+	"$comment": "Every file in static/ must be listed here with an allowed licence (checked in CI by scripts/check-licenses.mjs). Code-like assets may use MIT/BSD/ISC/Apache-2.0; media CC0/CC-BY; fonts also OFL-1.1 (D6).",
+	"files": {
+		"icons.svg": {
+			"license": "ISC",
+			"source": "Lucide icons (https://lucide.dev), Copyright (c) Lucide Contributors; mood faces original (CC0)"
+		},
+		"favicon.svg": { "license": "CC0-1.0", "source": "Original artwork for this project" },
+		"icon-192.png": {
+			"license": "CC0-1.0",
+			"source": "Rendered from original artwork (scripts/render-icons.mjs)"
+		},
+		"icon-512.png": {
+			"license": "CC0-1.0",
+			"source": "Rendered from original artwork (scripts/render-icons.mjs)"
+		},
+		"icon-maskable-512.png": {
+			"license": "CC0-1.0",
+			"source": "Rendered from original artwork (scripts/render-icons.mjs)"
+		},
+		"apple-touch-icon.png": {
+			"license": "CC0-1.0",
+			"source": "Rendered from original artwork (scripts/render-icons.mjs)"
+		},
+		"robots.txt": { "license": "CC0-1.0", "source": "Original" }
+	}
+}

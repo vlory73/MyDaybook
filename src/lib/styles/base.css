@@ -1,0 +1,128 @@
+/* Base styles. Components keep their own scoped styles; this file holds resets and shared primitives. */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	/* iOS Dynamic Type: the system text-size setting scales every rem-based size. */
+	font: -apple-system-body;
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+@supports not (font: -apple-system-body) {
+	html {
+		font-size: 100%;
+	}
+}
+
+body {
+	margin: 0;
+	min-height: 100dvh;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-sans);
+	font-size: var(--fs-body);
+	line-height: var(--lh-body);
+	-webkit-font-smoothing: antialiased;
+	font-variant-numeric: tabular-nums;
+	-webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+p {
+	margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	border: 0;
+	background: none;
+	padding: 0;
+	cursor: pointer;
+}
+
+a {
+	color: var(--primary);
+}
+
+:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.skip-link {
+	position: absolute;
+	left: var(--sp-4);
+	top: calc(env(safe-area-inset-top) + var(--sp-2));
+	z-index: 100;
+	padding: var(--sp-2) var(--sp-4);
+	border-radius: var(--r-sm);
+	background: var(--text);
+	color: var(--bg);
+	transform: translateY(-200%);
+}
+.skip-link:focus {
+	transform: none;
+}
+
+/* Page layout: content clears the notch and the tab bar plus home indicator. */
+.page {
+	max-width: 560px;
+	margin: 0 auto;
+	padding: calc(env(safe-area-inset-top) + var(--sp-3)) max(var(--gutter), env(safe-area-inset-right))
+		calc(env(safe-area-inset-bottom) + 112px) max(var(--gutter), env(safe-area-inset-left));
+}
+
+.eyebrow {
+	font-size: var(--fs-footnote);
+	color: var(--text-2);
+	font-weight: var(--fw-medium);
+}
+
+.large-title {
+	font-size: var(--fs-title1);
+	font-weight: var(--fw-bold);
+	letter-spacing: -0.01em;
+	line-height: var(--lh-tight);
+}
+
+.page-head {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--sp-3);
+	padding: var(--sp-3) 0 var(--sp-4);
+}
+
+.muted {
+	color: var(--text-2);
+}
+
+.small {
+	font-size: var(--fs-footnote);
+}
+
+.app-root {
+	display: contents;
+}
