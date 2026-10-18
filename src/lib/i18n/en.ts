@@ -78,6 +78,7 @@ export const en = {
 	'meds.reminders.hint': 'Reminders arrive in a later update. Your choice is saved until then.',
 	'meds.exact': 'Amounts are shown exactly as you enter them. The app never calculates or suggests doses.',
 	'meds.error.dates': 'The end date is before the start date.',
+	'meds.error.duplicateTime': 'This time is already listed. Use one row per time.',
 	'meds.archive': 'Archive',
 	'meds.unarchive': 'Unarchive',
 	'meds.archivedToast': 'Medication archived',

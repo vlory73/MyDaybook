@@ -101,12 +101,19 @@
 	const timesOk = $derived(
 		often === 'as_needed' || (rows.length >= 1 && rows.every((r) => /^([01]\d|2[0-3]):[0-5]\d$/.test(r.time)))
 	);
+	// One dose per medication, day and time: the same time twice would be one slot, so it is refused here.
+	const duplicateTimes = $derived(
+		often === 'as_needed'
+			? new Set<string>()
+			: new Set(rows.map((r) => r.time).filter((time, i, all) => time !== '' && all.indexOf(time) !== i))
+	);
 	const valid = $derived(
 		name.trim() !== '' &&
 			strengthValue !== null &&
 			(strengthValue === undefined || unit.length <= 40) &&
 			(often !== 'weekdays' || days.length > 0) &&
 			timesOk &&
+			duplicateTimes.size === 0 &&
 			/^\d{4}-\d{2}-\d{2}$/.test(start) &&
 			datesOk
 	);
@@ -284,7 +291,13 @@
 			<div class="card">
 				{#each rows as row, i (row.key)}
 					<div class="timerow">
-						<input type="time" class="time" aria-label={t('meds.time', { n: i + 1 })} bind:value={row.time} />
+						<input
+							type="time"
+							class="time"
+							aria-label={t('meds.time', { n: i + 1 })}
+							aria-invalid={duplicateTimes.has(row.time)}
+							bind:value={row.time}
+						/>
 						<input
 							class="amount"
 							maxlength="100"
@@ -303,6 +316,7 @@
 						{/if}
 					</div>
 				{/each}
+				{#if duplicateTimes.size > 0}<Notice tone="error">{t('meds.error.duplicateTime')}</Notice>{/if}
 				{#if rows.length < MAX_MED_TIMES}
 					<button type="button" class="addrow" onclick={addRow}
 						><Icon name="plus" size={18} />{t('meds.time.add')}</button
@@ -458,6 +472,10 @@
 		background: transparent;
 		font-size: var(--fs-title3);
 		font-weight: var(--fw-bold);
+	}
+	.time[aria-invalid='true'] {
+		color: var(--pain-ink);
+		text-decoration: underline wavy;
 	}
 	.amount {
 		flex: 1;

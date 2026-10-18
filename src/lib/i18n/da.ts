@@ -81,6 +81,7 @@ export const da: Record<MessageKey, string> = {
 	'meds.reminders.hint': 'Påmindelser kommer i en senere opdatering. Dit valg gemmes indtil da.',
 	'meds.exact': 'Mængder vises præcis, som du skriver dem. Appen beregner eller foreslår aldrig doser.',
 	'meds.error.dates': 'Slutdatoen er før startdatoen.',
+	'meds.error.duplicateTime': 'Det tidspunkt står der allerede. Brug én række pr. tidspunkt.',
 	'meds.archive': 'Arkivér',
 	'meds.unarchive': 'Gendan fra arkiv',
 	'meds.archivedToast': 'Medicin arkiveret',
