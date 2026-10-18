@@ -30,6 +30,22 @@ Thanks for helping. Please read [`docs/SPEC.md`](docs/SPEC.md) (source of truth)
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, …);
   the changelog is generated from them. SemVer, 0.x until the public release. Only the owner creates tags.
 
+## Releases and images
+
+- **Every merge into develop** publishes `ghcr.io/vlory73/mydaybook:edge` (and `:edge-<sha>`) for amd64 and arm64, after the
+  checks pass. Pull requests build and start the image on both architectures without publishing it.
+- **A release:**
+  1. On `release/vX.Y.Z` (from develop): set `"version"` in `package.json`, then run `node scripts/changelog.mjs X.Y.Z`, which
+     adds that version's section to `CHANGELOG.md` from the Conventional Commits since the last tag. Review it, commit, open a
+     PR into main and merge it with a merge commit.
+  2. The owner publishes a GitHub release on main with the tag `vX.Y.Z`.
+  3. The `Release` workflow checks that the tag matches `package.json` and is on main, publishes `:X.Y.Z` and `:latest` for
+     amd64 and arm64, starts the arm64 image as a smoke test, and puts the changelog section into the release notes (anything
+     written in the release is kept below it).
+  4. PR main back into develop.
+- **One-time step for the owner after the first publish:** on GitHub, open the `mydaybook` package (profile → Packages), and
+  in *Package settings* set the visibility to **Public** and link it to this repository. The Pi then pulls without a token.
+
 ## Local development
 
 Requires Node 24 (see `.nvmrc`; Node 22.12+ works).

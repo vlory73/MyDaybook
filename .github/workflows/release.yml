@@ -1,0 +1,78 @@
+name: Release
+
+# The owner publishes a GitHub release on main with a vX.Y.Z tag (CLAUDE.md "Git workflow"). This builds and pushes
+# ghcr.io/<owner>/<repo>:X.Y.Z and :latest for amd64 and arm64, then puts that version's CHANGELOG.md section into the
+# release notes.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish release image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      packages: write
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+      - name: Check the tag, the version and the branch
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag $TAG is not vX.Y.Z"; exit 1; }
+          version="$(node -p "require('./package.json').version")"
+          [ "v$version" = "$TAG" ] || { echo "package.json says $version, the tag says $TAG"; exit 1; }
+          git merge-base --is-ancestor HEAD origin/main || { echo "$TAG is not on main"; exit 1; }
+          node scripts/changelog.mjs --extract "$version" > release-notes.md
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+      - name: Smoke test the arm64 image (emulated)
+        run: scripts/ci-smoke.sh "ghcr.io/${GITHUB_REPOSITORY,,}:${VERSION}" linux/arm64
+      - name: Changelog into the release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Anything the owner wrote in the release is kept, below the generated changelog.
+        run: |
+          own="$(gh release view "$TAG" --json body --jq .body)"
+          {
+            cat release-notes.md
+            echo
+            echo "**Image:** \`ghcr.io/${GITHUB_REPOSITORY,,}:${VERSION}\` (amd64, arm64)"
+            if [ -n "$own" ]; then
+              printf '\n---\n\n%s\n' "$own"
+            fi
+          } > notes.md
+          gh release edit "$TAG" --notes-file notes.md

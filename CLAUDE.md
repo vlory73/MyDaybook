@@ -136,6 +136,9 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   `docs/screenshots/log-gut/`.
 - **feature/docker built:** `Dockerfile` (pinned node:24-bookworm-slim, non-root, read-only root), `scripts/docker-entrypoint.sh`,
   `gen-secrets`, `cli` command, root `compose.yaml`, `.env.example`, `TRUSTED_PROXY` support (`src/lib/server/auth/proxy.ts`).
+- **feature/image-publish built:** CI builds and starts the image on amd64 and arm64 for every PR, publishes `:edge` on merges
+  into develop, and `release.yml` publishes `:X.Y.Z` + `:latest` with the changelog (`scripts/changelog.mjs`) on a release.
+  Owner step after the first publish: make the GHCR package public (CONTRIBUTING "Releases and images").
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
