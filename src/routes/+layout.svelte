@@ -28,6 +28,7 @@
 		LanguageSwitch,
 		MealSheet,
 		MeasurementSheet,
+		MedicationSheet,
 		NoteSheet,
 		PhotoViewer,
 		Sheet,
@@ -215,6 +216,7 @@
 	<FeelingSheet />
 	<SleepSheet />
 	<MeasurementSheet />
+	<MedicationSheet />
 	<BowelSheet />
 	<GutSheet />
 	<MealSheet />

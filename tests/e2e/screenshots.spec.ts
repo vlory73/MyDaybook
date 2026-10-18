@@ -262,6 +262,67 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'viewer', scheme);
 		});
 
+		test(`medication list and set-up sheets ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'medication', 'medication screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/meds');
+			await page.getByText('No medication yet').waitFor();
+			await snap(page, 'meds-empty', scheme);
+
+			const sheet = page.getByRole('dialog', { name: /medication/i });
+			const add = async (name: string) => {
+				await page.getByRole('button', { name: 'Add medication' }).click();
+				await page.waitForTimeout(400);
+				await sheet.getByLabel('Name', { exact: true }).fill(name);
+			};
+			const save = async () => {
+				await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+				await page.getByRole('status').getByText('Saved', { exact: true }).waitFor();
+				await sheet.waitFor({ state: 'hidden' });
+			};
+
+			// Every day, two times: the sheet is captured before saving.
+			await add('Vitamin D');
+			await sheet.getByLabel('Strength', { exact: true }).fill('20');
+			await sheet.getByLabel('Unit', { exact: true }).selectOption('µg');
+			await sheet.getByLabel('Amount 1', { exact: true }).fill('1 tablet');
+			await sheet.getByRole('button', { name: 'Add a time' }).click();
+			await sheet.getByLabel('Time 2', { exact: true }).fill('20:00');
+			await sheet.getByLabel('Amount 2', { exact: true }).fill('1 tablet');
+			await snap(page, 'sheet-daily', scheme);
+			await save();
+
+			await add('Iron');
+			await sheet.getByLabel('Strength', { exact: true }).fill('14');
+			await sheet.getByLabel('Unit', { exact: true }).selectOption('mg');
+			await sheet.getByRole('radio', { name: 'Some weekdays' }).click();
+			for (const d of ['Mon', 'Wed', 'Fri'])
+				await sheet.getByRole('button', { name: d, exact: true }).click();
+			await sheet.getByLabel('Amount 1', { exact: true }).fill('1 capsule');
+			await snap(page, 'sheet-weekdays', scheme);
+			await save();
+
+			await add('Magnesium');
+			await sheet.getByRole('radio', { name: 'Every few days' }).click();
+			await sheet.getByRole('button', { name: 'One day more' }).click();
+			await sheet.getByLabel('Amount 1', { exact: true }).fill('2 tablets');
+			await save();
+
+			await add('Throat spray');
+			await sheet.getByRole('button', { name: 'Spray', exact: true }).click();
+			await sheet.getByRole('radio', { name: 'When needed' }).click();
+			await save();
+
+			await add('Old antihistamine');
+			await save();
+			await page.getByText('Old antihistamine').click();
+			await page.waitForTimeout(400);
+			await sheet.getByRole('button', { name: 'Archive', exact: true }).click();
+			await page.getByRole('status').getByText('Medication archived').waitFor();
+			await page.waitForTimeout(300);
+			await snap(page, 'meds-list', scheme);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');

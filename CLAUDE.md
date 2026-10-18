@@ -103,31 +103,32 @@ Other key documents:
 | 2026-10-18 | D23 approved: on account deletion, the user's security_events are deleted; admin_audit rows are kept for accountability | Owner |
 | 2026-10-18 | Photos: 1280 px JPEG q0.7 (~150 KB), 256 px thumbnails, 1.25 MiB blob cap, `BODY_SIZE_LIMIT=2M`. Declined for now: separate JSON body cap; per-user storage quota deferred to the backlog | Owner, PR #11 |
 | 2026-10-18 | TOTP: using the recovery key bypasses and switches off two-step sign-in; no backup codes in v1; optional `E2E_PORT` test setting kept | Owner, PR #12 |
+| 2026-10-18 | M3 approved: medication, doses, reminders (Web Push opt-in, needs an installed PWA on iOS 16.4+; iPhone check after 0.1.0), plus nausea/heartburn logging moved from the backlog into M3 | Owner |
+| 2026-10-18 | Medication: weekdays not preselected, amount may be empty, times follow the phone's 12/24-hour setting (not forced). Nausea/heartburn gets its own stomach icon (CC0, drawn in-house) | Owner, PRs #15/#16 |
 
 ## Backlog (owner requests to raise later)
 
 Remind the owner of these when planning the next feature milestone; don't build them unasked.
 
-- **Nausea and heartburn** (requested 2026-10-18): a dedicated, quick way to log them. Today they could only be logged as
-  symptom tags with a severity. Fits next to bowel movements in the gut area.
 - **Per-user storage quota** (deferred 2026-10-18, "much later"): e.g. `STORAGE_QUOTA_MB`, refusing uploads over it with a
   friendly message. `users.storage_bytes` already tracks usage. Raise it again only much later (not at the next milestone).
 
 ## Current status
 
-_Last updated: 2026-10-18, during M2 (feature/admin-users, stacked on feature/totp)._
+_Last updated: 2026-10-18, start of M3 (feature/medication)._
 
-- **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
-  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
-  `feature/auth-ui` (join, login, unlock view, auto-lock, recovery, Me account section; screenshots in
-  `docs/screenshots/auth-ui/`). `feature/records-sync` built: encrypted records API (cursor sync), client store with
-  IndexedDB ciphertext cache, Today timeline with week strip, Note entry end to end (screenshots in
-  `docs/screenshots/records-sync/`). `feature/log-body` (stacked on records-sync): feeling (one-tap mood on Today), sleep (usual times,
-  live duration, naps), weight and custom measurements (steppers, two-value types), bowel (Bristol types, flags), edit and
-  delete with Undo, and an "Again?" row in quick-log (screenshots in `docs/screenshots/log-body/`). `feature/log-meals` (stacked on log-body): food watch list in Me (EU allergens + intolerances, own items,
-  reorder), meal sheet with Yes / Not sure / No per watched item, saved meals (one-tap fill and "Again?"), timeline tags such
-  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; photos about 150 KB each, 1.25 MiB cap, `BODY_SIZE_LIMIT=2M` needed; screenshots in `docs/screenshots/photos/`). `feature/totp` (stacked on photos): optional TOTP second factor (own RFC 6238 on node:crypto, sealed at rest, replay-protected, recovery key bypasses and switches it off; Me card, enrol sheet, login code step; screenshots in `docs/screenshots/totp/`; `E2E_PORT` env lets several checkouts run e2e side by side). `feature/admin-users` (stacked on totp): admin API (users list with day-precision last active, disable/enable with session revoke, delete with admin re-auth via shared `eraseUser`, invite list/revoke, audit rows) and `/me/admin` screen (screenshots in `docs/screenshots/admin-users/`). Next: pain/body map and medication sheets.
-  TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
+- **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
+  notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
+  ~150 KB each, 1.25 MiB cap, `BODY_SIZE_LIMIT=2M`), TOTP (#12), e2e timing fixes (#14), admin users and invites (#13).
+  Screenshots per feature in `docs/screenshots/<feature>/`.
+- **M3 plan (owner-approved order):** `feature/medication` (medication list and set-up sheet in Meds), `feature/doses` (due
+  doses computed on the device, "All taken" per slot, taken / skipped / late, as-needed), `feature/reminders` (opt-in,
+  payload-less Web Push with own VAPID, D7; verified on a real iPhone only after 0.1.0 is on the Pi), and
+  `feature/log-gut` (quick nausea and heartburn logging, from the backlog).
+- **M3 progress:** `feature/medication` built: `medication` record, Meds list (active and archived), set-up sheet, pure schedule
+  helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.
+  `feature/log-gut` merged (#15): nausea / heartburn quick-log tile and sheet (`gut` record); screenshots in
+  `docs/screenshots/log-gut/`.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
@@ -135,8 +136,6 @@ _Last updated: 2026-10-18, during M2 (feature/admin-users, stacked on feature/to
   SECURITY. Screenshots in `docs/screenshots/m1/`.
 - **Decisions D1–D23 all approved.** The owner is setting up branch protection (rulesets for `develop`, `main` and `v*` tags,
   see "Branch protection" in CONTRIBUTING.md).
-- **Next:** see Milestone above; the M2 branch plan was `feature/crypto-core`, `feature/server-db`,
-  `feature/auth-signup`, `feature/entries`.
 - **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
   invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant. Raise the backlog items when
   planning the next milestone.

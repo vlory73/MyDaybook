@@ -12,6 +12,7 @@ export { default as Icon } from './Icon.svelte';
 export { default as LanguageSwitch } from './LanguageSwitch.svelte';
 export { default as LogSheet } from './LogSheet.svelte';
 export { default as MealSheet } from './MealSheet.svelte';
+export { default as MedicationSheet } from './MedicationSheet.svelte';
 export { default as MeasurementSheet } from './MeasurementSheet.svelte';
 export { default as NoteSheet } from './NoteSheet.svelte';
 export { default as Notice } from './Notice.svelte';
