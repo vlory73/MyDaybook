@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Button, CategoryBadge, EmptyState, Icon } from '$lib/components';
+	import { Button, CategoryBadge, DueDoses, EmptyState, Icon } from '$lib/components';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { scheduleSummary } from '$lib/meds/schedule';
 	import { openMedication } from '$lib/records/editor.svelte';
+	import { todayKey } from '$lib/records/time';
 	import { allRecords, store } from '$lib/records/store.svelte';
 	import type { MedicationPayload } from '$lib/records/types';
 
@@ -27,6 +28,8 @@
 </script>
 
 <header class="page-head"><h1 class="large-title">{t('meds.title')}</h1></header>
+
+<DueDoses day={todayKey()} title={t('dose.card.today')} asNeeded />
 
 {#if store.status === 'ready' && meds.length === 0}
 	<EmptyState icon="pill" title={t('meds.empty.title')} body={t('meds.empty.body')} />
