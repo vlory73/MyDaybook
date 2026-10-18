@@ -20,6 +20,10 @@ import { records, users } from './schema';
 import { eq } from 'drizzle-orm';
 
 const REAL_MIGRATIONS = resolve('drizzle');
+/** Number of generated migrations shipped with the app (tests below add one more on top). */
+const REAL_COUNT = (
+	JSON.parse(readFileSync(join(REAL_MIGRATIONS, 'meta', '_journal.json'), 'utf8')) as { entries: unknown[] }
+).entries.length;
 const PRE_MIGRATE = /^pre-migrate-\d{4}-\d{2}-\d{2}T\d{6}Z-(\d+)-(\d+)\.db$/;
 
 let root: string;
@@ -122,7 +126,7 @@ describe('migrateWithBackup', () => {
 		expect(files).toHaveLength(1);
 		const match = PRE_MIGRATE.exec(files[0] ?? '');
 		expect(match).not.toBeNull();
-		expect([match![1], match![2]]).toEqual(['1', '2']);
+		expect([match![1], match![2]]).toEqual([String(REAL_COUNT), String(REAL_COUNT + 1)]);
 
 		// The backup holds the pre-migration state: the user, but not the new table.
 		const snap = new Database(join(dir, 'backups', files[0]!), { readonly: true });
@@ -144,7 +148,7 @@ describe('migrateWithBackup', () => {
 		);
 		await expect(migrateWithBackup(sqlite, dir, folder)).rejects.toThrow(/Pre-migration backup failed/);
 		expect(sqlite.prepare(`SELECT name FROM sqlite_master WHERE name='extra_t'`).get()).toBeUndefined();
-		expect(sqlite.prepare('SELECT COUNT(*) AS n FROM __drizzle_migrations').get()).toEqual({ n: 1 });
+		expect(sqlite.prepare('SELECT COUNT(*) AS n FROM __drizzle_migrations').get()).toEqual({ n: REAL_COUNT });
 	});
 
 	it('keeps only the newest 5 pre-migration backups', async () => {

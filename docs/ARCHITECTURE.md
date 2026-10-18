@@ -163,6 +163,29 @@ stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API call
 - **Losing both the passphrase and the recovery key means the data is gone.** This is stated at signup in plain words:
   "Nobody, including the person who runs this server, can get your diary back."
 
+**Implementation notes (auth-server).** All binary values travel as URL-safe base64 without padding. Endpoints (JSON, all
+`cache-control: no-store`; errors are `{ "error": "<code>" }`):
+
+| Endpoint | Notes |
+| --- | --- |
+| `POST /api/auth/prelogin` | salt + KDF parameters; fake salt `HMAC-SHA256(SESSION_SECRET, "prelogin:" + username)[0..16]` with the default parameters for unknown names |
+| `POST /api/invites/check`, `POST /api/invites` | token check (404 `invalid_invite`); admin-only creation (default 72 h, role `member` or `admin`), audited |
+| `POST /api/auth/signup` | one transaction: consume invite, insert user, consent (server timestamp, actor `self`), `signup` security event; 409 `username_taken` leaves the invite unused |
+| `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/logout` | login and session return the wrapped-key bundle (`kdfSalt`, `kdfParams`, `wrappedMkByPassphrase`, `wrappedPrivateKey`, `publicKey`) |
+| `POST /api/auth/recover/start`, `POST /api/auth/recover/finish` | start checks `H(RAK)` and issues a 5-minute single-use token (hash in `recovery_tokens`); finish replaces passphrase and recovery secrets, revokes all sessions and signs in |
+| `POST /api/auth/passphrase` | needs the current auth key; revokes all other sessions |
+| `POST /api/account/delete` | needs the auth key; see §7 |
+
+- **Cookie naming:** `__Host-sid` (`HttpOnly; Secure; SameSite=Strict; Path=/`) by default. With `COOKIE_SECURE=false` (plain-http
+  development and the e2e server) the cookie is `sid` without `Secure`, because browsers refuse `__Host-` cookies without `Secure`.
+  The expiry slides (30 days idle) and `last_seen_at` is written at most once an hour.
+- **Origin guard:** every non-GET request under `/api/` needs `Content-Type: application/json` and an `Origin` equal to the
+  request's own origin (`ORIGIN` when set, as adapter-node does); otherwise 403 `bad_origin` / `bad_content_type`.
+- **Unknown, wrong and disabled** all return 401 `invalid_credentials`; unknown users get a dummy hash comparison.
+- **Environment:** `SESSION_SECRET` (random per process with a logged warning if missing, which only changes fake salts after a
+  restart), `COOKIE_SECURE`, `IP_RETENTION_DAYS` (§8), `AUTH_RATE_USER_BURST`, `AUTH_RATE_IP_BURST`, `AUTH_RATE_WINDOW_S` (§8).
+- **First admin:** `node scripts/cli.mjs invite --admin` (§10). The invite URL carries the token in the fragment.
+
 ### 3.4 Optional TOTP
 
 TOTP protects the *login session* (for example, against someone who has learned the passphrase but not the device). It does
@@ -232,7 +255,7 @@ configuration from diary entries.
 | `records` | id (client-generated UUIDv4), user_id, wrapped_key, ciphertext, size, created_at, updated_at, rev, deleted_at (tombstone, content nulled) |
 | `attachments` | id, user_id, size, created_at (the link to a record lives **only inside the encrypted record**) |
 | `consents` | user_id, version, text_hash, locale, actor, accepted_at, withdrawn_at |
-| `invites`, `sessions`, `handovers` | hashes of tokens, expiry, minimal metadata |
+| `invites`, `sessions`, `handovers`, `recovery_tokens` | hashes of tokens, expiry, minimal metadata |
 | `push_subscriptions` | user_id, endpoint, keys, created_at |
 | `reminder_slots` | user_id, local time, weekday mask, IANA time zone, enabled. **Not linked to any medication** (see the threat model) |
 | `security_events` | type (login_failed, rate_limited, …), user_id?, ip?, at. Pruned after `IP_RETENTION_DAYS` (default 7) |
@@ -332,6 +355,11 @@ that worries you") lives on the About page, never as a reaction to an entry.
   plus `VACUUM` and a WAL checkpoint, the freed pages are overwritten. Deleting the wrapped keys is the crypto-shredding step. **Honest
   caveat:** backups made before the deletion still contain the ciphertext *and* the wrapped keys until rotation (still only
   openable with the user's passphrase or recovery key). The privacy notice will say this, with the backup retention period.
+- **Implemented (auth-server):** `POST /api/account/delete` verifies the auth key, then in one transaction deletes the user (foreign keys
+  cascade to records, sessions, consents, guardianships, push subscriptions, reminder slots, recovery tokens) **and the user's
+  `security_events` rows**. `admin_audit` rows are kept for accountability (D23). Afterwards it removes `<DATA_DIR>/blobs/<userId>/`
+  and runs `PRAGMA wal_checkpoint(TRUNCATE)`. Deletion is refused with 409 `last_guardian` when the user is the only guardian of a
+  dependent (D12). `VACUUM` is left to the maintenance work in the Docker branch.
 - **Withdrawing consent** goes through the same flow (export offered, then deletion).
 - An adult with dependents can delete their account as long as every dependent still has at least one other guardian. Their
   guardianship rows are simply removed. Deletion is blocked only when it would leave a dependent with no guardian; the user is
@@ -342,10 +370,14 @@ that worries you") lives on the About page, never as a reaction to an entry.
 - Headers: CSP (§2.2), `Strict-Transport-Security: max-age=<HSTS_MAX_AGE>` (no `includeSubDomains`, see §9), `X-Content-Type-Options`,
   `Referrer-Policy: no-referrer`, `Permissions-Policy` (camera only on capture inputs), `Cross-Origin-Opener-Policy: same-origin`,
   `Cross-Origin-Resource-Policy: same-origin`.
-- In-memory token-bucket rate limits on prelogin, login, recover, invite-accept and handover, keyed **per IP and per username**
-  (on a VPN, all phones may share one NAT address).
+- In-memory token-bucket rate limits on prelogin, login, recover, invite check/accept, signup, passphrase change and account deletion
+  (handover follows with its own branch), keyed **per IP and per username** (on a VPN, all phones may share one NAT address).
+  Defaults: per username `AUTH_RATE_USER_BURST=10` attempts per `AUTH_RATE_WINDOW_S=60` seconds, refilling evenly, plus an exponential
+  lock-out (1 s, 2 s, 4 s, … up to 15 min) after 5 consecutive failures; per IP `AUTH_RATE_IP_BURST=30` per window with no lock-out
+  (looser, since one NAT address serves several people). Over the limit: 429 with `Retry-After` and a `rate_limited` security event
+  (at most one per key per window). State is per process.
 - Logs: structured JSON to stdout with method, route template, status, duration and user ID. **No bodies, no IPs on stdout.** IPs appear
-  only in `security_events`, which is pruned after `IP_RETENTION_DAYS` (default 7; 0 disables it). The reverse proxy's access log
+  only in `security_events`, which is pruned hourly after `IP_RETENTION_DAYS` (default 7; 0 stores no IPs, events are then still kept 7 days). The reverse proxy's access log
   is turned off in the shipped Caddyfile, because it would otherwise keep IPs outside our retention control.
 - No decrypted content can reach the server, so it cannot be logged there. On the client, the logger is a wrapper that drops
   arguments in production builds, and a lint rule forbids `console.*` in app code.
@@ -404,7 +436,10 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
   - `db/app-YYYY-MM-DDTHHMMSSZ.sqlite` (a stable name pattern the NAS job relies on): a consistent snapshot via SQLite's online backup API, newest `BACKUP_KEEP` kept (default 3).
   - `blobs/`: a mirror of the encrypted photo store. Blobs are immutable and written atomically, so mirroring them after the DB
     snapshot is consistent.
-  - On demand: `docker compose exec app node build/cli.js backup`.
+  - On demand: a `backup` command in `scripts/cli.mjs` arrives with the Docker work (`docker compose exec app node scripts/cli.mjs backup`).
+  - First admin: `docker compose exec app node scripts/cli.mjs invite --admin [--hours 72]` prints one line, `<PUBLIC_URL>/join#t=<token>`.
+    The CLI opens `<DATA_DIR>/app.db` directly and does not migrate, so the server must have started once. The token is in the URL
+    fragment, so it never reaches server logs or Referer headers; only its SHA-256 is stored.
   - The Home Assistant session's script copies that folder to the NAS at 04:30 and keeps 14 days (D14). **A deleted account therefore
     persists, still encrypted, for up to about 14 days**, which the privacy notice will state.
 - **Implementation notes (server-db):** the schema is `src/lib/server/db/schema.ts`; generated SQL migrations are committed in `drizzle/`
@@ -453,3 +488,4 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | D20 | Pill counts and refill reminders left out of v1 | **Approved** |
 | D21 | Replace Paraglide with a small in-house typed i18n module (Paraglide fetches a plugin from a CDN at build time) | **Approved** |
 | D22 | Licence policy: strict for shipped code; build/test tooling may also be BlueOak-1.0.0 (glob/minimatch family) or Python-2.0 (ESLint's argparse) | **Approved** |
+| D23 | On account deletion the user's `security_events` are deleted; `admin_audit` rows are kept for accountability | **Approved** |

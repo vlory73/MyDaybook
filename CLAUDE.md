@@ -66,6 +66,7 @@ Other key documents:
 3. Update "Current status" in CLAUDE.md at the end of every session, via the current feature branch.
 4. Ask before adding any dependency over 1 MB or any network-touching feature.
 5. If something in the spec is contradictory or unwise, say so and propose an alternative rather than silently working around it.
+6. Use Sonnet sub-agents for well-scoped implementation work to curb costs; the main session designs, reviews and opens PRs (owner request, 2026-10-18).
 
 ## Conventions
 
@@ -91,6 +92,7 @@ Other key documents:
 | 2026-10-18 | D18–D20 approved: food/symptom views descriptive only, no alerts on bowel entries; no BMI, targets or reference ranges; no pill counts or refill reminders in v1 | Owner |
 | 2026-10-18 | M1: SvelteKit 2.70 / Svelte 5 / Vite 7 / TypeScript 5.9 / Vitest 5 pinned (newer majors skipped deliberately). `cookie` overridden to 0.7.2 (audit). D21 (in-house i18n) and D22 (tooling licences) proposed | M1 |
 | 2026-10-18 | Approved: D21 in-house i18n, D22 BlueOak-1.0.0/Python-2.0 for build/test tooling only, and the M1 dev dependencies over 1 MB (TypeScript, Prettier, svelte-check, Svelte, ESLint, Vitest, @types/node, Vite, eslint-plugin-svelte, SvelteKit) | Owner |
+| 2026-10-18 | D23 approved: on account deletion, the user's security_events are deleted; admin_audit rows are kept for accountability | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -101,18 +103,19 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, after M1 (feature/record-m1-decisions)._
+_Last updated: 2026-10-18, during M2 (feature/auth-server)._
 
-- **Milestone:** M1 delivered (direct to develop, the last direct commit ever). From now on every change goes through a
-  `feature/*` branch and a PR.
+- **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
+  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Next: `feature/auth-ui`, then `feature/entries`.
+  TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
   strict CSP, `/healthz`, CI workflow (lint, types, unit, licences, audit, build, e2e on Chromium + WebKit), CONTRIBUTING,
   SECURITY. Screenshots in `docs/screenshots/m1/`.
-- **Decisions D1–D22 all approved.** The owner is setting up branch protection (rulesets for `develop`, `main` and `v*` tags,
+- **Decisions D1–D23 all approved.** The owner is setting up branch protection (rulesets for `develop`, `main` and `v*` tags,
   see "Branch protection" in CONTRIBUTING.md).
-- **Next:** M2 (auth, crypto, entry CRUD) on feature branches: likely `feature/crypto-core`, `feature/server-db`,
+- **Next:** see Milestone above; the M2 branch plan was `feature/crypto-core`, `feature/server-db`,
   `feature/auth-signup`, `feature/entries`.
 - **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
   invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant. Raise the backlog items when
