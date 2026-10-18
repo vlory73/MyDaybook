@@ -20,5 +20,9 @@ npm ci
 npm run dev
 ```
 
+First admin (after the server has started once so the database exists): `node scripts/cli.mjs invite --admin` prints a one-time
+`/join#t=…` link (in Docker: `docker compose exec app node scripts/cli.mjs invite --admin`). The token sits in the URL fragment, so it
+never reaches server logs.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and checks, and [SECURITY.md](SECURITY.md) to report a vulnerability.
 Self-hosting instructions (Docker Compose, `.env.example`, the `gen-secrets` command) arrive with the first release, 0.1.0.
