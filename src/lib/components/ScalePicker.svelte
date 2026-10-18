@@ -16,7 +16,7 @@
 		low?: string;
 		high?: string;
 		faces?: boolean;
-		tint?: 'feel' | 'sleep';
+		tint?: 'feel' | 'sleep' | 'gut';
 	} = $props();
 	const steps = [1, 2, 3, 4, 5] as const;
 </script>
@@ -65,6 +65,11 @@
 		background: var(--sleep-tint);
 		color: var(--sleep-ink);
 		box-shadow: inset 0 0 0 2px var(--sleep-ink);
+	}
+	.tint-gut .on {
+		background: var(--gut-tint);
+		color: var(--gut-ink);
+		box-shadow: inset 0 0 0 2px var(--gut-ink);
 	}
 	.ends {
 		display: flex;

@@ -1,4 +1,4 @@
-export type LogKind = 'feeling' | 'sleep' | 'measurement' | 'bowel' | 'food';
+export type LogKind = 'feeling' | 'sleep' | 'measurement' | 'bowel' | 'gut' | 'food';
 
 /** Which entry sheet is open. The layout renders the sheets; any screen can open one. */
 export const editor = $state<{

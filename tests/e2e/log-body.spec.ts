@@ -222,7 +222,9 @@ test('a custom measurement type with two values (Blood pressure 120/80) round-tr
 test('bowel: type, flags and note; edit; delete with undo', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openTile(page, 'Bowel');
-	await expect(page.getByText('Only you can see this. Not even the server can.')).toBeVisible();
+	await expect(
+		page.getByRole('dialog').getByText('Only you can see this. Not even the server can.')
+	).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 	await page.getByRole('radio', { name: 'Type 4, Smooth' }).click();
 	await page.getByRole('button', { name: 'Urgent', exact: true }).click();

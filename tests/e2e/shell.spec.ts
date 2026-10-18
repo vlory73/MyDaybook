@@ -14,12 +14,12 @@ test('today shows a greeting, a friendly empty state and the tab bar', async ({ 
 	expect(problems).toEqual([]);
 });
 
-test('quick-log sheet opens from +, offers nine tiles, closes with Escape', async ({ page, problems }) => {
+test('quick-log sheet opens from +, offers ten tiles, closes with Escape', async ({ page, problems }) => {
 	await signUpAndSignIn(page);
 	await page.getByRole('button', { name: 'Log something' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Log something' });
 	await expect(sheet).toBeVisible();
-	await expect(sheet.locator('.tile')).toHaveCount(9);
+	await expect(sheet.locator('.tile')).toHaveCount(10);
 	await page.keyboard.press('Escape');
 	await expect(sheet).toBeHidden();
 	expect(problems).toEqual([]);
