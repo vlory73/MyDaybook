@@ -33,6 +33,28 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'quicklog', scheme);
 		});
 
+		test(`today with entries and note sheet ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const notes = [
+				'Slept well, woke up rested',
+				'Short walk after lunch, knee felt fine',
+				'Remember to book a check-up'
+			];
+			for (const text of notes) {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: 'Note', exact: true }).click();
+				await page.getByLabel('Note text').fill(text);
+				await page.getByRole('button', { name: 'Save' }).click();
+				await page.getByText('Note saved').waitFor();
+			}
+			await page.getByText(notes[2]!).waitFor();
+			await snap(page, 'today-with-entries', scheme);
+			await page.getByText(notes[0]!).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'note-sheet', scheme);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');
