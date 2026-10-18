@@ -13,6 +13,7 @@
 	import { closeEditors, openLog, openNote } from '$lib/records/editor.svelte';
 	import { againOptions, againPayload, lastUsedMeasureType, WEIGHT_ID, type Again } from '$lib/records/log';
 	import { quickSave } from '$lib/records/quick';
+	import { watchedItems } from '$lib/records/watch';
 	import { allRecords, startRecords, syncIfStale } from '$lib/records/store.svelte';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
@@ -24,6 +25,7 @@
 		Hero,
 		Icon,
 		LanguageSwitch,
+		MealSheet,
 		MeasurementSheet,
 		NoteSheet,
 		Sheet,
@@ -110,6 +112,7 @@
 	function pick(key: Category) {
 		quickLogOpen = false;
 		if (key === 'note') openNote();
+		else if (key === 'food') openLog('food');
 		else if (key === 'feel') openLog('feeling');
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
@@ -130,6 +133,9 @@
 				category: 'sleep'
 			};
 		}
+		if (option.kind === 'meal') {
+			return { name: option.saved.name, detail: t('again.savedMeal'), category: 'food' };
+		}
 		return {
 			name: t('cat.weight'),
 			detail: `${numberFormat.format(option.value)} ${option.unit}`,
@@ -139,7 +145,8 @@
 
 	function repeat(option: Again) {
 		quickLogOpen = false;
-		const payload = againPayload(option, new Date());
+		const watched = new Set(watchedItems(allRecords()).map((w) => w.id));
+		const payload = againPayload(option, new Date(), watched);
 		if (payload) void quickSave(payload, 'entry.saved');
 	}
 </script>
@@ -206,6 +213,7 @@
 	<SleepSheet />
 	<MeasurementSheet />
 	<BowelSheet />
+	<MealSheet />
 	<EntryDetailSheet />
 {/if}
 

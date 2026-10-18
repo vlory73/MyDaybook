@@ -128,6 +128,50 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'sheet-measure-two-values', scheme);
 		});
 
+		test(`log meals watch list, sheet and today ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'log-meals', 'log-meals screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/me');
+			await page.getByRole('heading', { name: 'What I watch in food' }).waitFor();
+			for (const name of ['Gluten', 'Lactose', 'FODMAP', 'Peanuts'])
+				await page.getByRole('button', { name, exact: true }).click();
+			await page.getByRole('button', { name: 'Remove Peanuts' }).click();
+			await page.getByText('Peanuts removed from your list').waitFor();
+			await page.getByRole('heading', { name: 'What I watch in food' }).scrollIntoViewIfNeeded();
+			await snap(page, 'watch-list', scheme);
+
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			const sheet = page.getByRole('dialog');
+			await sheet.getByRole('button', { name: 'Breakfast', exact: true }).click();
+			await sheet.getByLabel('What did you have?').fill('Oatmeal with berries and yoghurt');
+			await sheet
+				.getByRole('radiogroup', { name: 'Gluten' })
+				.getByRole('radio', { name: 'No', exact: true })
+				.click();
+			await sheet.getByRole('radiogroup', { name: 'Lactose' }).getByRole('radio', { name: 'Yes' }).click();
+			await sheet
+				.getByRole('radiogroup', { name: 'FODMAP' })
+				.getByRole('radio', { name: 'Not sure' })
+				.click();
+			await sheet.getByRole('button', { name: 'Home', exact: true }).click();
+			await sheet.getByRole('switch', { name: 'Save as a meal I eat often' }).click();
+			await snap(page, 'sheet-meal', scheme);
+			await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+			await page.getByText('Contains lactose').waitFor();
+
+			// A second meal, filled in with one tap from the saved meal row
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'sheet-meal-saved', scheme);
+			await sheet.getByRole('button', { name: 'Close' }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'today-meal', scheme);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');

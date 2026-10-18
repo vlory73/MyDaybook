@@ -12,6 +12,7 @@
 		Sheet,
 		Spinner,
 		TextField,
+		WatchList,
 		showToast
 	} from '$lib/components';
 	import { ApiError } from '$lib/api';
@@ -139,6 +140,7 @@
 		<Button variant="quiet" onclick={doSignOut}>{t('me.account.signOut')}</Button>
 	</div>
 </Card>
+<WatchList />
 <Card title={t('me.autolock.heading')}>
 	<SelectField
 		label={t('me.autolock.label')}

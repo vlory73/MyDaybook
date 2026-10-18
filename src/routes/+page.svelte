@@ -10,7 +10,7 @@
 	} from '$lib/components';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
 	import { openDetail, openLog, openNote } from '$lib/records/editor.svelte';
-	import { describe } from '$lib/records/format';
+	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
 	import { daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
 	import { dayDate, formatAt, timeOf, todayKey, weekDays } from '$lib/records/time';
@@ -35,14 +35,10 @@
 				)
 	);
 
-	function nameOfType(id: string): string | undefined {
-		const p = store.items[id]?.payload;
-		return p?.type === 'measurement_type' ? p.name : undefined;
-	}
-
 	function open(id: string, type: string) {
 		if (type === 'note') openNote(id);
-		else if (type === 'feeling' || type === 'sleep' || type === 'bowel') openLog(type, { id });
+		else if (type === 'feeling' || type === 'sleep' || type === 'bowel' || type === 'food')
+			openLog(type, { id });
 		else if (type === 'measurement') openLog('measurement', { id });
 		else openDetail(id);
 	}
@@ -101,7 +97,7 @@
 {#if entries.length > 0}
 	<ol class="tl">
 		{#each entries as record (record.id)}
-			{@const d = describe(record, nameOfType)}
+			{@const d = describe(record, lookups)}
 			<li>
 				<button type="button" class="entry" onclick={() => open(record.id, record.payload.type)}>
 					<time>{timeOf(record.payload.at)}</time>
@@ -109,6 +105,11 @@
 					<span class="text">
 						<span class="t">{d.title}</span>
 						{#if d.summary}<span class="s">{d.summary}</span>{/if}
+						{#if d.tags?.length}
+							<span class="tags"
+								>{#each d.tags as tag, i (i)}<span class="tag">{tag}</span>{/each}</span
+							>
+						{/if}
 					</span>
 				</button>
 			</li>
@@ -208,6 +209,20 @@
 		line-clamp: 2;
 		overflow: hidden;
 		overflow-wrap: anywhere;
+	}
+	.tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin-top: 4px;
+	}
+	.tag {
+		font-size: var(--fs-caption);
+		font-weight: var(--fw-medium);
+		padding: 2px 8px;
+		border-radius: var(--r-full);
+		background: var(--food-tint);
+		color: var(--food-ink);
 	}
 	.loading {
 		display: grid;

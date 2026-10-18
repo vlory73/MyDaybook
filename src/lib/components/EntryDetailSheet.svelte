@@ -3,7 +3,7 @@
 	import Sheet from './Sheet.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
-	import { describe } from '$lib/records/format';
+	import { describe, lookups } from '$lib/records/format';
 	import { store } from '$lib/records/store.svelte';
 	import { timeOf } from '$lib/records/time';
 	import { hasAt } from '$lib/records/types';
@@ -13,13 +13,8 @@
 		const rec = editor.detail ? store.items[editor.detail] : undefined;
 		if (!rec || !hasAt(rec.payload)) return null;
 		const typed = { ...rec, payload: rec.payload };
-		return { at: rec.payload.at, ...describe(typed, nameOfType) };
+		return { at: rec.payload.at, ...describe(typed, lookups) };
 	});
-
-	function nameOfType(id: string): string | undefined {
-		const p = store.items[id]?.payload;
-		return p?.type === 'measurement_type' ? p.name : undefined;
-	}
 </script>
 
 <Sheet
