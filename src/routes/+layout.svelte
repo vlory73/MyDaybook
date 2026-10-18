@@ -10,13 +10,17 @@
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { HIDDEN_LOCK_SECONDS, loadSession, lock, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
+	import { closeEditors, openNote } from '$lib/records/editor.svelte';
+	import { startRecords, syncIfStale } from '$lib/records/store.svelte';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
 		Button,
 		CategoryBadge,
+		EntryDetailSheet,
 		Hero,
 		Icon,
 		LanguageSwitch,
+		NoteSheet,
 		Sheet,
 		Spinner,
 		TabBar,
@@ -76,8 +80,20 @@
 	$effect(() => {
 		if (session.status !== 'unlocked') {
 			quickLogOpen = false;
+			closeEditors();
 			dismissToast();
 		}
+	});
+
+	// ---- Records: load the cache and fetch changes after unlock; refresh when the app comes back into view ----
+	$effect(() => {
+		if (session.status !== 'unlocked') return;
+		void startRecords();
+		const onVisible = () => {
+			if (document.visibilityState === 'visible') syncIfStale();
+		};
+		document.addEventListener('visibilitychange', onVisible);
+		return () => document.removeEventListener('visibilitychange', onVisible);
 	});
 
 	const timeFormat = $derived(
@@ -85,9 +101,10 @@
 	);
 	const tiles = Object.keys(categories) as Category[];
 
-	function pick() {
+	function pick(key: Category) {
 		quickLogOpen = false;
-		showToast(t('quicklog.notYet'));
+		if (key === 'note') openNote();
+		else showToast(t('quicklog.notYet'));
 	}
 </script>
 
@@ -127,7 +144,7 @@
 		{/snippet}
 		<div class="tiles">
 			{#each tiles as key (key)}
-				<button type="button" class="tile tint-{categories[key].tint}" onclick={pick}>
+				<button type="button" class="tile tint-{categories[key].tint}" onclick={() => pick(key)}>
 					<CategoryBadge category={key} size={36} />
 					{t(categories[key].label)}
 				</button>
@@ -135,6 +152,9 @@
 		</div>
 		<p class="foot"><Icon name="lock" size={18} />{t('quicklog.footnote')}</p>
 	</Sheet>
+
+	<NoteSheet />
+	<EntryDetailSheet />
 {/if}
 
 <ToastHost />
