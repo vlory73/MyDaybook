@@ -318,10 +318,44 @@ spaces**, so heat maps stay comparable.
 
 ### 5.2 Photos
 
-Images are decoded with `createImageBitmap` (respecting EXIF orientation), drawn to a canvas at a maximum of 1600 px, and
-re-encoded as JPEG/WebP at 0.8 quality. Re-encoding drops all EXIF/GPS metadata, and a unit test asserts this. The image is then
-encrypted with secretstream and uploaded as an opaque blob to `/data/blobs/<userId>/<id>`. **Proposal: allow
-attachments on any record type**, not just food, so "has a photo" does not reveal "this is a meal".
+**Client pipeline** (`src/lib/photos/process.ts`). A picked file (`<input type="file" accept="image/*">`, which offers camera or
+library on a phone) is decoded with `createImageBitmap(file, { imageOrientation: 'from-image' })`, drawn onto a canvas with the longest
+side at most 1600 px (aspect kept, never upscaled) and re-encoded as JPEG at quality 0.8. Re-encoding drops all EXIF/GPS metadata.
+A thumbnail (longest side 320 px, quality 0.7) is made the same way and stored as a second attachment, so the timeline never
+decrypts a full image. Non-images and inputs over 25 MB are refused with a friendly message. Up to 4 photos per entry.
+
+**Encryption** (`src/lib/crypto/attachments.ts`). Each attachment gets a fresh random 32-byte key and is encrypted with
+`crypto_secretstream_xchacha20poly1305` in 64 KiB chunks, the last one tagged FINAL. The plaintext is `u32 length || data ||
+zero padding` up to a multiple of 64 KiB, so the blob size only shows a 64 KiB bucket. Blob = 24-byte header + n x (64 KiB + 17).
+A wrong key, altered, reordered, truncated or extended stream fails to decrypt.
+
+**Reference.** The key and ids live only inside the encrypted record: `attachments?: { id, key, thumbId, thumbKey, w, h, mime }[]`
+on **any** record type (D8), so "has a photo" does not reveal "this is a meal". The server cannot link a blob to a record.
+
+**Endpoints** (`/api/attachments/:id`, id = UUIDv4, owner-scoped; someone else's id is answered like a missing one):
+
+| Method | Behaviour | Status |
+| --- | --- | --- |
+| `PUT` | raw `application/octet-stream` body, 1 byte to 4 MiB; written atomically (temp file + rename) to `<DATA_DIR>/blobs/<userId>/<id>`; inserts or replaces the `attachments` row (`user_id`, `size`, `created_at`) and updates `users.storage_bytes` in an IMMEDIATE transaction | 200, 400 bad id/empty, 401, 403 (guard), 404 foreign id, 413 over 4 MiB, 415 JSON content type |
+| `GET` | streams the blob to its owner; `cache-control: no-store`, `content-type: application/octet-stream` | 200, 401, 404 |
+| `DELETE` | removes file, row and storage accounting | 200, 401, 404 |
+
+**Origin guard change.** The guard (§8) only accepted JSON for state-changing requests. It now also accepts
+`application/octet-stream`, **only** for paths under `/api/attachments/`, and the same-Origin requirement is unchanged. Wrapping
+4 MiB of ciphertext in JSON/base64 would cost a third more memory and bandwidth on a phone. A cross-site HTML form cannot send that
+content type, and a cross-site `fetch` with it needs a CORS preflight that the server never answers, so no CSRF path opens.
+
+**Body limit.** adapter-node rejects bodies over `BODY_SIZE_LIMIT` (default 512 kB) before any route runs, so the deployment must set
+`BODY_SIZE_LIMIT=5M` (the e2e server does; the compose file will). The route itself enforces the 4 MiB cap and answers 413.
+It is a global adapter setting, so JSON endpoints share the 5 MB ceiling; they still validate sizes themselves.
+
+**Deleting.** Deleting a record queues its photos for deletion after a 10 s grace period, longer than the 5 s Undo toast; Undo cancels
+the queue entry (the same blobs are still referenced when the record is written back). The queue holds only attachment ids (no keys) in
+`localStorage` and is flushed on the next unlock, so a reload inside the window does not leave blobs behind. Removing a photo while
+editing an entry deletes it right after the save.
+
+**Display.** Decrypted images exist only as Blob object URLs, revoked when the last view using them goes away and on lock or sign-out.
+They are never written to IndexedDB or any cache; the service worker ignores `/api/`. Attachments are not cached at all in v1.
 
 ### 5.3 Record types (v1)
 

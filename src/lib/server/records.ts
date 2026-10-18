@@ -131,7 +131,7 @@ function nextStamp(userId: string, now: number): number {
 	return Math.max(now, (last?.m ?? 0) + 1);
 }
 
-function adjustStorage(userId: string, delta: number): void {
+export function adjustStorage(userId: string, delta: number): void {
 	if (delta === 0) return;
 	db()
 		.update(users)

@@ -58,7 +58,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	let response: Response;
 	const rejected = api
-		? checkApiRequest(event.request.method, event.request.headers, event.url.origin)
+		? checkApiRequest(event.request.method, event.request.headers, event.url.origin, event.url.pathname)
 		: null;
 	if (rejected) {
 		response = errorResponse(403, rejected);
