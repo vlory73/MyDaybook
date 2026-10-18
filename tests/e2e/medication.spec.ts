@@ -9,7 +9,8 @@ import { DATA_DIR, signUpAndSignIn, unlockWith } from './helpers';
 const toast = (page: Page, text: string) => page.getByRole('status').getByText(text, { exact: true });
 const sheet = (page: Page) => page.getByRole('dialog', { name: /medication/i });
 const list = (page: Page) => page.getByRole('list', { name: 'Medication', exact: true });
-const row = (page: Page, name: string) => page.getByRole('button', { name: new RegExp(name) });
+// Only the medication list rows (the Today section above the list has its own buttons for the same names).
+const row = (page: Page, name: string) => page.locator('button.med', { hasText: new RegExp(name) });
 
 async function addMed(page: Page, name: string) {
 	await page.getByRole('button', { name: 'Add medication' }).click();
@@ -36,7 +37,12 @@ test('add, edit, archive, delete with undo; survives reload; the server only hol
 	await s.getByRole('button', { name: 'Capsule', exact: true }).click();
 	await s.getByLabel('Amount 1', { exact: true }).fill('1 capsule');
 	await s.getByRole('button', { name: 'Add a time' }).click();
+	// The same time twice is refused (one dose per medication and time).
+	await s.getByLabel('Time 2', { exact: true }).fill('08:00');
+	await expect(s.getByText('This time is already listed. Use one row per time.')).toBeVisible();
+	await expect(s.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 	await s.getByLabel('Time 2', { exact: true }).fill('20:00');
+	await expect(s.getByText('This time is already listed. Use one row per time.')).toBeHidden();
 	await s.getByLabel('Amount 2', { exact: true }).fill('2 capsules');
 	await save(page);
 	await expect(row(page, daily)).toContainText('20 µg · Capsule');
