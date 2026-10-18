@@ -495,7 +495,7 @@ in again (no data is lost; the local cache holds only ciphertext). For self-host
 
 The app container speaks plain HTTP on port 8090, **published on 127.0.0.1 only**, so it is reachable solely through Caddy. As a
 second line of defence for other self-hosters, requests that did not come through the trusted proxy get a page pointing to the
-HTTPS URL instead of the app. `TRUSTED_PROXY` names the proxy whose `X-Forwarded-*` headers are believed. The proxy's access log for this
+HTTPS URL instead of the app. `TRUSTED_PROXY` (comma-separated IPs) names the proxy whose `X-Forwarded-For` is believed: the app uses the socket peer unless the peer is listed, then the last `X-Forwarded-For` entry (`src/lib/server/auth/proxy.ts`; adapter-node's `ADDRESS_HEADER` is deliberately not set). `PUBLIC_URL` is the one documented origin setting; the image entrypoint passes it to adapter-node as `ORIGIN`, and protocol and host come from it, not from forwarded headers. The proxy's access log for this
 site is switched off (IP retention, §8).
 
 **HSTS:** it applies to a host name on *every* port, so `HSTS_MAX_AGE` is configurable and never adds `includeSubDomains` or
@@ -533,14 +533,14 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
     snapshot is consistent. New or changed files (size or mtime) are copied via a `.partial` name, files that no longer exist in
     the source are removed, symlinks are never followed.
   - One log line per run, no user data: `{event:"backup", ok, bytes, blobs, ms}` (on failure `ok:false` and an error code).
-  - On demand: `docker compose exec app node scripts/cli.mjs backup` runs the same code once and prints the dump file name. It works
+  - On demand: `docker compose exec app cli backup` (`cli` wraps `node /app/scripts/cli.mjs`) runs the same code once and prints the dump file name. It works
     while the server runs (online backup, `busy_timeout` 5000). Two backups never overlap inside one process.
   - Schedule: daily at `BACKUP_TIME` (default `23:30`, owner decision: the NAS is off during the night) in the container's local time (`TZ`). After every run, and at start, the next
     run is computed from the local wall clock, so DST changes (23 h and 25 h days) still land on the set time, and a missed run is not
     replayed. `BACKUP_TIME=off` disables it (the e2e server does this). Code: `scripts/backup-core.mjs` (shared with the CLI) and
     `src/lib/server/db/backup.ts` (schedule, logging).
   - Settings: `BACKUP_DIR` (default `<DATA_DIR>/../backup`, which is `/backup` for `DATA_DIR=/data`), `BACKUP_TIME`, `BACKUP_KEEP`.
-  - First admin: `docker compose exec app node scripts/cli.mjs invite --admin [--hours 72]` prints one line, `<PUBLIC_URL>/join#t=<token>`.
+  - First admin: `docker compose exec app cli invite --admin [--hours 72]` prints one line, `<PUBLIC_URL>/join#t=<token>`.
     The CLI opens `<DATA_DIR>/app.db` directly and does not migrate, so the server must have started once. The token is in the URL
     fragment, so it never reaches server logs or Referer headers; only its SHA-256 is stored.
   - The Home Assistant session's script copies that folder to the NAS at 00:00 (it must finish by 01:00, when the NAS may stop) and keeps 14 days (D14). **A deleted account therefore
@@ -550,6 +550,12 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
   `data/app.db` aside and delete `app.db-wal` and `app.db-shm`, copy the chosen `backup/db/app-<timestamp>.sqlite` to `data/app.db`,
   `rsync -a --delete backup/blobs/ data/blobs/`, pin the image tag to the version that wrote the dump if it is newer than the running
   one, start the app and check `/healthz`. Users get back their passphrase as of the dump date. Restores are manual on purpose.
+- **Image (feature/docker):** two stages on `node:24-bookworm-slim` pinned by digest. The build stage runs `npm ci --ignore-scripts`
+  (better-sqlite3 13 bundles prebuilt linux x64/arm64 addons, so no compiler is needed), `npm run build`, `npm prune --omit=dev`.
+  The runtime stage copies `build/`, production `node_modules`, `package.json`, `drizzle/` and the runtime scripts (`scripts/*.mjs`: CLI, backup core, gen-secrets); runs as 1000:1000 with
+  `WORKDIR /app`, `DATA_DIR=/data`, `PORT=8090`, and a node-based `HEALTHCHECK`. It needs only `/data`, `/backup` and a tmpfs `/tmp`
+  to be writable. The entrypoint dispatches `gen-secrets` and `cli`, otherwise starts the server. Compose sets `BACKUP_DIR=/backup`
+  (also the default for `DATA_DIR=/data`).
 - **Implementation notes (server-db):** the schema is `src/lib/server/db/schema.ts`; generated SQL migrations are committed in `drizzle/`
   and applied at startup from `./drizzle` relative to the working directory (override with `MIGRATIONS_DIR`), so the Docker image must
   copy `drizzle/` next to `build/` and run with that working directory. Environment: `DATA_DIR` (default `./data`; holds `app.db`,

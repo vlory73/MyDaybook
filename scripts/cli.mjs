@@ -66,7 +66,10 @@ function invite(args) {
 					.run(randomUUID(), 'invite', id, now);
 			})
 			.immediate();
-		const base = (process.env.PUBLIC_URL || 'http://localhost:5173').replace(/\/+$/, '');
+		const base = (process.env.PUBLIC_URL || process.env.ORIGIN || 'http://localhost:5173').replace(
+			/\/+$/,
+			''
+		);
 		process.stdout.write(`${base}/join#t=${token} (${role}, expires ${new Date(expiresAt).toISOString()})\n`);
 	} finally {
 		sqlite.close();
