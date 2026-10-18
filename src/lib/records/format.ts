@@ -19,6 +19,8 @@ export type Described = { category: Category; title: string; summary: string; ta
 export type Names = {
 	type?: (id: string) => string | undefined;
 	sensitivity?: (id: string) => string | undefined;
+	/** Medication name by record id (for dose entries). */
+	medication?: (id: string) => string | undefined;
 };
 
 const join = (parts: (string | undefined | false)[]) => parts.filter(Boolean).join(' · ');
@@ -112,6 +114,18 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 					.join(' · '),
 				summary: join([...p.flags.map((f) => t(`gut.flag.${f}` as MessageKey)), p.note && firstLine(p.note)])
 			};
+		case 'dose': {
+			// Repeats what was logged: the name, the status, the time of a late dose and the amount as entered.
+			const name = names.medication?.(p.medicationId) ?? t('cat.meds');
+			return {
+				category: 'meds',
+				title:
+					p.status === 'late'
+						? t('fmt.dose.late', { name, time: clock(p.at) })
+						: t(p.status === 'skipped' ? 'fmt.dose.skipped' : 'fmt.dose.taken', { name }),
+				summary: join([p.amount, !p.slot && t('dose.asNeeded'), p.note && firstLine(p.note)])
+			};
+		}
 		case 'note':
 			return { category: 'note', title: t(categories.note.label), summary: firstLine(p.text) };
 	}
@@ -128,6 +142,10 @@ export const lookups: Names = {
 	type(id) {
 		const p = store.items[id]?.payload;
 		return p?.type === 'measurement_type' ? p.name : undefined;
+	},
+	medication(id) {
+		const p = store.items[id]?.payload;
+		return p?.type === 'medication' ? p.name : undefined;
 	},
 	sensitivity(id) {
 		const p = store.items[id]?.payload;

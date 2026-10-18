@@ -9,7 +9,8 @@ import { DATA_DIR, signUpAndSignIn, unlockWith } from './helpers';
 const toast = (page: Page, text: string) => page.getByRole('status').getByText(text, { exact: true });
 const sheet = (page: Page) => page.getByRole('dialog', { name: /medication/i });
 const list = (page: Page) => page.getByRole('list', { name: 'Medication', exact: true });
-const row = (page: Page, name: string) => page.getByRole('button', { name: new RegExp(name) });
+// Only the medication list rows (the Today section above the list has its own buttons for the same names).
+const row = (page: Page, name: string) => page.locator('button.med', { hasText: new RegExp(name) });
 
 async function addMed(page: Page, name: string) {
 	await page.getByRole('button', { name: 'Add medication' }).click();
