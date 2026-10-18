@@ -323,6 +323,63 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'meds-list', scheme);
 		});
 
+		test(`doses on today, meds and timeline ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'doses', 'doses screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/meds');
+			const sheet = page.getByRole('dialog', { name: /medication/i });
+			const add = async (name: string, options: { time?: string; asNeeded?: boolean } = {}) => {
+				// The page grows with the list; scroll the Add button clear of the fixed tab bar before tapping it.
+				await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+				await page.getByRole('button', { name: 'Add medication' }).click();
+				await page.waitForTimeout(300);
+				await sheet.getByLabel('Name', { exact: true }).fill(name);
+				if (options.asNeeded) await sheet.getByRole('radio', { name: 'When needed' }).click();
+				else {
+					if (options.time) await sheet.getByLabel('Time 1', { exact: true }).fill(options.time);
+					await sheet.getByLabel('Amount 1', { exact: true }).fill('1 tablet');
+				}
+				await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+				await page.getByRole('status').getByText('Saved', { exact: true }).waitFor();
+				await sheet.waitFor({ state: 'hidden' });
+				// The toast covers the Add button at the end of the page until it goes away.
+				await page.getByRole('status').getByText('Saved', { exact: true }).waitFor({ state: 'hidden' });
+			};
+			await add('Vitamin D');
+			await add('Magnesium');
+			await add('Iron', { time: '13:00' });
+			await add('Zinc', { time: '20:00' });
+			await add('Calcium', { time: '20:00' });
+			await add('Throat spray', { asNeeded: true });
+
+			const due = page.getByRole('region', { name: "Today's medication" });
+			await due.getByRole('button', { name: 'All taken at 08:00' }).click();
+			await due.locator('.pill.taken').first().waitFor();
+			await due.getByRole('button', { name: /^Iron/ }).click();
+			const dose = page.getByRole('dialog', { name: 'Iron' });
+			await page.waitForTimeout(400);
+			await dose.getByRole('radio', { name: 'Taken late' }).click();
+			const day = await page.evaluate(() => {
+				const d = new Date();
+				const p = (n: number) => String(n).padStart(2, '0');
+				return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+			});
+			await dose.getByLabel('When did you take it?').fill(`${day}T13:40`);
+			await snap(page, 'dose-sheet', scheme);
+			await dose.getByRole('button', { name: 'Save', exact: true }).click();
+			await dose.waitFor({ state: 'hidden' });
+			await page.getByRole('status').getByText('Saved', { exact: true }).waitFor({ state: 'hidden' });
+			await page.waitForTimeout(300);
+			await snap(page, 'meds-today', scheme);
+
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await due.waitFor();
+			await page.waitForTimeout(300);
+			await snap(page, 'today-due', scheme);
+			await snap(page, 'today-timeline', scheme, true);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');
