@@ -124,6 +124,8 @@ _Last updated: 2026-10-18, start of M3 (feature/medication)._
   doses computed on the device, "All taken" per slot, taken / skipped / late, as-needed), `feature/reminders` (opt-in,
   payload-less Web Push with own VAPID, D7; verified on a real iPhone only after 0.1.0 is on the Pi), and
   `feature/log-gut` (quick nausea and heartburn logging, from the backlog).
+- **M3 progress:** `feature/medication` built: `medication` record, Meds list (active and archived), set-up sheet, pure schedule
+  helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
