@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4173;
+// E2E_PORT lets several checkouts run the suite side by side (each has its own build and data directory).
+const PORT = Number(process.env.E2E_PORT ?? 4173);
 const phone = { viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 
 export default defineConfig({

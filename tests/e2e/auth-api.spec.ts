@@ -19,7 +19,7 @@ import {
 } from '../../src/lib/crypto';
 
 // Synthetic data only. Real client crypto with cheap KDF parameters; the server is the production build.
-const ORIGIN = 'http://127.0.0.1:4173';
+const ORIGIN = `http://127.0.0.1:${process.env.E2E_PORT ?? 4173}`;
 const DATA_DIR = 'test-results/e2e-data';
 const FAST: KdfParams = { alg: 'argon2id13', ops: 1, memBytes: 8 * 1024 * 1024 };
 const JSON_HEADERS = { origin: ORIGIN, 'content-type': 'application/json' };

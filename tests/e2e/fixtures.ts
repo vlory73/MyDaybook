@@ -13,8 +13,9 @@ const EXPECTED_HTTP_NOTICE = /Failed to load resource: the server responded with
  * harmless line. Only our own server's /api/ paths are ignored: the app makes no cross-origin requests, and a CSP
  * block produces a different message, so genuine problems still fail the test.
  */
-const CANCELLED_OWN_API_FETCH =
-	/^(?:Fetch API cannot load http:\/)?\/127\.0\.0\.1:4173\/api\/\S* due to access control checks\.$/;
+const CANCELLED_OWN_API_FETCH = new RegExp(
+	`^(?:Fetch API cannot load http:\\/)?\\/127\\.0\\.0\\.1:${process.env.E2E_PORT ?? 4173}\\/api\\/\\S* due to access control checks\\.$`
+);
 
 /** Fails any test whose page logs a CSP violation or throws an uncaught error. */
 export const test = base.extend<{ problems: string[] }>({
