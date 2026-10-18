@@ -42,5 +42,8 @@
 	},
 	"overrides": {
 		"cookie": "0.7.2"
+	},
+	"dependencies": {
+		"libsodium-wrappers-sumo": "0.8.4"
 	}
 }
