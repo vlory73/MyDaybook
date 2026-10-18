@@ -15,7 +15,7 @@ const HEADER = 24;
 const ABYTES = 17;
 const ENC_CHUNK = CHUNK + ABYTES;
 /** The largest blob the server accepts (4 MiB); the biggest payload that fits is a little under that. */
-export const MAX_BLOB_BYTES = 4 * 1024 * 1024;
+export const MAX_BLOB_BYTES = 1.25 * 1024 * 1024;
 export const MAX_ATTACHMENT_PLAIN = Math.floor((MAX_BLOB_BYTES - HEADER) / ENC_CHUNK) * CHUNK - 4;
 
 export type EncryptedAttachment = { key: Uint8Array; blob: Uint8Array };

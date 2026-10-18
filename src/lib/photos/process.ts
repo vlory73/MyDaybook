@@ -2,13 +2,25 @@
  * The photo pipeline (ARCHITECTURE §5.2). A picked file is decoded with its EXIF orientation applied, drawn onto a
  * canvas at a limited size and re-encoded as JPEG. Re-encoding through a canvas drops every EXIF/GPS field, and the
  * original file is never kept or uploaded. A small thumbnail is produced as well, so the timeline never has to
- * decrypt a full image.
+ * decrypt a full image. Sizes are kept small on purpose: the server is a shared home machine, and a typical photo
+ * ends up around 150 KB.
  */
+import { MAX_ATTACHMENT_PLAIN } from '$lib/crypto/attachments';
+
 export const MAX_INPUT_BYTES = 25 * 1024 * 1024;
-export const FULL_MAX_SIDE = 1600;
-export const FULL_QUALITY = 0.8;
-export const THUMB_MAX_SIDE = 320;
-export const THUMB_QUALITY = 0.7;
+export const FULL_MAX_SIDE = 1280;
+export const FULL_QUALITY = 0.7;
+export const THUMB_MAX_SIDE = 256;
+export const THUMB_QUALITY = 0.6;
+/** A full image above this is re-encoded with the next, smaller step of FULL_STEPS. */
+export const FULL_TARGET_BYTES = 400 * 1024;
+/** Tried in order until one fits FULL_TARGET_BYTES; only very detailed photos go past the first step. */
+export const FULL_STEPS: readonly { maxSide: number; quality: number }[] = [
+	{ maxSide: FULL_MAX_SIDE, quality: FULL_QUALITY },
+	{ maxSide: FULL_MAX_SIDE, quality: 0.55 },
+	{ maxSide: 1024, quality: 0.55 },
+	{ maxSide: 800, quality: 0.5 }
+];
 
 export type PhotoErrorCode = 'notImage' | 'tooBig' | 'decode' | 'encode';
 
@@ -34,6 +46,25 @@ export type ProcessedPhoto = {
 	w: number;
 	h: number;
 };
+
+/**
+ * Runs `encode` for each step until a result fits `target` bytes. If none does, the last result is kept as long as it
+ * still fits `hardLimit`; otherwise the photo is refused.
+ */
+export async function firstWithin<S, R extends { bytes: Uint8Array }>(
+	steps: readonly S[],
+	encode: (step: S) => Promise<R>,
+	target: number,
+	hardLimit: number
+): Promise<R> {
+	let last: R | undefined;
+	for (const step of steps) {
+		last = await encode(step);
+		if (last.bytes.length <= target) return last;
+	}
+	if (last && last.bytes.length <= hardLimit) return last;
+	throw new PhotoError('encode');
+}
 
 function render(
 	bitmap: ImageBitmap,
@@ -76,7 +107,12 @@ export async function processPhoto(file: File): Promise<ProcessedPhoto> {
 		throw new PhotoError('decode');
 	}
 	try {
-		const full = await render(bitmap, FULL_MAX_SIDE, FULL_QUALITY);
+		const full = await firstWithin(
+			FULL_STEPS,
+			(step) => render(bitmap, step.maxSide, step.quality),
+			FULL_TARGET_BYTES,
+			MAX_ATTACHMENT_PLAIN
+		);
 		const thumb = await render(bitmap, THUMB_MAX_SIDE, THUMB_QUALITY);
 		return { full: full.bytes, thumb: thumb.bytes, w: full.w, h: full.h };
 	} finally {
