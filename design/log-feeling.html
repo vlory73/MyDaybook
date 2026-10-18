@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log feeling: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button { height: 52px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2);
+  display: grid; place-items: center; font-weight: var(--fw-semibold); font-size: var(--fs-body); }
+.scale button .i { width: 28px; height: 28px; }
+.scale button.on { background: var(--feel-tint); color: var(--feel-ink); box-shadow: inset 0 0 0 2px var(--feel-ink); }
+.scale-ends { display: flex; justify-content: space-between; font-size: var(--fs-caption); color: var(--text-3); margin-top: 4px; }
+.sev { font-size: var(--fs-caption); font-weight: var(--fw-bold); background: var(--surface); padding: 1px 6px; border-radius: var(--r-full); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="lf" style="top:56px; border-radius: var(--r-xl) var(--r-xl) 0 0">
+  <div class="grabber"></div>
+  <div class="sheet-head"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button>
+    <h2 id="lf">How are you?</h2><span class="time-chip">09:41</span></div>
+
+  <p class="label">Mood <span class="hint">last time: 3</span></p>
+  <div class="scale"><button class="" aria-label="Mood 1 of 5"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#face-1"/></svg></button><button class="" aria-label="Mood 2 of 5"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#face-2"/></svg></button><button class="" aria-label="Mood 3 of 5"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#face-3"/></svg></button><button class="on" aria-label="Mood 4 of 5"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#face-4"/></svg></button><button class="" aria-label="Mood 5 of 5"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#face-5"/></svg></button></div>
+  <p class="label">Energy</p>
+  <div class="scale"><button class="" aria-label="Energy 1 of 5">1</button><button class="" aria-label="Energy 2 of 5">2</button><button class="on" aria-label="Energy 3 of 5">3</button><button class="" aria-label="Energy 4 of 5">4</button><button class="" aria-label="Energy 5 of 5">5</button></div>
+  <div class="scale-ends"><span>Drained</span><span>Full of energy</span></div>
+  <p class="label">Stress</p>
+  <div class="scale"><button class="" aria-label="Stress 1 of 5">1</button><button class="on" aria-label="Stress 2 of 5">2</button><button class="" aria-label="Stress 3 of 5">3</button><button class="" aria-label="Stress 4 of 5">4</button><button class="" aria-label="Stress 5 of 5">5</button></div>
+  <div class="scale-ends"><span>Calm</span><span>Very stressed</span></div>
+
+  <p class="label">Anything you notice? <span class="hint">your own tags</span></p>
+  <div class="chip-row">
+    <span class="chip on">Headache <span class="sev">2</span></span><span class="chip">Tired eyes</span>
+    <span class="chip">Bloated</span><span class="chip">Restless</span><span class="chip" style="color:var(--primary-press)"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> New</span>
+  </div>
+  <p class="label">Note</p>
+  <div class="field">Optional</div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-5)">Save</button>
+</section>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

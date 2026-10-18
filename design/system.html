@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Design system: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.body .rg { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.2; }
+.body .rg.sel { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+.body .h1 { fill: var(--heat-1); } .body .h2 { fill: var(--heat-2); } .body .h3 { fill: var(--heat-3); }
+.body .h4 { fill: var(--heat-4); } .body .h5 { fill: var(--heat-5); } .body .h6 { fill: var(--heat-6); }
+.body .pt-halo { fill: var(--surface); opacity: .9; }
+.body .pt { stroke: var(--surface); stroke-width: 1.5; }
+.body .pt-1 { fill: var(--heat-2); } .body .pt-2 { fill: var(--heat-3); } .body .pt-3 { fill: var(--heat-4); }
+.body .pt-4 { fill: var(--heat-5); } .body .pt-5, .body .pt-6 { fill: var(--heat-6); }
+
+.wrap { padding: var(--sp-4) var(--gutter) var(--sp-8); }
+h2 { font-size: var(--fs-title3); margin: var(--sp-7) 0 var(--sp-3); }
+.sw { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sw div { border-radius: var(--r-md); height: 64px; padding: 6px 8px; font-size: 10px; font-family: var(--font-mono); display: flex;
+  align-items: flex-end; box-shadow: inset 0 0 0 1px var(--line); }
+.cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cats div { border-radius: var(--r-md); padding: 10px 8px; font-size: var(--fs-footnote); font-weight: 600; display: flex; flex-direction: column; gap: 6px; }
+.ramp7 { display: flex; gap: 3px; } .ramp7 span { flex: 1; height: 28px; border-radius: 6px; }
+.type p { margin: 6px 0; }
+.space { display: flex; align-items: flex-end; gap: 10px; }
+.space div { background: var(--primary); opacity: .75; border-radius: 3px; width: 100%; }
+.space-l { display: flex; gap: 10px; font-size: 10px; color: var(--text-3); font-family: var(--font-mono); }
+.space-l span { width: 100%; text-align: center; }
+.icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; color: var(--text); }
+.icons .i { width: 26px; height: 26px; }
+.motion { font-size: var(--fs-callout); } .motion li { margin: 6px 0; }
+.demo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="phone long">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<main class="wrap">
+  <p class="eyebrow">Design direction · proposal</p>
+  <h1 class="large-title">Linen &amp; Clay</h1>
+  <p class="muted" style="margin-top:8px">Warm paper tones, one confident clay accent, soft category tints. Calm, private, a little bit cosy.
+    Not clinical.</p>
+
+  <h2>Core palette</h2><div class="sw"><div style="background:var(--bg);color:var(--text)">--bg</div><div style="background:var(--surface);color:var(--text)">--surface</div><div style="background:var(--surface-2);color:var(--text)">--surface-2</div><div style="background:var(--surface-3);color:var(--text)">--surface-3</div><div style="background:var(--text);color:var(--bg)">--text</div><div style="background:var(--text-2);color:var(--bg)">--text-2</div><div style="background:var(--primary);color:var(--on-primary)">--primary</div><div style="background:var(--primary-soft);color:var(--primary-press)">--primary-soft</div></div>
+  <h2>Category tints</h2><div class="cats"><div class="cat-food"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg>Food</div><div class="cat-feel"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#smile"/></svg>Feeling</div><div class="cat-sleep"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg>Sleep</div><div class="cat-measure"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#ruler"/></svg>Measure</div><div class="cat-pain"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#activity"/></svg>Pain</div><div class="cat-meds"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg>Meds</div><div class="cat-note"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg>Note</div></div>
+  <p class="small muted" style="margin-top:8px">Tints identify <i>what</i> an entry is. They never judge a value. No red or green for "bad" or "good".</p>
+  <h2>Intensity &amp; heat ramp</h2>
+  <div class="ramp7"><span style="background:var(--heat-0)"></span><span style="background:var(--heat-1)"></span><span style="background:var(--heat-2)"></span><span style="background:var(--heat-3)"></span><span style="background:var(--heat-4)"></span><span style="background:var(--heat-5)"></span><span style="background:var(--heat-6)"></span></div>
+  <p class="small muted" style="margin-top:8px">Peach to plum, readable for common colour-vision differences. Numbers are always shown too.</p>
+
+  <h2>Type: system rounded</h2>
+  <div class="type">
+    <p style="font-size:var(--fs-display);font-weight:700;line-height:1.1">Display 36</p>
+    <p style="font-size:var(--fs-title1);font-weight:700">Title 30 bold</p>
+    <p style="font-size:var(--fs-title3);font-weight:700">Title 20 bold</p>
+    <p style="font-size:var(--fs-body)">Body 17: Slept well, light walk before breakfast.</p>
+    <p style="font-size:var(--fs-callout)" class="muted">Callout 16: secondary information</p>
+    <p style="font-size:var(--fs-footnote)" class="muted">Footnote 14 · Caption 13</p>
+    <p style="font-family:var(--font-mono)">7KQ2 M9XA 4FJT: mono for keys</p>
+  </div>
+  <p class="small muted">SF Pro Rounded on iPhone and Mac, Segoe UI on Windows. Zero font bytes, with Dynamic Type built in.</p>
+
+  <h2>Spacing (4-pt) &amp; radii</h2>
+  <div class="space"><div style="height:4px"></div><div style="height:8px"></div><div style="height:12px"></div><div style="height:16px"></div><div style="height:20px"></div><div style="height:24px"></div><div style="height:32px"></div><div style="height:40px"></div><div style="height:56px"></div></div>
+  <div class="space-l"><span>4</span><span>8</span><span>12</span><span>16</span><span>20</span><span>24</span><span>32</span><span>40</span><span>56</span></div>
+  <div class="demo" style="margin-top:var(--sp-4)">
+    <span class="chip">Chip r10</span><button class="btn btn-primary btn-sm">Button r14</button>
+    <span class="card" style="padding:10px 14px">Card r22</span></div>
+
+  <h2>Icons: Lucide (ISC), 1.85 stroke</h2><div class="icons"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#smile"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#ruler"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#activity"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#weight"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#thermometer"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#heart-pulse"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bell"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#lock"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#key-round"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#search"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#calendar"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#camera"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#tag"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#printer"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#undo-2"/></svg><svg class="i" aria-hidden="true"><use href="assets/icons.svg#settings"/></svg></div>
+
+  <h2>Components</h2>
+  <div class="demo"><button class="btn btn-primary">Save</button><button class="btn btn-soft">Taken</button><button class="btn btn-quiet">Skip</button>
+    <button class="btn btn-quiet focus-ring">Focused</button></div>
+  <div class="demo" style="margin-top:10px"><span class="chip on">Aching</span><span class="chip">Sharp</span><span class="chip">#home</span></div>
+  <div class="segmented" style="margin-top:10px"><button class="on">Week</button><button>Month</button><button>Year</button></div>
+
+  <h2>Motion</h2>
+  <ul class="motion">
+    <li><b>Quick and quiet:</b> 120 ms press, 200 ms fades, 280 ms sheets, ease-out.</li>
+    <li><b>Sheets slide up</b> from the "+" button; they never pop in from nowhere.</li>
+    <li><b>Confirm by change, not celebration:</b> a soft check morph, no confetti.</li>
+    <li><b>Undo toasts</b> slide in for 5 s instead of "Are you sure?" dialogs.</li>
+    <li><b>Reduced motion:</b> all movement becomes a short cross-fade.</li>
+  </ul>
+</main>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

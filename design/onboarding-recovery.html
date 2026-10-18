@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recovery key: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.steps { display: flex; gap: 6px; justify-content: center; margin: var(--sp-2) 0 var(--sp-5); }
+.steps i { width: 28px; height: 5px; border-radius: 3px; background: var(--surface-3); }
+.steps i.on { background: var(--primary); }
+.hero { width: 80px; height: 80px; margin: 0 auto var(--sp-4); border-radius: 34px; display: grid; place-items: center;
+  background: var(--primary-soft); color: var(--primary-press); transform: rotate(-6deg); }
+.hero .i { width: 40px; height: 40px; transform: rotate(6deg); stroke-width: 1.6; }
+.key { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: var(--sp-5) 0 var(--sp-3); }
+.key span { font-family: var(--font-mono); font-size: 1.0625rem; font-weight: 600; letter-spacing: .08em; text-align: center;
+  padding: 10px 0; border-radius: var(--r-sm); background: var(--surface); box-shadow: var(--shadow-1); }
+.warn { display: flex; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-lg); background: var(--note-tint); color: var(--note-ink);
+  font-size: var(--fs-callout); margin-top: var(--sp-4); }
+.warn b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<main class="content" style="padding-top:var(--sp-2); padding-bottom:var(--sp-7)">
+  <div class="steps" aria-label="Step 3 of 4"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+  <div class="hero"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#key-round"/></svg></div>
+  <h1 class="large-title" style="text-align:center">Your recovery key</h1>
+  <p class="muted" style="text-align:center; margin-top:var(--sp-3)">This is the only spare key to your diary. Keep it somewhere safe and offline,
+    such as printed in a drawer or in a password manager.</p>
+  <div class="key" aria-label="Recovery key"><span>7KQ2</span><span>M9XA</span><span>4FJT</span><span>R8WC</span><span>2HDN</span><span>V6PE</span><span>3ZBY</span><span>Q5GS</span></div>
+  <div style="display:flex; gap:var(--sp-3)"><button class="btn btn-quiet" style="flex:1"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#printer"/></svg> Print</button>
+    <button class="btn btn-quiet" style="flex:1"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#copy"/></svg> Copy</button></div>
+  <div class="warn"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#info"/></svg><p><b>Nobody else can unlock your diary.</b> If you lose both your passphrase and this key,
+    your entries are gone for good, and the person running this server can't get them back either.</p></div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-5)">I've stored it. Check me</button>
+  <p class="small muted" style="text-align:center; margin-top:var(--sp-3)">Next, you'll type two groups from the key to confirm.</p>
+</main>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>
