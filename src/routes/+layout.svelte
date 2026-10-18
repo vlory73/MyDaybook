@@ -18,6 +18,7 @@
 	import { categories, type Category } from '$lib/components/categories';
 	import {
 		BowelSheet,
+		GutSheet,
 		Button,
 		CategoryBadge,
 		EntryDetailSheet,
@@ -117,6 +118,7 @@
 		else if (key === 'feel') openLog('feeling');
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
+		else if (key === 'stomach') openLog('gut');
 		else if (key === 'weight') openLog('measurement', { typeId: WEIGHT_ID });
 		else if (key === 'measure') openLog('measurement', { typeId: lastUsedMeasureType(allRecords()) });
 		else showToast(t('quicklog.notYet'));
@@ -214,6 +216,7 @@
 	<SleepSheet />
 	<MeasurementSheet />
 	<BowelSheet />
+	<GutSheet />
 	<MealSheet />
 	<EntryDetailSheet />
 	<PhotoViewer />

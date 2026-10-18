@@ -6,6 +6,7 @@ export { default as Chip } from './Chip.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as EntryDetailSheet } from './EntryDetailSheet.svelte';
 export { default as FeelingSheet } from './FeelingSheet.svelte';
+export { default as GutSheet } from './GutSheet.svelte';
 export { default as Hero } from './Hero.svelte';
 export { default as Icon } from './Icon.svelte';
 export { default as LanguageSwitch } from './LanguageSwitch.svelte';

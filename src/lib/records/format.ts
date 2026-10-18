@@ -104,6 +104,14 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 					p.note && firstLine(p.note)
 				])
 			};
+		case 'gut':
+			return {
+				category: 'stomach',
+				title: p.symptoms
+					.map((s) => t('fmt.gut.symptom', { name: t(`gut.kind.${s.kind}` as MessageKey), n: s.intensity }))
+					.join(' · '),
+				summary: join([...p.flags.map((f) => t(`gut.flag.${f}` as MessageKey)), p.note && firstLine(p.note)])
+			};
 		case 'note':
 			return { category: 'note', title: t(categories.note.label), summary: firstLine(p.text) };
 	}
