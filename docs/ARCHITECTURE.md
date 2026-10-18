@@ -304,7 +304,7 @@ attachments on any record type**, not just food, so "has a photo" does not revea
 
 ## 8. Server hardening
 
-- Headers: CSP (§2.2), `Strict-Transport-Security: max-age=63072000; includeSubDomains`, `X-Content-Type-Options`,
+- Headers: CSP (§2.2), `Strict-Transport-Security: max-age=<HSTS_MAX_AGE>` (no `includeSubDomains`, see §9), `X-Content-Type-Options`,
   `Referrer-Policy: no-referrer`, `Permissions-Policy` (camera only on capture inputs), `Cross-Origin-Opener-Policy: same-origin`,
   `Cross-Origin-Resource-Policy: same-origin`.
 - In-memory token-bucket rate limits on prelogin, login, recover, invite-accept and handover, keyed **per IP and per username**
@@ -333,14 +333,14 @@ through the router VPN (Synology VPN Plus) today, and Tailscale later. The same 
 subnet router, or DNS pointing there), because a PWA's identity is its origin: changing the URL means reinstalling and logging
 in again (no data is lost; the local cache holds only ciphertext). For self-hosters, A/B/C above remain the documented options.
 
-The app container speaks plain HTTP on port 8090. Plain-HTTP requests that did not come through the trusted proxy get a page
-pointing to the HTTPS URL instead of the app: no secure context means no service worker, and the auth key should never cross
-Wi-Fi without TLS. `TRUSTED_PROXY` names the proxy whose `X-Forwarded-*` headers are believed. The proxy's access log for this
+The app container speaks plain HTTP on port 8090, **published on 127.0.0.1 only**, so it is reachable solely through Caddy. As a
+second line of defence for other self-hosters, requests that did not come through the trusted proxy get a page pointing to the
+HTTPS URL instead of the app. `TRUSTED_PROXY` names the proxy whose `X-Forwarded-*` headers are believed. The proxy's access log for this
 site is switched off (IP retention, §8).
 
-**HSTS caveat:** HSTS applies to a host name on *every* port. If any service is still reached over plain HTTP at
-`lory-home.duckdns.org:<port>`, a long HSTS header would break it. `HSTS_MAX_AGE` is therefore configurable, and stays 0
-on this host until the Home Assistant session confirms everything on that name is HTTPS-only.
+**HSTS:** it applies to a host name on *every* port, so `HSTS_MAX_AGE` is configurable and never adds `includeSubDomains` or
+`preload` (duckdns.org is a shared domain). On the home Pi, every service on that name is HTTPS-only: start at 86400 for the first weeks, then 31536000.
+The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md).
 
 ## 10. Build, release and deployment
 
@@ -366,7 +366,7 @@ on this host until the Home Assistant session confirms everything on that name i
   with a clear log line. The last 5 pre-migration backups are kept.
 - **Nightly backup (D13):** a scheduled job inside the app (`BACKUP_TIME`, default 04:00 local) writes into `/backup`, which is
   `~/mydaybook/backup` on the Pi:
-  - `db/app-<UTC timestamp>.sqlite`: a consistent snapshot via SQLite's online backup API, newest `BACKUP_KEEP` kept (default 3).
+  - `db/app-YYYY-MM-DDTHHMMSSZ.sqlite` (a stable name pattern the NAS job relies on): a consistent snapshot via SQLite's online backup API, newest `BACKUP_KEEP` kept (default 3).
   - `blobs/`: a mirror of the encrypted photo store. Blobs are immutable and written atomically, so mirroring them after the DB
     snapshot is consistent.
   - On demand: `docker compose exec app node build/cli.js backup`.

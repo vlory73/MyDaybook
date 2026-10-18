@@ -86,6 +86,7 @@ Other key documents:
 | 2026-10-18 | Deferred: D13 backup mechanism, D14 backup retention. Open: D6 font licence, D7 push UX, D15 PDF approach, D16 design | Owner, M0 review |
 | 2026-10-18 | Approved: D6 OFL-1.1 allowed for font files only (system fonts first), D7 payload-less push, D11 consent age 13 / handover age 18, D15 print first then pdf-lib | Owner |
 | 2026-10-18 | Home Pi facts from the Home Assistant session: D3 = existing Caddy at https://lory-home.duckdns.org:8444, app on port 8090; D13 = in-app dump at 04:00 into ~/mydaybook/backup (3 kept); D14 = 14 days on the NAS. See docs/HOME_DEPLOYMENT.md | Owner, HA session |
+| 2026-10-18 | Home Pi details agreed with the HA session: port 127.0.0.1:8090, fixed subnet 172.30.90.0/24 (TRUSTED_PROXY=172.30.90.1), HSTS 86400 then 31536000 with no includeSubDomains, stable dump name, no staging on the Pi, root `compose.yaml` + `.env.example` required. See docs/HOME_DEPLOYMENT.md | HA session |
 
 ## Current status
 
@@ -94,9 +95,11 @@ _Last updated: 2026-10-18, M0 session (after owner review)._
 - **Milestone:** M0 delivered, waiting for owner review. No application code exists yet.
 - **Done:** initial commit on `main`; `develop` created; `docs/SPEC.md`, this file,
   `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, design proposal (`design/`, HTML mockups + screenshots).
-- **All decisions D1–D15 settled** (see Decisions log and `docs/ARCHITECTURE.md` §12). Home Pi integration request is in
-  `docs/HOME_DEPLOYMENT.md`, waiting for the Home Assistant session's answers (HSTS, trusted proxy address, staging).
-- **Waiting on the owner:** D16 (design direction).
+- **All decisions D1–D15 settled** (see Decisions log and `docs/ARCHITECTURE.md` §12). Home Pi integration is agreed in
+  `docs/HOME_DEPLOYMENT.md`; no more back-and-forth until there is something to deploy.
+- **Waiting on the owner:** D16 (design direction), to be reviewed next.
+- **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
+  invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant.
 - **Next:** M1 (scaffold, tooling, CI on PRs, design tokens, core components), once the decisions are made.
 - **Not yet written (later milestones):** `docs/gdpr/*`, `SECURITY.md`, `CONTRIBUTING.md`, `docs/SELF_HOSTING.md`,
   Compose files, `.env.example`.

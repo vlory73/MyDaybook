@@ -3,7 +3,7 @@
 The owner's Pi is managed by a separate "Home Assistant session". This file records the integration
 request we sent it, so both sides agree. The general guide for other self-hosters will be `docs/SELF_HOSTING.md` (M7).
 
-Status: **planned**. No image exists yet; the first deployable version is expected after M2 (auth, crypto, entries).
+Status: **planned and agreed** (see the bottom of this file). No image exists yet; the first deployable version is expected after M2 (auth, crypto, entries).
 
 ```text
 APP INTEGRATION REQUEST
@@ -23,3 +23,28 @@ APP INTEGRATION REQUEST
 - Needs anything from Home Assistant or strøm? (APIs, entities, none): none. Outbound internet only for optional reminder pushes (Apple/Google push services, payload-free) and image pulls from ghcr.io.
 - Open questions for the owner: 1) First admin account: after the first deploy, the owner runs "docker compose exec app node build/cli.js invite --admin" in their OWN terminal (not through the HA session), because the printed invite link is a one-time credential. 2) For the HA session: is every service reached via lory-home.duckdns.org HTTPS-only? If yes, the app may send a long HSTS header (HSTS_MAX_AGE=31536000); until confirmed it stays 0, because HSTS would force HTTPS on all ports of that name. 3) For the HA session: which address does the app see Caddy connecting from (for TRUSTED_PROXY)? 4) Staging copy on the Pi (port 8091/8445, ~70 MB more RAM): wanted, or test elsewhere?
 ```
+
+## Agreed with the Home Assistant session (2026-10-18)
+
+These override the request above where they differ.
+
+1. **HTTPS:** Caddy serves `https://lory-home.duckdns.org:8444` and forwards to `127.0.0.1:8090`. Request bodies are allowed up to 15 MB.
+   Caddy sends `X-Forwarded-For/-Proto/-Host` by default and writes no access log.
+2. **Port:** publish `"127.0.0.1:8090:8090"` only. There is no plain HTTP on the LAN. Health checks use `http://127.0.0.1:8090/healthz` on the Pi.
+3. **Network:** the Compose project gets a fixed subnet `172.30.90.0/24`, so `TRUSTED_PROXY=172.30.90.1` (the gateway Caddy's
+   connections arrive from). The app logs the first proxy peer address it sees once at startup, so this can be verified.
+4. **HSTS:** every service on that name is HTTPS-only. Ramp up: `HSTS_MAX_AGE=86400` for the first weeks, then `31536000`.
+   **No `includeSubDomains` and no `preload`** (duckdns.org is a shared domain).
+5. **Remote access:** VPN Plus now; later a Tailscale subnet router. The URL stays the same, so nobody reinstalls.
+6. **Backups:** the 04:30 job copies `~/mydaybook/backup/` to the NAS. `db/` dumps are kept 14 days, using the date in the file
+   name. `blobs/` is mirrored, and deleted or changed files are kept 14 days in a dated side folder. A dump that is missing or older
+   than 26 h fails the run and alerts the owner. **The file name pattern `db/app-<timestamp>.sqlite`, with the timestamp containing
+   `YYYY-MM-DD`, must stay stable.** We use `app-YYYY-MM-DDTHHMMSSZ.sqlite`.
+7. **Staging:** not on the Pi for now; tested elsewhere. It may come later on 8091/8445.
+8. **Deployment:** the HA session deploys from this repo at a release tag, using `compose.yaml` at the repo root. It must contain the
+   127.0.0.1 port, the fixed network, `mem_limit`, the bind mounts and `env_file: .env`. Also ship `.env.example` with the
+   non-secret settings, and the `gen-secrets` command in the README. Upgrades happen only on purpose, by changing the pinned tag.
+9. **First admin invite:** the owner runs it in their own terminal.
+
+**Our follow-ups:** tell the owner when 0.1.0 is published, and report any change to the above. Ask the owner about the first
+admin invite (question 1) when 0.1.0 is ready, and about a staging copy (question 4) if it becomes relevant.
