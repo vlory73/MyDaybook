@@ -23,7 +23,8 @@ trap 'docker logs "$cid" | tail -20; docker rm -f "$cid" >/dev/null' EXIT
 for _ in $(seq 1 90); do
 	if curl -fsS http://127.0.0.1:8090/healthz >/dev/null 2>&1; then
 		echo "healthy on $platform"
-		test -f "$data/app.db"
+		# Checked inside the container: the data folder belongs to uid 1000, which the CI user cannot read.
+		docker exec "$cid" test -f /data/app.db
 		docker exec "$cid" cli invite --admin | grep -q '/join#t='
 		echo "migrations ran and the invite CLI works"
 		exit 0
