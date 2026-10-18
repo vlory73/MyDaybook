@@ -1,6 +1,16 @@
 import { test, type Page } from '@playwright/test';
 import { previousStepCode } from './totp-code';
-import { createInvite, newPassphrase, newUsername, signUpAndSignIn, signUpViaApi } from './helpers';
+import {
+	ORIGIN,
+	createInvite,
+	newPassphrase,
+	newUsername,
+	postJson,
+	signUpAndSignIn,
+	signUpApiAccount,
+	signUpViaApi,
+	unlockWith
+} from './helpers';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
 // Opt-in: SCREENSHOTS=<folder name> npx playwright test screenshots --project=phone-chromium
@@ -291,6 +301,45 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.getByRole('button', { name: 'Sign in' }).click();
 			await page.getByRole('heading', { name: 'One more step' }).waitFor();
 			await snap(page, 'login-code', scheme);
+		});
+
+		test(`admin users ${scheme}`, async ({ page, playwright }) => {
+			test.skip(folder !== 'admin-users', 'admin-users screenshots only');
+			await prepare(page, scheme);
+			const api = await playwright.request.newContext({ baseURL: ORIGIN });
+			const maja = await signUpApiAccount(api, { prefix: 'maja' });
+			const jonas = await signUpApiAccount(await playwright.request.newContext({ baseURL: ORIGIN }), {
+				prefix: 'jonas'
+			});
+			const admin = await signUpApiAccount(page.request, { prefix: 'admin', admin: true });
+			const all = (await (await page.request.get('/api/admin/users')).json()).users as {
+				id: string;
+				username: string;
+			}[];
+			const jonasId = all.find((u) => u.username === jonas.username)!.id;
+			await postJson(page.request, `/api/admin/users/${jonasId}/disable`);
+			await page.goto('/me');
+			await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+			await unlockWith(page, admin.passphrase);
+			await page.getByTestId('admin-link').scrollIntoViewIfNeeded();
+			await snap(page, 'me-admin-entry', scheme);
+			await page.getByTestId('admin-link').click();
+			await page.getByTestId('admin-users').waitFor();
+			await page.locator(`li.person[data-username="${maja.username}"]`).waitFor();
+			await snap(page, 'users', scheme, true);
+			await page
+				.locator(`li.person[data-username="${maja.username}"]`)
+				.getByRole('button', { name: /^Delete/ })
+				.click();
+			await page.waitForTimeout(400);
+			await snap(page, 'delete-sheet', scheme);
+			await page.getByRole('button', { name: 'Cancel' }).click();
+			await page.waitForTimeout(400);
+			await page.getByRole('button', { name: 'Create invite link' }).click();
+			await page.getByTestId('invite-link').waitFor();
+			await page.getByTestId('invite-link').scrollIntoViewIfNeeded();
+			await page.waitForTimeout(200);
+			await snap(page, 'invite-link', scheme);
 		});
 
 		test(`join journey ${scheme}`, async ({ page }) => {

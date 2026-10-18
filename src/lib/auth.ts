@@ -169,6 +169,16 @@ export async function deleteAccount(passphrase: string): Promise<void> {
 	}
 }
 
+/** Admin only: erases another account. Needs the ADMIN's own passphrase. Throws ApiError 401, 404 or 409 (`last_guardian`). */
+export async function deleteUserAsAdmin(userId: string, passphrase: string): Promise<void> {
+	const key = await currentAuthKey(passphrase);
+	try {
+		await apiPost(`/api/admin/users/${userId}/delete`, { authKey: toB64(key) });
+	} finally {
+		zero(key);
+	}
+}
+
 // ---- Recovery ----
 
 export type RecoverySession = {

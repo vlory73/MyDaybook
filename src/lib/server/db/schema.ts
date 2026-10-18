@@ -192,7 +192,7 @@ export const adminAudit = sqliteTable(
 	{
 		id: text('id').primaryKey(),
 		adminId: text('admin_id'), // no FK: the audit trail outlives accounts
-		action: text('action', { enum: ['invite', 'disable', 'enable', 'delete'] }).notNull(),
+		action: text('action', { enum: ['invite', 'revoke_invite', 'disable', 'enable', 'delete'] }).notNull(),
 		targetId: text('target_id'),
 		at: integer('at').notNull()
 	},
