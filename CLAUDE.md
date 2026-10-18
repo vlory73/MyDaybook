@@ -122,7 +122,7 @@ _Last updated: 2026-10-18, during M2 (feature/photos, stacked on feature/log-mea
   live duration, naps), weight and custom measurements (steppers, two-value types), bowel (Bristol types, flags), edit and
   delete with Undo, and an "Again?" row in quick-log (screenshots in `docs/screenshots/log-body/`). `feature/log-meals` (stacked on log-body): food watch list in Me (EU allergens + intolerances, own items,
   reorder), meal sheet with Yes / Not sure / No per watched item, saved meals (one-tap fill and "Again?"), timeline tags such
-  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; `BODY_SIZE_LIMIT=5M` needed; screenshots in `docs/screenshots/photos/`). Next: pain/body map and medication sheets.
+  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; photos about 150 KB each, 1.25 MiB cap, `BODY_SIZE_LIMIT=2M` needed; screenshots in `docs/screenshots/photos/`). Next: pain/body map and medication sheets.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the

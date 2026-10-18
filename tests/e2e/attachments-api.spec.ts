@@ -118,14 +118,16 @@ test('another user cannot read, overwrite or delete an attachment', async ({ bro
 	}
 });
 
+const LIMIT = 1.25 * 1024 * 1024;
+
 test('size limit, content types, ids and origin', async ({ page }) => {
 	const user = await signUpViaApi(page, 'attlim');
 	const ctx = page.request;
 	const id = randomUUID();
 
-	// Exactly 4 MiB is accepted; one byte more is 413
-	expect((await upload(ctx, id, Buffer.alloc(4 * 1024 * 1024, 7))).status()).toBe(200);
-	const tooBig = await upload(ctx, randomUUID(), Buffer.alloc(4 * 1024 * 1024 + 1, 7));
+	// Exactly 1.25 MiB is accepted; one byte more is 413
+	expect((await upload(ctx, id, Buffer.alloc(LIMIT, 7))).status()).toBe(200);
+	const tooBig = await upload(ctx, randomUUID(), Buffer.alloc(LIMIT + 1, 7));
 	expect(tooBig.status()).toBe(413);
 	expect(await tooBig.json()).toEqual({ error: 'too_large' });
 	// The rest of the upload is unread, so the server closes the connection and must say so.
