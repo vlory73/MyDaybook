@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		CategoryBadge,
+		DueDoses,
 		PhotoThumb,
 		EmptyState,
 		Icon,
@@ -11,7 +12,7 @@
 	} from '$lib/components';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
 	import { openPhoto } from '$lib/photos/viewer.svelte';
-	import { openDetail, openLog, openNote } from '$lib/records/editor.svelte';
+	import { openDetail, openDose, openLog, openNote } from '$lib/records/editor.svelte';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
 	import { daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
@@ -42,7 +43,10 @@
 		else if (type === 'feeling' || type === 'sleep' || type === 'bowel' || type === 'gut' || type === 'food')
 			openLog(type, { id });
 		else if (type === 'measurement') openLog('measurement', { id });
-		else openDetail(id);
+		else if (type === 'dose') {
+			const p = store.items[id]?.payload;
+			if (p?.type === 'dose') openDose({ id, medicationId: p.medicationId, slot: p.slot });
+		} else openDetail(id);
 	}
 
 	// One-tap mood: saves a feeling with just the mood and offers Undo.
@@ -93,6 +97,8 @@
 		<button type="button" class="more" onclick={() => openLog('feeling')}>{t('today.mood.more')}</button>
 	</section>
 {/if}
+
+<DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
 
 <h2 class="section-title">{heading}</h2>
 

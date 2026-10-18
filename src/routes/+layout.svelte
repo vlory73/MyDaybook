@@ -21,6 +21,7 @@
 		GutSheet,
 		Button,
 		CategoryBadge,
+		DoseSheet,
 		EntryDetailSheet,
 		FeelingSheet,
 		Hero,
@@ -29,6 +30,7 @@
 		MealSheet,
 		MeasurementSheet,
 		MedicationSheet,
+		MedicineSheet,
 		NoteSheet,
 		PhotoViewer,
 		Sheet,
@@ -43,6 +45,7 @@
 
 	let { children }: { children: Snippet } = $props();
 	let quickLogOpen = $state(false);
+	let medicineOpen = $state(false);
 
 	$effect(() => {
 		document.documentElement.lang = i18n.locale;
@@ -91,6 +94,7 @@
 	$effect(() => {
 		if (session.status !== 'unlocked') {
 			quickLogOpen = false;
+			medicineOpen = false;
 			closeEditors();
 			dismissToast();
 		}
@@ -120,6 +124,7 @@
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
 		else if (key === 'stomach') openLog('gut');
+		else if (key === 'meds') medicineOpen = true;
 		else if (key === 'weight') openLog('measurement', { typeId: WEIGHT_ID });
 		else if (key === 'measure') openLog('measurement', { typeId: lastUsedMeasureType(allRecords()) });
 		else showToast(t('quicklog.notYet'));
@@ -216,7 +221,9 @@
 	<FeelingSheet />
 	<SleepSheet />
 	<MeasurementSheet />
+	<MedicineSheet bind:open={medicineOpen} />
 	<MedicationSheet />
+	<DoseSheet />
 	<BowelSheet />
 	<GutSheet />
 	<MealSheet />
