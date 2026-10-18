@@ -9,3 +9,4 @@ test-results/
 playwright-report/
 *.md
 drizzle/
+.claude/
