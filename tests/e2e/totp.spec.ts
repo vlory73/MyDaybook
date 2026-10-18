@@ -115,6 +115,8 @@ test('turning off works with a fresh code, then sign-in needs no code', async ({
 	await card.getByRole('button', { name: 'Turn on' }).click();
 	await page.getByRole('dialog').getByLabel('Passphrase', { exact: true }).fill(user.passphrase);
 	await page.getByRole('button', { name: 'Show setup key' }).click();
+	// The key appears once the setup request answers; reading it earlier would give an empty key and a wrong code.
+	await expect(page.getByTestId('totp-secret').locator('span')).toHaveCount(8);
 	const secret = (await page.getByTestId('totp-secret').locator('span').allTextContents()).join('');
 	await page
 		.getByRole('dialog')
