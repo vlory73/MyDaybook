@@ -4,7 +4,7 @@
  * envelope version byte, and stores opaque blobs.
  */
 import { and, asc, eq, gt, or, sql } from 'drizzle-orm';
-import { db } from './db';
+import { db, writeTx } from './db';
 import { records, users } from './db/schema';
 import { WRAPPED_LEN } from './auth/validate';
 
@@ -155,7 +155,7 @@ export function putRecord(
 	baseRev: number | undefined,
 	now = Date.now()
 ): PutResult {
-	return db().transaction((): PutResult => {
+	return writeTx((): PutResult => {
 		const { row, foreign } = lookup(userId, id);
 		if (foreign) return { ok: false, reason: 'not_found' };
 		if (baseRev !== undefined && baseRev !== (row?.rev ?? 0)) {
@@ -182,7 +182,7 @@ export function putRecord(
 }
 
 export function deleteRecord(userId: string, id: string, now = Date.now()): PutResult {
-	return db().transaction((): PutResult => {
+	return writeTx((): PutResult => {
 		const { row } = lookup(userId, id);
 		if (!row) return { ok: false, reason: 'not_found' };
 		if (row.deletedAt !== null) return { ok: true, id, rev: row.rev, updatedAt: row.updatedAt };
