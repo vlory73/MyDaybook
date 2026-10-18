@@ -167,6 +167,14 @@ describe('blob mirror', () => {
 		mkdirSync(join(blobs, 'user1'), { recursive: true });
 		writeFileSync(join(blobs, 'user1', 'a'), 'aaa');
 		writeFileSync(join(blobs, 'user1', 'b'), 'bbb');
+		// Sub-millisecond times, as on filesystems with nanosecond timestamps (CI): the copy's time is set through seconds and
+		// may land a hair below the millisecond, so an exact or floored comparison would recopy unchanged files every night.
+		for (const [f, secs] of [
+			['a', 1_792_340_000.1234567],
+			['b', 1_792_340_000.9996]
+		] as const) {
+			utimesSync(join(blobs, 'user1', f), secs, secs);
+		}
 		const first = await runBackup({ sqlite, dataDir, backupDir });
 		expect(first).toMatchObject({ blobs: 2, blobsCopied: 2, blobsDeleted: 0 });
 		expect(readFileSync(join(backupDir, 'blobs', 'user1', 'a'), 'utf8')).toBe('aaa');

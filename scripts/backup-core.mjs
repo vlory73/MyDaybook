@@ -96,7 +96,8 @@ export function mirrorDir(src, dest) {
 			out.files++;
 			const s = statSync(from);
 			const d = lstatOrNull(to);
-			if (!d || !d.isFile() || d.size !== s.size || Math.floor(d.mtimeMs) !== Math.floor(s.mtimeMs)) {
+			// The copy's time is set through seconds, so it can land a hair below the source's; allow under 1 ms.
+			if (!d || !d.isFile() || d.size !== s.size || Math.abs(d.mtimeMs - s.mtimeMs) >= 1) {
 				if (d) rmSync(to, { force: true, recursive: true });
 				const tmp = `${to}.partial`;
 				copyFileSync(from, tmp);

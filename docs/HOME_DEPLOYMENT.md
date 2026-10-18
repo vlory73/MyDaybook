@@ -46,5 +46,10 @@ These override the request above where they differ.
    non-secret settings, and the `gen-secrets` command in the README. Upgrades happen only on purpose, by changing the pinned tag.
 9. **First admin invite:** the owner runs it in their own terminal.
 
+**Changing the backup time (owner request, 2026-10-18):** 04:00 / 04:30 are defaults, not fixed. The app's dump time is
+`BACKUP_TIME=HH:MM` in `~/mydaybook/.env` (Pi local time; apply with `docker compose up -d`). The NAS copy job only has to run
+after the dump; keep it at least 30 minutes later. The file names and the "newer than 26 h" check do not change, as long as both
+run once a day. The NAS may be unavailable at 04:30 for now (until the new drives), so the copy time is expected to move.
+
 **Our follow-ups:** tell the owner when 0.1.0 is published, and report any change to the above. Ask the owner about the first
 admin invite (question 1) when 0.1.0 is ready, and about a staging copy (question 4) if it becomes relevant.
