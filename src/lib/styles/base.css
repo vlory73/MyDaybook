@@ -126,3 +126,57 @@ a {
 .app-root {
 	display: contents;
 }
+
+/* Headings that receive focus on a step change are focus targets only, not tab stops, so no ring is needed. */
+h1[tabindex='-1']:focus {
+	outline: none;
+}
+
+/* Shared pieces of the account screens (join, login, recover, unlock). */
+.auth-center {
+	text-align: center;
+}
+.auth-lead {
+	margin: var(--sp-3) 0 var(--sp-5);
+}
+.auth-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+.auth-links {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	margin-top: var(--sp-4);
+}
+.auth-busy {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	color: var(--text-2);
+}
+.auth-back {
+	margin-bottom: var(--sp-2);
+}
+
+/* Text-style link buttons (secondary actions on the account screens). */
+.link-button {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--tap);
+	padding: 0 var(--sp-3);
+	color: var(--primary);
+	font-weight: var(--fw-medium);
+	text-decoration: underline;
+}
+
+/* "Print" on the recovery key screen: only the plain print sheet (moved to <body>) is shown. */
+@media print {
+	html[data-print='recovery'] body > :not(.print-sheet) {
+		display: none !important;
+	}
+	html[data-print='recovery'] body > .print-sheet {
+		display: block;
+	}
+}

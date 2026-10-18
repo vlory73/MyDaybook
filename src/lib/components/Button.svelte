@@ -3,7 +3,7 @@
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 
 	type Props = HTMLButtonAttributes & {
-		variant?: 'primary' | 'soft' | 'quiet';
+		variant?: 'primary' | 'soft' | 'quiet' | 'danger';
 		size?: 'sm' | 'md' | 'lg';
 		block?: boolean;
 		children: Snippet;
@@ -55,6 +55,12 @@
 	.quiet {
 		background: var(--surface-2);
 		color: var(--text);
+	}
+	/* Soft rather than solid red: readable in both themes, and calm while still clearly set apart. */
+	.danger {
+		background: var(--pain-tint);
+		color: var(--pain-ink);
+		box-shadow: inset 0 0 0 1.5px var(--pain-ink);
 	}
 	.sm {
 		min-height: 36px;

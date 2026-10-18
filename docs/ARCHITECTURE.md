@@ -150,6 +150,17 @@ calibrated in M2 on a real iPhone. The target is under 1.5 s.
    and all decrypted state from memory but keeps the session. Unlocking re-runs Argon2id locally against the
    wrapped MK cached in IndexedDB, and needs no server round trip. Logout destroys both the session and the local cache.
 
+   **As built (auth-ui).** The wrapped bundle is cached in memory only (from `/api/auth/session` or login), not in IndexedDB;
+   unlock first refreshes it from `/api/auth/session` (picks up a passphrase changed elsewhere, detects a revoked session)
+   and falls back to the cached copy when offline. `UnlockedKeys` sit in a plain module variable in `src/lib/session.svelte.ts`,
+   never in `$state` or any browser storage, so a reload always starts locked. The root layout gates routes: signed out means
+   `/login`, `/join`, `/recover` only; signed in but locked means a full-screen Unlock view replaces the page (same URL, so
+   unlocking returns to where you were); tab bar and quick-log exist only while unlocked. Auto-lock (`src/lib/autolock.ts`)
+   locks after N minutes (1, 2, 5, 10, 15 or 30; localStorage preference, default 5) without pointer, key, touch or scroll
+   events, or 60 s after the page becomes hidden; returning to a long-hidden page re-checks the clock before showing anything.
+   `lock()` wipes the keys and runs registered `onLock` hooks for any decrypted caches. A 401 `unauthenticated` from any API
+   call drops the UI to signed-out. Recovery tokens last 15 minutes, enough to save and confirm the new recovery key.
+
 Sessions use a 256-bit random token in a `__Host-sid` cookie (`HttpOnly; Secure; SameSite=Strict; Path=/`). The server
 stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API calls also require a same-origin
 `Origin` header and `Content-Type: application/json`.
@@ -172,7 +183,7 @@ stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API call
 | `POST /api/invites/check`, `POST /api/invites` | token check (404 `invalid_invite`); admin-only creation (default 72 h, role `member` or `admin`), audited |
 | `POST /api/auth/signup` | one transaction: consume invite, insert user, consent (server timestamp, actor `self`), `signup` security event; 409 `username_taken` leaves the invite unused |
 | `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/logout` | login and session return the wrapped-key bundle (`kdfSalt`, `kdfParams`, `wrappedMkByPassphrase`, `wrappedPrivateKey`, `publicKey`) |
-| `POST /api/auth/recover/start`, `POST /api/auth/recover/finish` | start checks `H(RAK)` and issues a 5-minute single-use token (hash in `recovery_tokens`); finish replaces passphrase and recovery secrets, revokes all sessions and signs in |
+| `POST /api/auth/recover/start`, `POST /api/auth/recover/finish` | start checks `H(RAK)` and issues a 15-minute single-use token (hash in `recovery_tokens`); finish replaces passphrase and recovery secrets, revokes all sessions and signs in |
 | `POST /api/auth/passphrase` | needs the current auth key; revokes all other sessions |
 | `POST /api/account/delete` | needs the auth key; see §7 |
 

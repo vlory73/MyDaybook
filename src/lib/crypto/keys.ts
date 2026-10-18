@@ -198,20 +198,31 @@ function openKeys(
 	};
 }
 
+type StoredForPassphrase = Pick<
+	AccountBundle,
+	'kdfSalt' | 'kdfParams' | 'wrappedMkByPassphrase' | 'wrappedPrivateKey' | 'publicKey'
+>;
+
+/** Unlock with an already-derived passphrase wrapping key (saves a second Argon2id run at login). */
+export function unlockWithPwk(
+	userId: string,
+	pwk: Uint8Array,
+	stored: Pick<AccountBundle, 'wrappedMkByPassphrase' | 'wrappedPrivateKey' | 'publicKey'>
+): UnlockedKeys {
+	const mk = unwrap(stored.wrappedMkByPassphrase, pwk, ad.masterKey(userId));
+	return openKeys(userId, mk, stored.wrappedPrivateKey, stored.publicKey);
+}
+
 /** Unlock with the passphrase. Throws on a wrong passphrase (AEAD authentication fails). */
 export function unlockWithPassphrase(
 	userId: string,
 	passphrase: string,
-	stored: Pick<
-		AccountBundle,
-		'kdfSalt' | 'kdfParams' | 'wrappedMkByPassphrase' | 'wrappedPrivateKey' | 'publicKey'
-	>
+	stored: StoredForPassphrase
 ): UnlockedKeys {
 	const { pwk, authKey } = deriveFromPassphrase(passphrase, stored.kdfSalt, stored.kdfParams);
 	sodium().memzero(authKey);
 	try {
-		const mk = unwrap(stored.wrappedMkByPassphrase, pwk, ad.masterKey(userId));
-		return openKeys(userId, mk, stored.wrappedPrivateKey, stored.publicKey);
+		return unlockWithPwk(userId, pwk, stored);
 	} finally {
 		sodium().memzero(pwk);
 	}

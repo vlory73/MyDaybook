@@ -17,7 +17,8 @@ import {
 import { dummyVerify, newToken, sha256, verifySecret } from '$lib/server/auth/tokens';
 import { KEY_LEN, b64Bytes, looseUsername } from '$lib/server/auth/validate';
 
-const RECOVERY_TOKEN_MS = 5 * 60_000;
+// Long enough to save and confirm the new recovery key on a phone.
+const RECOVERY_TOKEN_MS = 15 * 60_000;
 
 /** Proves possession of the recovery key (via RAK) and hands out the recovery-wrapped MK plus a single-use token. */
 export const POST = api(async (event) => {

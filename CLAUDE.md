@@ -68,6 +68,14 @@ Other key documents:
 5. If something in the spec is contradictory or unwise, say so and propose an alternative rather than silently working around it.
 6. Use Sonnet sub-agents for well-scoped implementation work to curb costs; the main session designs, reviews and opens PRs (owner request, 2026-10-18).
 
+7. Testing economy (owner request, 2026-10-18). GitHub Actions is the official gate; local runs exist to avoid red CI cycles:
+   - Docs-only changes: no local test run; let CI confirm.
+   - While iterating: run only the fast, relevant checks (lint, typecheck, the affected unit tests or one e2e spec).
+   - Before pushing code: one full local run (`npm run lint`, `npm run check`, `npm test`, `npm run licenses`,
+     `npm run audit`, `npx playwright test --project=phone-chromium`), as the spec requires e2e in the sandbox.
+   - Keep tool output trimmed (tail/grep); never paste full logs.
+   - Give sub-agents the same rule.
+
 ## Conventions
 
 - Branding (display name, short name, manifest name, description) lives in one file: `brand.config.json`
@@ -106,7 +114,9 @@ Remind the owner of these when planning the next feature milestone; don't build 
 _Last updated: 2026-10-18, during M2 (feature/auth-server)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
-  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Next: `feature/auth-ui`, then `feature/entries`.
+  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
+  `feature/auth-ui` (join, login, unlock view, auto-lock, recovery, Me account section; screenshots in
+  `docs/screenshots/auth-ui/`). Next: `feature/entries`.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
