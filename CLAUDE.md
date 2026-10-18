@@ -126,6 +126,8 @@ _Last updated: 2026-10-18, start of M3 (feature/medication)._
   `feature/log-gut` (quick nausea and heartburn logging, from the backlog).
 - **M3 progress:** `feature/medication` built: `medication` record, Meds list (active and archived), set-up sheet, pure schedule
   helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.
+  `feature/log-gut` in review (#15): nausea / heartburn quick-log tile and sheet (`gut` record); screenshots in
+  `docs/screenshots/log-gut/`.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
