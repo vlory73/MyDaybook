@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+.svelte-kit/
+build/
+dist/
+.output/
+
+# Environment and secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Local data
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.db
+backups/
+
+# Test output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Tooling
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
