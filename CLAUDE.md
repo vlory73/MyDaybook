@@ -106,7 +106,9 @@ Remind the owner of these when planning the next feature milestone; don't build 
 _Last updated: 2026-10-18, during M2 (feature/auth-server)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
-  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Next: `feature/auth-ui`, then `feature/entries`.
+  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Built, stacked on auth-server:
+  `feature/auth-ui` (join, login, unlock view, auto-lock, recovery, Me account section; screenshots in
+  `docs/screenshots/auth-ui/`). Next: `feature/entries`.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
