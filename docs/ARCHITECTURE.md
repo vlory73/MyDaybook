@@ -395,6 +395,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `measurement` | measurement type id, value(s), unit, context chips (morning, before breakfast, …), note | **Weight is a built-in type and its own quick-log tile** ★. The last value is the default, with ±0.1 steppers |
 | `measurement_type` | name, unit(s), number of values (e.g. 2 for blood pressure), decimals | |
 | `bowel` ★ | time, type 1–7 (Bristol Stool Form Scale, own illustrations and wording), flags (urgent, straining, pain, not finished, blood seen, mucus), note | 2 taps + Save |
+| `gut` ★ | time, symptoms (1–2 of `nausea` / `heartburn`, each with intensity 1–5), context flags (vomited, after a meal, lying down, at night; `vomited` only with nausea), note. Records only: a flag never triggers a message or alert (MDR), as for bowel | 2 taps + Save |
 | `pain` | points (region, side, space, u, v, intensity, quality, note) | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
 | `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm |

@@ -183,6 +183,34 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'today-meal', scheme);
 		});
 
+		test(`log gut quick-log, sheet and today ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'log-gut', 'log-gut screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'quicklog', scheme);
+			await page.getByRole('button', { name: 'Nausea / heartburn', exact: true }).click();
+			await page.waitForTimeout(400);
+			const sheet = page.getByRole('dialog');
+			await sheet.getByRole('button', { name: 'Nausea', exact: true }).click();
+			await sheet
+				.getByRole('radiogroup', { name: 'Nausea, how strong' })
+				.getByRole('radio', { name: '3/5' })
+				.click();
+			await sheet.getByRole('button', { name: 'Heartburn', exact: true }).click();
+			await sheet
+				.getByRole('radiogroup', { name: 'Heartburn, how strong' })
+				.getByRole('radio', { name: '2/5' })
+				.click();
+			await sheet.getByRole('button', { name: 'After a meal', exact: true }).click();
+			await snap(page, 'sheet-gut', scheme);
+			await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+			await page.getByText('Nausea 3/5 · Heartburn 2/5').waitFor();
+			await page.waitForTimeout(300);
+			await snap(page, 'today-gut', scheme);
+		});
+
 		test(`photos meal sheet, timeline and viewer ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'photos', 'photos screenshots only');
 			await prepare(page, scheme);

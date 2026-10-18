@@ -15,6 +15,9 @@ export const EXPOSURE_STATES = ['no', 'unsure', 'yes'] as const;
 export const SENSITIVITY_KINDS = ['intolerance', 'allergen', 'other'] as const;
 export const BOWEL_FLAGS = ['urgent', 'straining', 'pain', 'notFinished', 'blood', 'mucus'] as const;
 
+export const GUT_KINDS = ['nausea', 'heartburn'] as const;
+export const GUT_FLAGS = ['vomited', 'after_meal', 'lying_down', 'at_night'] as const;
+
 export type Meal = (typeof MEALS)[number];
 export type ExposureState = (typeof EXPOSURE_STATES)[number];
 export type Exposure = { id: string; state: ExposureState };
@@ -82,6 +85,13 @@ export type BowelPayload = Timed<'bowel'> & {
 	flags: (typeof BOWEL_FLAGS)[number][];
 	note?: string;
 };
+/** Nausea and/or heartburn, each with an intensity 1 to 5. `vomited` only makes sense together with nausea. */
+export type GutSymptom = { kind: (typeof GUT_KINDS)[number]; intensity: number };
+export type GutPayload = Timed<'gut'> & {
+	symptoms: GutSymptom[];
+	flags: (typeof GUT_FLAGS)[number][];
+	note?: string;
+};
 export type NotePayload = Timed<'note'> & { text: string; tags: string[] };
 export type SensitivityPayload = Base<'sensitivity'> & {
 	label: string;
@@ -106,6 +116,7 @@ export type Payload =
 	| MeasurementPayload
 	| MeasurementTypePayload
 	| BowelPayload
+	| GutPayload
 	| NotePayload
 	| SensitivityPayload
 	| SavedMealPayload
@@ -213,6 +224,18 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		Array.isArray(o.flags) &&
 		o.flags.every((f) => oneOf(BOWEL_FLAGS, f)) &&
 		optStr(o.note),
+	gut: (o) =>
+		isTimed(o) &&
+		Array.isArray(o.symptoms) &&
+		o.symptoms.length >= 1 &&
+		o.symptoms.length <= GUT_KINDS.length &&
+		o.symptoms.every((s) => isObj(s) && oneOf(GUT_KINDS, s.kind) && isInt(s.intensity, 1, 5)) &&
+		new Set(o.symptoms.map((s) => (s as Obj).kind)).size === o.symptoms.length &&
+		Array.isArray(o.flags) &&
+		o.flags.length <= GUT_FLAGS.length &&
+		o.flags.every((f) => oneOf(GUT_FLAGS, f)) &&
+		(!o.flags.includes('vomited') || o.symptoms.some((s) => (s as Obj).kind === 'nausea')) &&
+		optStr(o.note, 2000),
 	note: (o) => isTimed(o) && isStr(o.text) && strList(o.tags),
 	sensitivity: (o) =>
 		isStr(o.label, 100) && isStr(o.icon, 40) && oneOf(SENSITIVITY_KINDS, o.kind) && isInt(o.order, 0, 10_000),

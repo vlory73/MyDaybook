@@ -39,7 +39,7 @@
 
 	function open(id: string, type: string) {
 		if (type === 'note') openNote(id);
-		else if (type === 'feeling' || type === 'sleep' || type === 'bowel' || type === 'food')
+		else if (type === 'feeling' || type === 'sleep' || type === 'bowel' || type === 'gut' || type === 'food')
 			openLog(type, { id });
 		else if (type === 'measurement') openLog('measurement', { id });
 		else openDetail(id);
