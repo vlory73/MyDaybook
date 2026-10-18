@@ -7,13 +7,22 @@ import { test as base, expect } from '@playwright/test';
  */
 const EXPECTED_HTTP_NOTICE = /Failed to load resource: the server responded with a status of 4\d\d/;
 
+/**
+ * WebKit logs "Fetch API cannot load <url> due to access control checks." whenever a fetch is cancelled: by a
+ * navigation, or by the app itself (e.g. signing out stops an in-flight /api/records sync). Real users see the same
+ * harmless line. Only our own server's /api/ paths are ignored: the app makes no cross-origin requests, and a CSP
+ * block produces a different message, so genuine problems still fail the test.
+ */
+const CANCELLED_OWN_API_FETCH =
+	/^(?:Fetch API cannot load http:\/)?\/127\.0\.0\.1:4173\/api\/\S* due to access control checks\.$/;
+
 /** Fails any test whose page logs a CSP violation or throws an uncaught error. */
 export const test = base.extend<{ problems: string[] }>({
 	problems: async ({ page }, use) => {
 		const problems: string[] = [];
 		page.on('console', (msg) => {
 			const text = msg.text();
-			if (EXPECTED_HTTP_NOTICE.test(text)) return;
+			if (EXPECTED_HTTP_NOTICE.test(text) || CANCELLED_OWN_API_FETCH.test(text)) return;
 			if (msg.type() === 'error' || /Content Security Policy/i.test(text)) problems.push(text);
 		});
 		page.on('pageerror', (err) => problems.push(err.message));
