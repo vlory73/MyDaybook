@@ -169,7 +169,8 @@ test('invites: create, list without token, revoke; a revoked invite cannot sign 
 		createdAt: number;
 		expiresAt: number;
 	}[];
-	const invite = after.find((i) => !before.some((b) => b.id === i.id))!;
+	// Ours by its exact expiry: other tests create invites in the shared database at the same time.
+	const invite = after.find((i) => !before.some((b) => b.id === i.id) && i.expiresAt === expiresAt)!;
 	expect(Object.keys(invite).sort()).toEqual(['createdAt', 'expiresAt', 'id', 'role']);
 	expect(invite).toMatchObject({ role: 'member', expiresAt });
 
