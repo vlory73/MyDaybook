@@ -524,27 +524,42 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
 - **Startup migrations:** before applying any pending migration, the server writes
   `/data/backups/pre-migrate-<UTC timestamp>-<from>-<to>.db` using SQLite's online backup API. **If the backup fails, startup aborts**
   with a clear log line. The last 5 pre-migration backups are kept.
-- **Nightly backup (D13):** a scheduled job inside the app (`BACKUP_TIME`, default 04:00 local) writes into `/backup`, which is
-  `~/mydaybook/backup` on the Pi:
-  - `db/app-YYYY-MM-DDTHHMMSSZ.sqlite` (a stable name pattern the NAS job relies on): a consistent snapshot via SQLite's online backup API, newest `BACKUP_KEEP` kept (default 3).
+- **Nightly backup (D13):** a scheduled job inside the app writes into `/backup`, which is `~/mydaybook/backup` on the Pi:
+  - `db/app-YYYY-MM-DDTHHMMSSZ.sqlite` (UTC; a stable name pattern the NAS job relies on): a consistent snapshot via SQLite's online
+    backup API. It is written as `<name>.partial`, checked with `PRAGMA integrity_check`, switched to a single-file journal mode and
+    only then renamed, so the NAS job never sees a half-written or broken dump (a failed check deletes it and logs `ok:false`).
+    The newest `BACKUP_KEEP` (default 3) files that match the exact pattern are kept; other files are never touched.
   - `blobs/`: a mirror of the encrypted photo store. Blobs are immutable and written atomically, so mirroring them after the DB
-    snapshot is consistent.
-  - On demand: a `backup` command in `scripts/cli.mjs` arrives with the Docker work (`docker compose exec app cli backup`).
-  - First admin: `docker compose exec app cli invite --admin [--hours 72]` (`cli` is a wrapper for `node /app/scripts/cli.mjs`) prints one line, `<PUBLIC_URL>/join#t=<token>`.
+    snapshot is consistent. New or changed files (size or mtime) are copied via a `.partial` name, files that no longer exist in
+    the source are removed, symlinks are never followed.
+  - One log line per run, no user data: `{event:"backup", ok, bytes, blobs, ms}` (on failure `ok:false` and an error code).
+  - On demand: `docker compose exec app cli backup` (`cli` wraps `node /app/scripts/cli.mjs`) runs the same code once and prints the dump file name. It works
+    while the server runs (online backup, `busy_timeout` 5000). Two backups never overlap inside one process.
+  - Schedule: daily at `BACKUP_TIME` (default `23:30`, owner decision: the NAS is off during the night) in the container's local time (`TZ`). After every run, and at start, the next
+    run is computed from the local wall clock, so DST changes (23 h and 25 h days) still land on the set time, and a missed run is not
+    replayed. `BACKUP_TIME=off` disables it (the e2e server does this). Code: `scripts/backup-core.mjs` (shared with the CLI) and
+    `src/lib/server/db/backup.ts` (schedule, logging).
+  - Settings: `BACKUP_DIR` (default `<DATA_DIR>/../backup`, which is `/backup` for `DATA_DIR=/data`), `BACKUP_TIME`, `BACKUP_KEEP`.
+  - First admin: `docker compose exec app cli invite --admin [--hours 72]` prints one line, `<PUBLIC_URL>/join#t=<token>`.
     The CLI opens `<DATA_DIR>/app.db` directly and does not migrate, so the server must have started once. The token is in the URL
     fragment, so it never reaches server logs or Referer headers; only its SHA-256 is stored.
-  - The Home Assistant session's script copies that folder to the NAS at 04:30 and keeps 14 days (D14). **A deleted account therefore
+  - The Home Assistant session's script copies that folder to the NAS at 00:00 (it must finish by 01:00, when the NAS may stop) and keeps 14 days (D14). **A deleted account therefore
     persists, still encrypted, for up to about 14 days**, which the privacy notice will state.
+- **Backups and restore:** the pre-migration backup (above) protects against a bad upgrade, the nightly backup against everything
+  else, and the NAS copy against losing the Pi. To restore (HOME_DEPLOYMENT.md has the exact commands): stop the app, move
+  `data/app.db` aside and delete `app.db-wal` and `app.db-shm`, copy the chosen `backup/db/app-<timestamp>.sqlite` to `data/app.db`,
+  `rsync -a --delete backup/blobs/ data/blobs/`, pin the image tag to the version that wrote the dump if it is newer than the running
+  one, start the app and check `/healthz`. Users get back their passphrase as of the dump date. Restores are manual on purpose.
 - **Image (feature/docker):** two stages on `node:24-bookworm-slim` pinned by digest. The build stage runs `npm ci --ignore-scripts`
   (better-sqlite3 13 bundles prebuilt linux x64/arm64 addons, so no compiler is needed), `npm run build`, `npm prune --omit=dev`.
-  The runtime stage copies `build/`, production `node_modules`, `package.json`, `drizzle/` and the two scripts; runs as 1000:1000 with
+  The runtime stage copies `build/`, production `node_modules`, `package.json`, `drizzle/` and the runtime scripts (`scripts/*.mjs`: CLI, backup core, gen-secrets); runs as 1000:1000 with
   `WORKDIR /app`, `DATA_DIR=/data`, `PORT=8090`, and a node-based `HEALTHCHECK`. It needs only `/data`, `/backup` and a tmpfs `/tmp`
-  to be writable. The entrypoint dispatches `gen-secrets` and `cli`, otherwise starts the server. Compose sets `BACKUP_DIR=/backup`,
-  which enables the nightly job already in the app.
+  to be writable. The entrypoint dispatches `gen-secrets` and `cli`, otherwise starts the server. Compose sets `BACKUP_DIR=/backup`
+  (also the default for `DATA_DIR=/data`).
 - **Implementation notes (server-db):** the schema is `src/lib/server/db/schema.ts`; generated SQL migrations are committed in `drizzle/`
   and applied at startup from `./drizzle` relative to the working directory (override with `MIGRATIONS_DIR`), so the Docker image must
   copy `drizzle/` next to `build/` and run with that working directory. Environment: `DATA_DIR` (default `./data`; holds `app.db`,
-  `blobs/`, `backups/`), `BACKUP_DIR` (enables the nightly job when set), `BACKUP_TIME`, `BACKUP_KEEP`. Failure of the pre-migration
+  `blobs/`, `backups/`), `BACKUP_DIR`, `BACKUP_TIME`, `BACKUP_KEEP` (see the nightly backup above). Failure of the pre-migration
   backup or of any migration exits the process with code 1. `invites`, `sessions` and `handovers` store SHA-256 token hashes;
   `security_events` and `admin_audit` have no foreign key to `users`, so they outlive an account.
 - `GET /healthz` returns `{status:"ok"}` after a cheap DB query (503 `{status:"error"}` if it fails). It requires no auth and reveals no details. It is used by the Compose healthcheck.
@@ -577,7 +592,7 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | D10 | Recovery key: 160-bit, 8 groups of 4 Crockford base32 characters, printable sheet | **Approved** |
 | D11 | Handover suggested at **18** by default (configurable); the child confirms revoking guardian access and the guardian is notified. The GDPR consent threshold (default 13) stays separate, see §4 | **Approved** |
 | D12 | An account may be deleted while it has dependents, **unless** that would leave a dependent with no guardian | **Approved** |
-| D13 | Nightly backup: in-app job at 04:00 into `~/mydaybook/backup`, newest 3 kept; the Home Assistant script copies it to the NAS at 04:30 (§10) | **Approved** |
+| D13 | Nightly backup: in-app job at 23:30 into `~/mydaybook/backup`, newest 3 kept; the Home Assistant script copies it to the NAS at 00:00, done by 01:00 (originally 04:00 / 04:30; moved by the owner, 2026-10-18) (§10) | **Approved** |
 | D14 | Retention: 3 local snapshots; 14 days on the NAS (set by the Home Assistant backup script) | **Approved** |
 | D15 | Doctor-visit PDF: try a print stylesheet first in M5; fall back to pdf-lib if the installed iPhone app fails | **Approved** (plan) |
 | D16 | Design direction "Linen & Clay" (`design/`) | **Approved** |
