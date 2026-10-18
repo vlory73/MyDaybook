@@ -297,8 +297,19 @@ spaces**, so heat maps stay comparable.
 
 ### 5.1 Sync and client storage
 
-- `GET /api/records?since=<cursor>` returns changed records and tombstones. The client keeps **ciphertext** in IndexedDB,
-  so later visits download only changes. This also prepares for offline-first in a later version.
+- `GET /api/records?since=<cursor>&limit=<n>` returns `{ records, cursor, hasMore }` for the signed-in user: changed records and
+  tombstones (null `wrappedKey`/`ciphertext`), ordered by `(updated_at, id)`. The cursor is an opaque base64url of the last
+  `(updated_at, id)`; `limit` defaults to 500 (max 1000). `updated_at` is strictly increasing per user (`max(now, last + 1)`),
+  so a cursor never skips a change.
+- `PUT /api/records/:id` (`{ wrappedKey, ciphertext, baseRev? }`, id a UUIDv4) upserts and returns `{ id, rev, updatedAt }`.
+  `wrappedKey` is exactly 72 bytes; `ciphertext` starts with version byte `0x01` and is 297 B to 64 KiB + 41 B (padded
+  plaintext 256 B to 64 KiB). A wrong `baseRev` answers `409 { error: "conflict", rev }`. An id owned by another user answers
+  `404`, like a missing one. `DELETE /api/records/:id` writes a tombstone (blobs nulled, `rev` + 1). `users.storage_bytes` is
+  the sum of blob sizes of live records. The client retries a conflict once on top of the server's version (last writer wins).
+- The client keeps **ciphertext** in IndexedDB (database `mydaybook-records-<userId>`: wrapped key, ciphertext, rev, timestamps
+  and the sync cursor), so later visits download only changes. The database is deleted on sign-out and account deletion and
+  kept on lock. Records that fail to decrypt or validate are skipped and counted, never fatal. Sync runs after unlock and when
+  the app becomes visible again (throttled to 15 s). This also prepares for offline-first in a later version.
 - Decrypted data lives only in memory (Svelte stores) and is wiped on lock. Nothing decrypted goes to localStorage,
   sessionStorage, IndexedDB, the service worker cache or logs.
 - The service worker precaches **all** app chunks at install. Navigating to, say, the body map therefore makes no network request
