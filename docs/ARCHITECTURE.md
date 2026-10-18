@@ -445,5 +445,5 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | D18 | Food and symptom views stay descriptive: side-by-side entries, no correlation scores or conclusions; no alerts on bowel entries (MDR) | **Approved** |
 | D19 | No BMI, target weights or reference ranges anywhere; weight is shown as plain numbers and change over time | **Approved** |
 | D20 | Pill counts and refill reminders left out of v1 | **Approved** |
-| D21 | Replace Paraglide with a small in-house typed i18n module (Paraglide fetches a plugin from a CDN at build time) | **Proposed** (implemented in M1, easy to revert) |
-| D22 | Licence policy: strict for shipped code; build/test tooling may also be BlueOak-1.0.0 (glob/minimatch family) or Python-2.0 (ESLint's argparse) | **Proposed** |
+| D21 | Replace Paraglide with a small in-house typed i18n module (Paraglide fetches a plugin from a CDN at build time) | **Approved** |
+| D22 | Licence policy: strict for shipped code; build/test tooling may also be BlueOak-1.0.0 (glob/minimatch family) or Python-2.0 (ESLint's argparse) | **Approved** |

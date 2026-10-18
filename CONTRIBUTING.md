@@ -53,3 +53,13 @@ SCREENSHOTS=<branch-name> npx playwright test screenshots --project=phone-chromi
 
 They are written to `docs/screenshots/<branch-name>/`. The component showcase is at `/styleguide` when the server runs with
 `STYLEGUIDE=1` (the e2e server does).
+
+## Branch protection (repository settings)
+
+Set up by the owner with GitHub rulesets (Settings → Rules → Rulesets):
+
+| Ruleset | Target | Rules |
+| --- | --- | --- |
+| `develop` | branch `develop` | Pull request required (0 approvals), merge methods **Squash** and **Merge** (merge only for main→develop back-merges), required checks *Lint, types, unit tests, licences, audit* and *End-to-end (Chromium + WebKit, phone viewport)*, branch must be up to date, no force pushes, no deletion |
+| `main` | branch `main` | Same, but merge method **Merge** only |
+| `release tags` | tags `v*` | Creation, update and deletion restricted; only repository admins (the owner) bypass |

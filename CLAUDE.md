@@ -22,7 +22,7 @@ Other key documents:
 - Not a medical device: no dose calculations, interaction checks, diagnostic insights, advice,
   reference ranges or threshold-triggered alerts.
 - Licences: code dependencies MIT/BSD/ISC/Apache-2.0 only; assets CC0/CC-BY only, except fonts, which may
-  also be SIL OFL-1.1 (D6). The CI licence check must stay green.
+  also be SIL OFL-1.1 (D6). Build/test tooling may also be BlueOak-1.0.0 or Python-2.0 (D22). The CI licence check must stay green.
 - Seed data and fixtures are synthetic. Never use real health data.
 - No hard-coded user-facing strings: everything goes through i18n (English + Danish).
 
@@ -90,6 +90,7 @@ Other key documents:
 | 2026-10-18 | D16 design "Linen & Clay" approved. D17 scope additions approved: food watch list (intolerances/allergens) + saved meals, bowel movements, recurring medication with "All taken", dedicated sleep and weight logging. D18–D20 proposed (descriptive food/symptom views only, no BMI/targets, no pill counts) | Owner |
 | 2026-10-18 | D18–D20 approved: food/symptom views descriptive only, no alerts on bowel entries; no BMI, targets or reference ranges; no pill counts or refill reminders in v1 | Owner |
 | 2026-10-18 | M1: SvelteKit 2.70 / Svelte 5 / Vite 7 / TypeScript 5.9 / Vitest 5 pinned (newer majors skipped deliberately). `cookie` overridden to 0.7.2 (audit). D21 (in-house i18n) and D22 (tooling licences) proposed | M1 |
+| 2026-10-18 | Approved: D21 in-house i18n, D22 BlueOak-1.0.0/Python-2.0 for build/test tooling only, and the M1 dev dependencies over 1 MB (TypeScript, Prettier, svelte-check, Svelte, ESLint, Vitest, @types/node, Vite, eslint-plugin-svelte, SvelteKit) | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -100,7 +101,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, M1 session._
+_Last updated: 2026-10-18, after M1 (feature/record-m1-decisions)._
 
 - **Milestone:** M1 delivered (direct to develop, the last direct commit ever). From now on every change goes through a
   `feature/*` branch and a PR.
@@ -109,9 +110,8 @@ _Last updated: 2026-10-18, M1 session._
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
   strict CSP, `/healthz`, CI workflow (lint, types, unit, licences, audit, build, e2e on Chromium + WebKit), CONTRIBUTING,
   SECURITY. Screenshots in `docs/screenshots/m1/`.
-- **Waiting on the owner:** D21 (in-house i18n instead of Paraglide), D22 (tooling licence allowance), approval of the
-  dev dependencies over 1 MB (TypeScript, Prettier, svelte-check, Svelte, ESLint, Vitest, @types/node, Vite, eslint-plugin-svelte,
-  SvelteKit). Also: protect `develop` and `main` in GitHub settings now that direct commits are over.
+- **Decisions D1–D22 all approved.** The owner is setting up branch protection (rulesets for `develop`, `main` and `v*` tags,
+  see "Branch protection" in CONTRIBUTING.md).
 - **Next:** M2 (auth, crypto, entry CRUD) on feature branches: likely `feature/crypto-core`, `feature/server-db`,
   `feature/auth-signup`, `feature/entries`.
 - **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
