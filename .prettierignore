@@ -8,3 +8,4 @@ static/icons.svg
 test-results/
 playwright-report/
 *.md
+drizzle/
