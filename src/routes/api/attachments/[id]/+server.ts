@@ -10,10 +10,16 @@ function idOf(event: RequestEvent): string {
 	return id;
 }
 
+/**
+ * A 413 is sent before the rest of the oversized upload has been read, so the server drops that connection.
+ * `Connection: close` tells the client not to reuse it (otherwise its next request fails with ECONNRESET).
+ */
+const tooLarge = () => new ApiError(413, 'too_large', { connection: 'close' });
+
 /** Reads the raw body, refusing more than MAX_BLOB_BYTES without buffering the excess. */
 async function readBody(request: Request): Promise<Buffer> {
 	const declared = Number(request.headers.get('content-length'));
-	if (Number.isFinite(declared) && declared > MAX_BLOB_BYTES) throw new ApiError(413, 'too_large');
+	if (Number.isFinite(declared) && declared > MAX_BLOB_BYTES) throw tooLarge();
 	const chunks: Uint8Array[] = [];
 	let total = 0;
 	if (request.body) {
@@ -25,7 +31,7 @@ async function readBody(request: Request): Promise<Buffer> {
 				total += value.length;
 				if (total > MAX_BLOB_BYTES) {
 					await reader.cancel();
-					throw new ApiError(413, 'too_large');
+					throw tooLarge();
 				}
 				chunks.push(value);
 			}
