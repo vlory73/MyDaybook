@@ -94,7 +94,7 @@ flowchart TD
   P["Passphrase (never leaves the device)"] -->|"NFKC normalise, Argon2id(salt_u, t=3, m=64 MiB)"| R["Root (32 B)"]
   R -->|"KDF id=1"| PWK["Passphrase wrapping key"]
   R -->|"KDF id=2"| AK["Auth key: sent to server at login"]
-  RK["Recovery key (160-bit, shown once)"] -->|"BLAKE2b + KDF id=1"| RWK["Recovery wrapping key"]
+  RK["Recovery key (160-bit, shown once)"] -->|"BLAKE2b-256 (keyed) + KDF id=1"| RWK["Recovery wrapping key"]
   RK -->|"KDF id=2"| RAK["Recovery auth key"]
   PWK -->|"wraps"| MK["Master key MK (random 32 B)"]
   RWK -->|"wraps"| MK
@@ -109,17 +109,17 @@ flowchart TD
 | --- | --- | --- | --- |
 | Root | Argon2id(passphrase, per-user random 16-byte salt). Parameters stored per user and upgradable at login | never | Derives the passphrase wrapping key and the auth key via `crypto_kdf_derive_from_key` (BLAKE2b) with context `MDBkdf01` |
 | Passphrase wrapping key (PWK) | KDF(root, 1) | never | Wraps MK |
-| Auth key (AK) | KDF(root, 2) | `BLAKE2b-256(AK)` (the verifier) | Login proof. Cryptographically independent of PWK, so the server learning AK reveals nothing about PWK |
+| Auth key (AK) | KDF(root, 2) | `SHA-256(AK)` (the verifier) | Login proof. Cryptographically independent of PWK, so the server learning AK reveals nothing about PWK |
 | Recovery key (RK) | 160 random bits, shown once as 8 groups of 4 Crockford-base32 characters | never | Wraps a second copy of MK |
-| Recovery wrapping key (RWK) / recovery auth key (RAK) | KDF(BLAKE2b("MDB-recovery-v1", RK), 1 / 2) | `BLAKE2b-256(RAK)` | Recovery login proof + MK unwrap |
+| Recovery wrapping key (RWK) / recovery auth key (RAK) | KDF(BLAKE2b-256(key="MDB-recovery-key-v1", RK), 1 / 2) | `SHA-256(RAK)` | Recovery login proof + MK unwrap |
 | Master key (MK) | random 32 bytes at signup | `AEAD_PWK(MK)` and `AEAD_RWK(MK)`, AD = `mk/v1/<userId>` | Root of everything a user owns |
 | Record KEK | KDF(MK, 10), context `MDBkeys1` | never | Wraps per-record keys |
 | Identity keypair | X25519 at signup | public key in clear; `AEAD_MK(privateKey)` | Guardianship now; sharing between adults later |
 | Per-record key (EK) | random 32 bytes per record | `AEAD_KEK(EK)` with AD = `rec/v1/<userId>/<recordId>`, in a separate column | Encrypts one record. Enables cheap MK rotation (re-wrap 72-byte headers instead of re-encrypting content), per-record shredding and future sharing |
 | Attachment key | random per photo | inside the record plaintext only | `crypto_secretstream_xchacha20poly1305` over the photo |
 
-**Why no server pepper on the verifiers:** AK has 256 bits of entropy, so `BLAKE2b(AK)` cannot be
-reversed. An attacker holding the database can test passphrase guesses against the wrapped MK anyway (one
+**Why no server pepper on the verifiers:** AK has 256 bits of entropy, so `SHA-256(AK)` cannot be
+reversed (the server hashes with `node:crypto`; BLAKE2b keys must be at least 16 bytes, hence the long recovery key label). An attacker holding the database can test passphrase guesses against the wrapped MK anyway (one
 Argon2id per guess), so a pepper would add a lockout risk (losing `.env` would lock out every user) without
 adding protection.
 
