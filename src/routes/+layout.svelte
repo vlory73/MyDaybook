@@ -10,18 +10,24 @@
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { HIDDEN_LOCK_SECONDS, loadSession, lock, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
-	import { closeEditors, openNote } from '$lib/records/editor.svelte';
-	import { startRecords, syncIfStale } from '$lib/records/store.svelte';
+	import { closeEditors, openLog, openNote } from '$lib/records/editor.svelte';
+	import { againOptions, againPayload, lastUsedMeasureType, WEIGHT_ID, type Again } from '$lib/records/log';
+	import { quickSave } from '$lib/records/quick';
+	import { allRecords, startRecords, syncIfStale } from '$lib/records/store.svelte';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
+		BowelSheet,
 		Button,
 		CategoryBadge,
 		EntryDetailSheet,
+		FeelingSheet,
 		Hero,
 		Icon,
 		LanguageSwitch,
+		MeasurementSheet,
 		NoteSheet,
 		Sheet,
+		SleepSheet,
 		Spinner,
 		TabBar,
 		ToastHost,
@@ -104,7 +110,37 @@
 	function pick(key: Category) {
 		quickLogOpen = false;
 		if (key === 'note') openNote();
+		else if (key === 'feel') openLog('feeling');
+		else if (key === 'sleep') openLog('sleep');
+		else if (key === 'gut') openLog('bowel');
+		else if (key === 'weight') openLog('measurement', { typeId: WEIGHT_ID });
+		else if (key === 'measure') openLog('measurement', { typeId: lastUsedMeasureType(allRecords()) });
 		else showToast(t('quicklog.notYet'));
+	}
+
+	// "Again?": up to three one-tap repeats from recent records; each saves at once with an Undo toast.
+	const again = $derived(quickLogOpen ? againOptions(allRecords(), new Date()) : []);
+	const numberFormat = $derived(new Intl.NumberFormat(i18n.locale));
+
+	function againLabel(option: Again): { name: string; detail: string; category: Category } {
+		if (option.kind === 'sleep') {
+			return {
+				name: t('again.usualNight'),
+				detail: t('fmt.sleep.range', { from: option.asleep, to: option.wake }),
+				category: 'sleep'
+			};
+		}
+		return {
+			name: t('cat.weight'),
+			detail: `${numberFormat.format(option.value)} ${option.unit}`,
+			category: 'weight'
+		};
+	}
+
+	function repeat(option: Again) {
+		quickLogOpen = false;
+		const payload = againPayload(option, new Date());
+		if (payload) void quickSave(payload, 'entry.saved');
 	}
 </script>
 
@@ -150,10 +186,26 @@
 				</button>
 			{/each}
 		</div>
+		{#if again.length > 0}
+			<p class="again-label">{t('again.title')}<span>{t('again.hint')}</span></p>
+			<div class="again">
+				{#each again as option, i (i)}
+					{@const l = againLabel(option)}
+					<button type="button" class="recent" onclick={() => repeat(option)}>
+						<CategoryBadge category={l.category} size={28} />
+						<span><b>{l.name}</b> <span class="muted">{l.detail}</span></span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 		<p class="foot"><Icon name="lock" size={18} />{t('quicklog.footnote')}</p>
 	</Sheet>
 
 	<NoteSheet />
+	<FeelingSheet />
+	<SleepSheet />
+	<MeasurementSheet />
+	<BowelSheet />
 	<EntryDetailSheet />
 {/if}
 
@@ -240,6 +292,34 @@
 	.tint-note {
 		background: var(--note-tint);
 		color: var(--note-ink);
+	}
+	.again-label {
+		display: flex;
+		justify-content: space-between;
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-semibold);
+		color: var(--text-2);
+		margin: var(--sp-5) 0 var(--sp-2);
+	}
+	.again-label span {
+		font-weight: var(--fw-regular);
+		color: var(--text-3);
+	}
+	.again {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+	}
+	.recent {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+		min-height: 44px;
+		padding: 4px var(--sp-3);
+		border-radius: var(--r-full);
+		background: var(--surface-2);
+		font-size: var(--fs-callout);
+		text-align: left;
 	}
 	.foot {
 		display: flex;

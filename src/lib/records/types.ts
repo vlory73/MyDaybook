@@ -18,7 +18,8 @@ export const BOWEL_FLAGS = ['urgent', 'straining', 'pain', 'notFinished', 'blood
 export type Meal = (typeof MEALS)[number];
 export type ExposureState = (typeof EXPOSURE_STATES)[number];
 export type Exposure = { id: string; state: ExposureState };
-export type Symptom = { tag: string; severity: number };
+/** `severity` is 1 to 3 in the app (mild, medium, strong); it is optional because noting a tag is enough. */
+export type Symptom = { tag: string; severity?: number };
 
 type Base<T extends string> = { v: 1; type: T };
 type Timed<T extends string> = Base<T> & { at: string };
@@ -145,7 +146,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		optInt(o.stress, 1, 5) &&
 		Array.isArray(o.symptoms) &&
 		o.symptoms.length <= 50 &&
-		o.symptoms.every((s) => isObj(s) && isStr(s.tag, 100) && isInt(s.severity, 1, 5)) &&
+		o.symptoms.every((s) => isObj(s) && isStr(s.tag, 100) && optInt(s.severity, 1, 5)) &&
 		optStr(o.note),
 	sleep: (o) =>
 		isTimed(o) &&

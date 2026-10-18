@@ -55,6 +55,79 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'note-sheet', scheme);
 		});
 
+		test(`log body sheets and today ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'log-body', 'log-body screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const open = async (tile: string) => {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: tile, exact: true }).click();
+				await page.waitForTimeout(400);
+			};
+			const sheet = page.getByRole('dialog');
+			const save = async () => {
+				await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+				await page.getByRole('status').getByText('Saved', { exact: true }).waitFor();
+			};
+
+			// Sleep (usual times, quality and one awakening)
+			await open('Sleep');
+			await sheet
+				.getByRole('radiogroup', { name: 'How did you sleep?' })
+				.getByRole('radio', { name: '4/5' })
+				.click();
+			await sheet
+				.getByRole('radiogroup', { name: 'Woke up during the night' })
+				.getByRole('radio', { name: '1' })
+				.click();
+			await snap(page, 'sheet-sleep', scheme);
+			await save();
+
+			// Weight
+			await open('Weight');
+			await sheet.getByLabel('Value', { exact: true }).fill('72.4');
+			await sheet.getByRole('button', { name: 'Morning', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Before breakfast' }).click();
+			await snap(page, 'sheet-weight', scheme);
+			await save();
+
+			// Bowel
+			await open('Bowel');
+			await sheet.getByRole('radio', { name: 'Type 4, Smooth' }).click();
+			await snap(page, 'sheet-bowel', scheme);
+			await save();
+
+			// Feeling
+			await open('Feeling');
+			await sheet.getByRole('radiogroup', { name: 'Mood' }).getByRole('radio', { name: '4/5' }).click();
+			await sheet.getByRole('radiogroup', { name: 'Energy' }).getByRole('radio', { name: '3/5' }).click();
+			await sheet.getByRole('radiogroup', { name: 'Stress' }).getByRole('radio', { name: '2/5' }).click();
+			await sheet.getByRole('button', { name: 'New', exact: true }).click();
+			await sheet.getByLabel('Name of the new tag').fill('Headache');
+			await sheet.getByRole('button', { name: 'Add', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Headache: strength 2 of 3' }).click();
+			await snap(page, 'sheet-feeling', scheme);
+			await save();
+
+			await page.getByText('Mood 4 · Energy 3 · Stress 2 · Headache (2)').waitFor();
+			await snap(page, 'today-mixed', scheme);
+
+			// A custom measurement type with two values
+			await open('Measure');
+			await sheet.getByRole('button', { name: 'New type' }).click();
+			await sheet.getByLabel('Name, for example Blood pressure').fill('Blood pressure');
+			await sheet.getByLabel('Unit, for example mmHg').fill('mmHg');
+			await sheet
+				.getByRole('radiogroup', { name: 'Number of values' })
+				.getByRole('radio', { name: '2' })
+				.click();
+			await sheet.getByRole('radiogroup', { name: 'Decimals' }).getByRole('radio', { name: '0' }).click();
+			await sheet.getByRole('button', { name: 'Add this type' }).click();
+			await sheet.getByLabel('Value 1').fill('120');
+			await sheet.getByLabel('Value 2').fill('80');
+			await snap(page, 'sheet-measure-two-values', scheme);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');

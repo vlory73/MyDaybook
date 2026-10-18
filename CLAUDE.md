@@ -111,14 +111,16 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, during M2 (feature/records-sync)._
+_Last updated: 2026-10-18, during M2 (feature/log-body, stacked on feature/records-sync)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
   rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
   `feature/auth-ui` (join, login, unlock view, auto-lock, recovery, Me account section; screenshots in
   `docs/screenshots/auth-ui/`). `feature/records-sync` built: encrypted records API (cursor sync), client store with
   IndexedDB ciphertext cache, Today timeline with week strip, Note entry end to end (screenshots in
-  `docs/screenshots/records-sync/`). Next: `feature/log-entries` (sheets for the other entry types).
+  `docs/screenshots/records-sync/`). `feature/log-body` (stacked on records-sync): feeling (one-tap mood on Today), sleep (usual times,
+  live duration, naps), weight and custom measurements (steppers, two-value types), bowel (Bristol types, flags), edit and
+  delete with Undo, and an "Again?" row in quick-log (screenshots in `docs/screenshots/log-body/`). Next: `feature/log-meals`.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
