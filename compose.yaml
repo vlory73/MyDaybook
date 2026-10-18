@@ -1,0 +1,34 @@
+# MyDaybook on the home Raspberry Pi (agreement: docs/HOME_DEPLOYMENT.md).
+# Settings live in .env (copy .env.example, then append the output of gen-secrets).
+name: mydaybook
+
+services:
+  app:
+    # Pinned on purpose. An upgrade is a deliberate change of this tag, never a floating tag.
+    image: ghcr.io/vlory73/mydaybook:0.1.0
+    # Only the reverse proxy on this host (Caddy) can reach the app.
+    ports: ['127.0.0.1:8090:8090']
+    env_file: .env
+    environment:
+      BODY_SIZE_LIMIT: 2M
+      DATA_DIR: /data
+      BACKUP_DIR: /backup
+    user: '${PUID:-1000}:${PGID:-1000}'
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    volumes:
+      - ./data:/data
+      - ./backup:/backup
+    networks: [default]
+
+networks:
+  default:
+    ipam:
+      config:
+        # Fixed, so the proxy's address as seen by the app is always 172.30.90.1 (TRUSTED_PROXY).
+        - subnet: 172.30.90.0/24
+          gateway: 172.30.90.1

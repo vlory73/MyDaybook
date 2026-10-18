@@ -7,6 +7,7 @@ import { logLine } from '$lib/server/db/log';
 import { startHousekeeping } from '$lib/server/auth/events';
 import { checkApiRequest, isApiPath } from '$lib/server/auth/guard';
 import { errorResponse } from '$lib/server/auth/http';
+import { trustedProxies } from '$lib/server/auth/proxy';
 import { sessionSecret } from '$lib/server/auth/secret';
 import { validateSession } from '$lib/server/auth/sessions';
 
@@ -49,8 +50,21 @@ export const handleError: HandleServerError = ({ event, status }) => {
 	return { message: 'error' };
 };
 
+let peerLogged = false;
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const started = performance.now();
+	// Once per process: the socket peer of the first real request, so the owner can check TRUSTED_PROXY against it.
+	// It is the proxy's address when the deployment is right (HOME_DEPLOYMENT.md); /healthz comes from loopback.
+	if (!peerLogged && event.route.id !== '/healthz') {
+		peerLogged = true;
+		try {
+			const peer = event.getClientAddress();
+			logLine({ event: 'first_peer', peer, trusted: trustedProxies().has(peer.replace(/^::ffff:/, '')) });
+		} catch {
+			/* no peer address available */
+		}
+	}
 	const api = isApiPath(event.url.pathname);
 
 	event.locals.user = null;

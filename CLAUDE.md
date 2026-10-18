@@ -132,6 +132,8 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   Today / Meds / quick-log "Medicine" cards, timeline entries; screenshots in `docs/screenshots/doses/`.
   `feature/log-gut` merged (#15): nausea / heartburn quick-log tile and sheet (`gut` record); screenshots in
   `docs/screenshots/log-gut/`.
+- **feature/docker built:** `Dockerfile` (pinned node:24-bookworm-slim, non-root, read-only root), `scripts/docker-entrypoint.sh`,
+  `gen-secrets`, `cli` command, root `compose.yaml`, `.env.example`, `TRUSTED_PROXY` support (`src/lib/server/auth/proxy.ts`).
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the
   intended-use statement, theme and language switching, PWA manifest, icons, service worker (app shell), security headers +
@@ -142,4 +144,4 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
 - **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
   invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant. Raise the backlog items when
   planning the next milestone.
-- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`, Dockerfile, `compose.yaml`, `.env.example`.
+- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`. The image-publishing workflow and the `cli backup` command are separate branches.
