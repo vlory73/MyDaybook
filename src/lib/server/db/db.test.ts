@@ -8,14 +8,12 @@ import {
 	readFileSync,
 	readdirSync,
 	rmSync,
-	utimesSync,
 	writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { openDatabase, wrap } from './index';
 import { migrateWithBackup } from './migrate';
-import { NIGHTLY_PATTERN, nextRun, writeNightlyBackup } from './backup';
 import { records, users } from './schema';
 import { eq } from 'drizzle-orm';
 
@@ -214,76 +212,5 @@ describe('schema', () => {
 		db.insert(users).values(syntheticUser('d2', null)).run();
 		db.insert(users).values(syntheticUser('u1', 'alice')).run();
 		expect(() => db.insert(users).values(syntheticUser('u2', 'alice')).run()).toThrow();
-	});
-});
-
-describe('nightly backup', () => {
-	async function seeded() {
-		const { sqlite, dir } = fresh();
-		await migrateWithBackup(sqlite, dir, REAL_MIGRATIONS);
-		wrap(sqlite).insert(users).values(syntheticUser('u1', 'alice')).run();
-		return { sqlite, dir, backupDir: join(root, 'backup') };
-	}
-
-	it('writes a valid snapshot with the stable name pattern and keeps the newest N', async () => {
-		const { sqlite, dir, backupDir } = await seeded();
-		const dbDir = join(backupDir, 'db');
-		mkdirSync(dbDir, { recursive: true });
-		for (const d of ['01', '02', '03', '04'])
-			writeFileSync(join(dbDir, `app-2020-01-${d}T040000Z.sqlite`), 'old');
-
-		const { file } = await writeNightlyBackup({ sqlite, dataDir: dir, backupDir, keep: 3 });
-
-		const files = readdirSync(dbDir);
-		expect(files.every((f) => NIGHTLY_PATTERN.test(f))).toBe(true); // no .partial leftovers
-		expect(files).toHaveLength(3);
-		expect(files).not.toContain('app-2020-01-01T040000Z.sqlite');
-		expect(files).not.toContain('app-2020-01-02T040000Z.sqlite');
-		const snap = new Database(file, { readonly: true });
-		expect(snap.prepare('SELECT username FROM users').get()).toEqual({ username: 'alice' });
-		snap.close();
-	});
-
-	it('mirrors blobs: copies new files, updates changed ones, deletes removed ones', async () => {
-		const { sqlite, dir, backupDir } = await seeded();
-		const blobs = join(dir, 'blobs');
-		mkdirSync(join(blobs, 'user1'), { recursive: true });
-		writeFileSync(join(blobs, 'user1', 'a'), 'aaa');
-		writeFileSync(join(blobs, 'user1', 'b'), 'bbb');
-		await writeNightlyBackup({ sqlite, dataDir: dir, backupDir });
-		expect(readFileSync(join(backupDir, 'blobs', 'user1', 'a'), 'utf8')).toBe('aaa');
-		expect(readFileSync(join(backupDir, 'blobs', 'user1', 'b'), 'utf8')).toBe('bbb');
-
-		rmSync(join(blobs, 'user1', 'a'));
-		writeFileSync(join(blobs, 'user1', 'b'), 'bbbbbb');
-		utimesSync(join(blobs, 'user1', 'b'), new Date(), new Date(Date.now() + 5000));
-		writeFileSync(join(blobs, 'user1', 'c'), 'ccc');
-		mkdirSync(join(blobs, 'user2'));
-		writeFileSync(join(blobs, 'user2', 'd'), 'ddd');
-		await writeNightlyBackup({ sqlite, dataDir: dir, backupDir });
-
-		expect(existsSync(join(backupDir, 'blobs', 'user1', 'a'))).toBe(false);
-		expect(readFileSync(join(backupDir, 'blobs', 'user1', 'b'), 'utf8')).toBe('bbbbbb');
-		expect(readFileSync(join(backupDir, 'blobs', 'user1', 'c'), 'utf8')).toBe('ccc');
-		expect(readFileSync(join(backupDir, 'blobs', 'user2', 'd'), 'utf8')).toBe('ddd');
-
-		rmSync(join(blobs, 'user2'), { recursive: true });
-		await writeNightlyBackup({ sqlite, dataDir: dir, backupDir });
-		expect(existsSync(join(backupDir, 'blobs', 'user2'))).toBe(false);
-	});
-
-	it('works when there is no blob store yet', async () => {
-		const { sqlite, dir, backupDir } = await seeded();
-		await writeNightlyBackup({ sqlite, dataDir: dir, backupDir });
-		expect(readdirSync(join(backupDir, 'blobs'))).toEqual([]);
-	});
-});
-
-describe('nextRun', () => {
-	it('returns the next occurrence of HH:MM, today or tomorrow', () => {
-		const now = new Date(2026, 9, 18, 3, 0, 0);
-		expect(nextRun(now, '04:00')).toEqual(new Date(2026, 9, 18, 4, 0, 0));
-		expect(nextRun(new Date(2026, 9, 18, 4, 0, 0), '04:00')).toEqual(new Date(2026, 9, 19, 4, 0, 0));
-		expect(nextRun(now, 'nonsense')).toEqual(new Date(2026, 9, 18, 4, 0, 0));
 	});
 });

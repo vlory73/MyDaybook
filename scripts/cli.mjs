@@ -3,13 +3,17 @@
 // so the server must have started at least once.
 //
 //   node scripts/cli.mjs invite [--admin] [--hours 72]
+//   node scripts/cli.mjs backup
 //
-// Prints one line: <PUBLIC_URL>/join#t=<token> (expires ...). The token sits in the URL fragment, so it never
+// invite prints one line: <PUBLIC_URL>/join#t=<token> (expires ...). The token sits in the URL fragment, so it never
 // reaches server logs. Only SHA-256(token) is stored.
+// backup runs the nightly backup once (same code as the server) and prints the dump file name. It is safe while the
+// server is running (SQLite online backup). Folders: DATA_DIR, BACKUP_DIR (default <DATA_DIR>/../backup), BACKUP_KEEP.
 import Database from 'better-sqlite3';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
+import { resolveBackupDir, resolveKeep, runBackup } from './backup-core.mjs';
 
 function die(message) {
 	process.stderr.write(`${message}\n`);
@@ -69,6 +73,28 @@ function invite(args) {
 	}
 }
 
+async function backup() {
+	const dataDir = resolve(process.env.DATA_DIR || './data');
+	const dbPath = join(dataDir, 'app.db');
+	if (!existsSync(dbPath)) die(`No database at ${dbPath}. Start the server once first so it can create it.`);
+	const sqlite = new Database(dbPath, { fileMustExist: true });
+	try {
+		sqlite.pragma('busy_timeout = 5000');
+		const result = await runBackup({
+			sqlite,
+			dataDir,
+			backupDir: resolveBackupDir(),
+			keep: resolveKeep(process.env.BACKUP_KEEP)
+		});
+		process.stdout.write(`${basename(result.file)}\n`);
+	} catch (err) {
+		die(`Backup failed: ${err instanceof Error ? err.message : String(err)}`);
+	} finally {
+		sqlite.close();
+	}
+}
+
 const [command, ...rest] = process.argv.slice(2);
 if (command === 'invite') invite(rest);
-else die('Usage: node scripts/cli.mjs invite [--admin] [--hours 72]');
+else if (command === 'backup') await backup();
+else die('Usage: node scripts/cli.mjs invite [--admin] [--hours 72] | backup');
