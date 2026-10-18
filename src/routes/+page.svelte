@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		CategoryBadge,
+		PhotoThumb,
 		EmptyState,
 		Icon,
 		Notice,
@@ -9,6 +10,7 @@
 		type IconName
 	} from '$lib/components';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
+	import { openPhoto } from '$lib/photos/viewer.svelte';
 	import { openDetail, openLog, openNote } from '$lib/records/editor.svelte';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
@@ -112,6 +114,15 @@
 						{/if}
 					</span>
 				</button>
+				{#if record.payload.attachments?.length}
+					<div class="photos">
+						{#each record.payload.attachments as photo (photo.id)}
+							<button type="button" class="pic" aria-label={t('photo.open')} onclick={() => openPhoto(photo)}>
+								<PhotoThumb {photo} label={t('photo.alt')} size={56} />
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</li>
 		{/each}
 	</ol>
@@ -126,6 +137,21 @@
 {/if}
 
 <style>
+	.photos {
+		display: flex;
+		gap: var(--sp-2);
+		flex-wrap: wrap;
+		padding: 0 var(--sp-3) var(--sp-3) calc(var(--sp-3) + 3.2rem);
+	}
+	.pic {
+		padding: 0;
+		border-radius: var(--r-sm);
+		line-height: 0;
+	}
+	.pic:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
 	.card {
 		background: var(--surface);
 		border-radius: var(--r-lg);

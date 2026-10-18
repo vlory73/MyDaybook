@@ -3,14 +3,17 @@
 	import Button from './Button.svelte';
 	import Icon from './Icon.svelte';
 	import Notice from './Notice.svelte';
+	import PhotoPicker from './PhotoPicker.svelte';
 	import Sheet from './Sheet.svelte';
 	import { showToast } from './toast.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { PhotoDrafts } from '$lib/photos/drafts.svelte';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
 	import { remove, save, store } from '$lib/records/store.svelte';
 	import { formatAt, fromLocalInput, toLocalInput } from '$lib/records/time';
 	import type { NotePayload } from '$lib/records/types';
 
+	const photos = new PhotoDrafts();
 	let text = $state('');
 	let local = $state('');
 	let tags = $state<string[]>([]);
@@ -29,6 +32,7 @@
 			const note = existing?.type === 'note' ? existing : null;
 			text = note?.text ?? '';
 			tags = note?.tags ?? [];
+			photos.reset(note?.attachments);
 			local = toLocalInput(note?.at ?? formatAt(new Date()));
 			busy = false;
 			failed = null;
@@ -45,11 +49,14 @@
 		failed = null;
 		const payload: NotePayload = { v: 1, type: 'note', at, text: text.trim(), tags };
 		try {
+			const refs = await photos.commit();
+			if (refs.length > 0) payload.attachments = refs;
 			await save(payload, id ?? undefined);
+			void photos.settle();
 			closeEditors();
 			showToast(t('note.saved'));
 		} catch {
-			failed = 'save';
+			failed = photos.problem === 'upload' ? null : 'save';
 		} finally {
 			busy = false;
 		}
@@ -93,6 +100,7 @@
 			maxlength="8000"
 			bind:value={text}
 		></textarea>
+		<PhotoPicker drafts={photos} />
 		{#if failed}
 			<Notice tone="error">{failed === 'save' ? t('note.error.save') : t('note.error.delete')}</Notice>
 		{/if}

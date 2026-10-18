@@ -28,6 +28,7 @@
 		MealSheet,
 		MeasurementSheet,
 		NoteSheet,
+		PhotoViewer,
 		Sheet,
 		SleepSheet,
 		Spinner,
@@ -215,6 +216,7 @@
 	<BowelSheet />
 	<MealSheet />
 	<EntryDetailSheet />
+	<PhotoViewer />
 {/if}
 
 <ToastHost />

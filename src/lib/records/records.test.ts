@@ -63,6 +63,34 @@ describe('validators', () => {
 		for (const p of invalid) expect(parsePayload(p), JSON.stringify(p)).toBeNull();
 	});
 
+	it('accepts photo references on any record type and rejects malformed ones', () => {
+		const ref = {
+			id: '1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed',
+			key: 'A'.repeat(43),
+			thumbId: '6ec0bd7f-11c0-43da-975e-2a8ad9ebae0b',
+			thumbKey: 'B'.repeat(43),
+			w: 1600,
+			h: 1200,
+			mime: 'image/jpeg'
+		};
+		const at = '2026-10-18T08:10:00+02:00';
+		const base = [
+			{ v: 1, type: 'food', at, meal: 'lunch', text: 'Soup', tags: [] },
+			{ v: 1, type: 'note', at, text: 'Hello', tags: [] },
+			{ v: 1, type: 'bowel', at, bristol: 4, flags: [] }
+		];
+		for (const p of base) {
+			expect(parsePayload({ ...p, attachments: [ref] })).not.toBeNull();
+			expect(parsePayload({ ...p, attachments: [] })).not.toBeNull();
+			expect(parsePayload({ ...p, attachments: [ref, ref, ref, ref, ref] })).toBeNull();
+			expect(parsePayload({ ...p, attachments: 'x' })).toBeNull();
+			expect(parsePayload({ ...p, attachments: [{ ...ref, id: '../../etc/passwd' }] })).toBeNull();
+			expect(parsePayload({ ...p, attachments: [{ ...ref, key: 'short' }] })).toBeNull();
+			expect(parsePayload({ ...p, attachments: [{ ...ref, mime: 'image/png' }] })).toBeNull();
+			expect(parsePayload({ ...p, attachments: [{ ...ref, w: 0 }] })).toBeNull();
+		}
+	});
+
 	it('isAt needs an offset', () => {
 		expect(isAt('2026-10-18T08:10:00Z')).toBe(true);
 		expect(isAt('2026-10-18T08:10:00.250-05:00')).toBe(true);
