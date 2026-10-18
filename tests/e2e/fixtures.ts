@@ -8,13 +8,15 @@ import { test as base, expect } from '@playwright/test';
 const EXPECTED_HTTP_NOTICE = /Failed to load resource: the server responded with a status of 4\d\d/;
 
 /**
- * WebKit logs "Fetch API cannot load <url> due to access control checks." whenever a fetch is cancelled: by a
+ * WebKit reports "Fetch API cannot load <url> due to access control checks." whenever a fetch is cancelled: by a
  * navigation, or by the app itself (e.g. signing out stops an in-flight /api/records sync). Real users see the same
- * harmless line. Only our own server's /api/ paths are ignored: the app makes no cross-origin requests, and a CSP
- * block produces a different message, so genuine problems still fail the test.
+ * harmless line. The wording varies (with or without the "Fetch API cannot load http:/" prefix) and it can arrive as
+ * a console message or as a page error, so both are checked, anywhere in the text. Only our own server's /api/ paths
+ * are ignored: the app makes no cross-origin requests, and a CSP block produces a different message, so genuine
+ * problems still fail the test.
  */
 const CANCELLED_OWN_API_FETCH = new RegExp(
-	`^(?:Fetch API cannot load http:\\/)?\\/127\\.0\\.0\\.1:${process.env.E2E_PORT ?? 4173}\\/api\\/\\S* due to access control checks\\.$`
+	`/127\\.0\\.0\\.1:${process.env.E2E_PORT ?? 4173}/api/\\S* due to access control checks\\.`
 );
 
 /** Fails any test whose page logs a CSP violation or throws an uncaught error. */
@@ -26,7 +28,9 @@ export const test = base.extend<{ problems: string[] }>({
 			if (EXPECTED_HTTP_NOTICE.test(text) || CANCELLED_OWN_API_FETCH.test(text)) return;
 			if (msg.type() === 'error' || /Content Security Policy/i.test(text)) problems.push(text);
 		});
-		page.on('pageerror', (err) => problems.push(err.message));
+		page.on('pageerror', (err) => {
+			if (!CANCELLED_OWN_API_FETCH.test(err.message)) problems.push(err.message);
+		});
 		await use(problems);
 		expect(problems, 'console errors or CSP violations').toEqual([]);
 	}
