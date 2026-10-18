@@ -190,6 +190,8 @@ test.describe('joining', () => {
 		await page.goto('/join');
 		await expect(page.getByRole('heading', { name: "This invite link doesn't work" })).toBeVisible();
 		await page.goto('/login'); // a fragment-only change would not reload the page
+		// Wait for the page to finish starting up: navigating away mid-request makes WebKit log an error.
+		await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 		await page.goto(`/join#t=${randomBytes(32).toString('base64url')}`);
 		await expect(page.getByRole('heading', { name: "This invite link doesn't work" })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Go to sign in' })).toBeVisible();
@@ -206,6 +208,9 @@ test.describe('gating, lock and sign-in', () => {
 		await expect(page.getByRole('button', { name: 'Log something' })).toHaveCount(0);
 		await page.goto('/join');
 		await expect(page).toHaveURL(/\/join$/);
+		// Without a token /join shows the invalid-invite page; wait for it before navigating on, because
+		// cancelling its in-flight session request makes WebKit log an "access control checks" error.
+		await expect(page.getByRole('heading', { name: "This invite link doesn't work" })).toBeVisible();
 		await page.goto('/recover');
 		await expect(page.getByRole('heading', { name: 'Get back into your diary' })).toBeVisible();
 		await page.goto('/styleguide'); // developer page, enabled by STYLEGUIDE=1 on the test server
