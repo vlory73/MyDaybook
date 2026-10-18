@@ -287,6 +287,9 @@ for (const scheme of ['light', 'dark'] as const) {
 			await sheet.getByLabel('Unit', { exact: true }).selectOption('µg');
 			await sheet.getByLabel('Amount 1', { exact: true }).fill('1 tablet');
 			await sheet.getByRole('button', { name: 'Add a time' }).click();
+			await sheet.getByLabel('Time 2', { exact: true }).fill('08:00');
+			await sheet.getByText('This time is already listed').scrollIntoViewIfNeeded();
+			await snap(page, 'sheet-duplicate-time', scheme);
 			await sheet.getByLabel('Time 2', { exact: true }).fill('20:00');
 			await sheet.getByLabel('Amount 2', { exact: true }).fill('1 tablet');
 			await snap(page, 'sheet-daily', scheme);
