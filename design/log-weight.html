@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log weight: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.tri { display: flex; align-items: center; gap: var(--sp-3); padding: 6px 0; }
+.tri .what { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
+.tri .segmented { flex: none; width: 190px; } .tri .segmented button { min-height: 34px; font-size: var(--fs-footnote); }
+.tri .segmented button.yes { background: var(--food-tint); color: var(--food-ink); font-weight: var(--fw-bold); box-shadow: none; }
+.row2 { display: flex; gap: var(--sp-2); }
+.row2 .btn { flex: 1; }
+
+.value { display: flex; align-items: center; justify-content: space-between; margin: var(--sp-5) 0 var(--sp-2); }
+.value .num { font-size: 3.4rem; font-weight: var(--fw-bold); letter-spacing: -0.02em; line-height: 1; }
+.value .num small { font-size: var(--fs-title3); color: var(--text-2); font-weight: var(--fw-semibold); margin-left: 4px; }
+.step { width: 56px; height: 56px; border-radius: var(--r-full); background: var(--measure-tint); color: var(--measure-ink); display: grid; place-items: center; }
+.step .i { width: 26px; height: 26px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: var(--sp-4); }
+.keypad button { height: 48px; border-radius: var(--r-md); background: var(--surface-2); font-size: var(--fs-title3); font-weight: var(--fw-semibold); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="top:52px; overflow:hidden">
+  <div class="grabber"></div>
+  <div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button>
+    <h2 id="sh" style="flex:1; margin-left:4px">Measurement</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> 07:25</span></div>
+  
+  <div class="scroll-row"><span class="chip on">Weight</span><span class="chip">Blood pressure</span><span class="chip">Temperature</span><span class="chip">Waist</span><span class="chip" style="color:var(--primary-press)"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> New type</span></div>
+  <div class="value"><button class="step" aria-label="Minus 0.1"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#minus"/></svg></button>
+    <div class="num" aria-live="polite">72.4<small>kg</small></div>
+    <button class="step" aria-label="Plus 0.1"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button></div>
+  <p class="muted small" style="text-align:center">Last time: 72.6 kg on Thursday</p>
+  <p class="label">When</p>
+  <div class="chip-row"><span class="chip on">Morning</span><span class="chip">Before breakfast</span><span class="chip">After exercise</span></div>
+  <div class="keypad" aria-hidden="true"><button>1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>9</button><button>.</button><button>0</button><button>⌫</button></div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save</button>
+
+</section>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 # Design proposal: "Linen & Clay"
 
-Status: **proposal (M0)**, waiting for owner approval (decision D16 in [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)).
+Status: **approved** (D16, 2026-10-18), extended with the owner's additions (D17): food watch list, bowel movements, recurring
+medication, sleep and weight logging.
 Static HTML mockups only; no app code. All data shown is synthetic.
 
 ## Direction in one paragraph
@@ -17,12 +18,17 @@ Screens that scroll also have a `-full` capture.
 
 | Screen | File | Light | Dark | What it shows |
 | --- | --- | --- | --- | --- |
-| Today | [today.html](today.html) | [png](screenshots/today-light.png) · [full](screenshots/today-light-full.png) | [png](screenshots/today-dark.png) | Greeting, week strip, **one-tap mood check-in**, medication due now, timeline, **undo toast** instead of a confirmation, bottom nav with central "+" |
-| Quick-log sheet | [quicklog.html](quicklog.html) | [png](screenshots/quicklog-light.png) | [png](screenshots/quicklog-dark.png) | Six large tiles, time defaulting to "now", **one-tap repeats of recent entries**, encryption reassurance |
+| Today | [today.html](today.html) | [png](screenshots/today-light.png) · [full](screenshots/today-light-full.png) | [png](screenshots/today-dark.png) | Greeting, week strip, **one-tap mood check-in**, medication due now with **"Both taken now"**, timeline (sleep, weight, bowel, meal with watch-list tags), **undo toast** instead of a confirmation, bottom nav with central "+" |
+| Quick-log sheet | [quicklog.html](quicklog.html) | [png](screenshots/quicklog-light.png) | [png](screenshots/quicklog-dark.png) | Nine tiles (Meal, Feeling, Sleep, Pain, Medicine, Bowel, Weight, Measure, Note; reorderable later), time defaulting to "now", **one-tap repeats** (saved meal, all morning meds, usual night), encryption reassurance |
 | Log feeling | [log-feeling.html](log-feeling.html) | [png](screenshots/log-feeling-light.png) | [png](screenshots/log-feeling-dark.png) | Mood, energy and stress 1–5 in three taps plus Save; "last time" hints; own symptom tags with severity |
+| Log meal ★ | [log-meal.html](log-meal.html) | [png](screenshots/log-meal-light.png) | [png](screenshots/log-meal-dark.png) | Meal type, **saved meals**, photo and tags inside the text field, **watch list** rows (gluten, lactose, FODMAP: no / not sure / yes), home / eating out / takeaway |
+| Log bowel movement ★ | [log-bowel.html](log-bowel.html) | [png](screenshots/log-bowel-light.png) | [png](screenshots/log-bowel-dark.png) | Types 1–7 based on the Bristol scale (own drawings and wording), optional flags, note. Records only, never reacts |
+| Log sleep ★ | [log-sleep.html](log-sleep.html) | [png](screenshots/log-sleep-light.png) | [png](screenshots/log-sleep-dark.png) | Duration computed from fell-asleep / woke-up times pre-filled from your usual night, quality 1–5, awakenings, nap |
+| Log weight ★ | [log-weight.html](log-weight.html) | [png](screenshots/log-weight-light.png) | [png](screenshots/log-weight-dark.png) | Measurement sheet with Weight selected, last value as default, ±0.1 steppers and keypad, context chips. No BMI, no target |
 | Body map | [bodymap.html](bodymap.html) | [png](screenshots/bodymap-light.png) | [png](screenshots/bodymap-dark.png) | Segmented neutral outline, **"your right / your left"** labels, Find (searchable region list), Head/Hands/Feet zoom, intensity 0–10 with numbers, quality chips, multiple points per entry |
-| Medication | [meds.html](meds.html) | [png](screenshots/meds-light.png) · [full](screenshots/meds-light-full.png) | [png](screenshots/meds-dark.png) | Today's doses by time slot, taken / skipped / late, "when needed" medications, opt-in reminders with generic text explained. No dose advice anywhere |
-| Trends | [trends.html](trends.html) | [png](screenshots/trends-light.png) · [full](screenshots/trends-light-full.png) | [png](screenshots/trends-dark.png) | Mood and energy curves, sleep bars, weight sparkline (neutral, with no target or range), **body heat map**, doctor-visit PDF |
+| Medication | [meds.html](meds.html) | [png](screenshots/meds-light.png) · [full](screenshots/meds-light-full.png) | [png](screenshots/meds-dark.png) | Doses generated from each schedule (repeat icon), **"All taken" per slot**, taken / skipped / late, "when needed" medications, opt-in reminders with generic text explained. No dose advice anywhere |
+| New medication ★ | [med-edit.html](med-edit.html) | [png](screenshots/med-edit-light.png) · [full](screenshots/med-edit-light-full.png) | [png](screenshots/med-edit-dark.png) | **Set up once**: strength, form, how often (every day / some weekdays / every few days / as needed), times with your own amount, start/end, reminders |
+| Trends | [trends.html](trends.html) | [png](screenshots/trends-light.png) · [full](screenshots/trends-light-full.png) | [png](screenshots/trends-dark.png) | Mood and energy curves, sleep bars, weight sparkline (neutral, with no target or range), **body heat map**, bowel types per day, **"after meals with gluten"** side-by-side entries (no conclusions), doctor-visit PDF |
 | Onboarding: recovery key | [onboarding-recovery.html](onboarding-recovery.html) | [png](screenshots/onboarding-recovery-light.png) | [png](screenshots/onboarding-recovery-dark.png) | Plain-language explanation, key in 8 groups, print/copy, honest "nobody can get it back" warning, then confirmation by re-typing |
 | Design system | [system.html](system.html) | [png](screenshots/system-light.png) | [png](screenshots/system-dark.png) | Palette, category tints, heat ramp, type, spacing, radii, icons, components, motion |
 
@@ -30,6 +36,7 @@ Screens that scroll also have a `-full` capture.
 
 All values live in [`tokens.css`](tokens.css), and M1 ports them 1:1 into the app.
 
+- **Category tints:** food, feeling, sleep, measure, pain, meds, note, plus **gut** (olive, for bowel entries).
 - **Colour:** linen `#faf6f0` background, warm ink `#2a2430` text, clay `#a94e2e` primary. Dark mode uses a warm near-black
   `#16131a` background with a lighter clay `#f08f68`. Seven category tint/ink pairs.
 - **Heat ramp:** peach to plum in 7 steps, light to dark in light mode and reversed in dark mode, so "more" always means more contrast.
@@ -56,12 +63,13 @@ Output of `python3 design/tools/contrast.py`. Every pair passes in both themes:
 | primary on surface | 5.5 | 7.0 | 4.5 |
 | on-primary on primary | 5.5 | 7.4 | 4.5 |
 | primary-press on primary-soft | 6.0 | 6.9 | 4.5 |
-| category ink on tint (all 7) | 5.6–6.2 | 7.9–9.0 | 4.5 |
+| category ink on tint (all 8) | 5.6–6.2 | 7.9–9.0 | 4.5 |
 
 ## Interaction rules shown
 
 - Bottom navigation with one prominent, thumb-reachable **"+"**.
-- Common entries in 1–3 taps: mood is 1 tap from Today, a repeat meal is 2 taps, and a feeling check-in is 3 taps plus Save.
+- Common entries in 1–3 taps: mood is 1 tap from Today, morning medication is 1 tap ("All taken"), a saved meal or a usual night is 2 taps,
+  a bowel movement is 2 taps plus Save, and a feeling check-in is 3 taps plus Save.
 - Defaults: time = now; "last time" values highlighted; recent entries offered for one-tap repeats.
 - **Undo instead of "Are you sure?"** for anything non-destructive.
 - Body map sides are labelled from the user's perspective, because the front view mirrors them.

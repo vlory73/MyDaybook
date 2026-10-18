@@ -18,7 +18,7 @@ def ratio(a, b):
 PAIRS = [("text", "bg", 4.5), ("text", "surface", 4.5), ("text-2", "bg", 4.5), ("text-2", "surface-2", 4.5),
          ("text-3", "surface", 3.0), ("primary", "surface", 4.5), ("primary", "bg", 4.5),
          ("on-primary", "primary", 4.5), ("primary-press", "primary-soft", 4.5)]
-PAIRS += [(f"{c}-ink", f"{c}-tint", 4.5) for c in ("food", "feel", "sleep", "measure", "pain", "meds", "note")]
+PAIRS += [(f"{c}-ink", f"{c}-tint", 4.5) for c in ("food", "feel", "sleep", "measure", "pain", "meds", "note", "gut")]
 PAIRS += [("heat-6", "surface", 3.0)]
 
 print("| Pair | Light | Dark | Needs |\n| --- | --- | --- | --- |")

@@ -276,6 +276,39 @@ re-encoded as JPEG/WebP at 0.8 quality. Re-encoding drops all EXIF/GPS metadata,
 encrypted with secretstream and uploaded as an opaque blob to `/data/blobs/<userId>/<id>`. **Proposal: allow
 attachments on any record type**, not just food, so "has a photo" does not reveal "this is a meal".
 
+### 5.3 Record types (v1)
+
+Every type below is an encrypted record (§5). The server cannot tell them apart. Owner-approved additions to the spec
+(2026-10-18) are marked ★.
+
+| Type | Fields (inside the ciphertext) | Fast path |
+| --- | --- | --- |
+| `food` | meal type, time, text, tags, `where` (home / out / takeaway) ★, `exposures` ★: one entry per watched item, each `no / unsure / yes`, attachments | **Saved meals** ★ fill in everything with one tap; "Again?" repeats the last meal |
+| `sensitivity` ★ | the user's own watch list: label, icon, kind (`intolerance`, `allergen`, `other`) and order. Suggestions cover the 14 EU allergens (Reg. 1169/2011 Annex II: gluten cereals, milk, eggs, nuts, peanuts, soy, fish, crustaceans, molluscs, celery, mustard, sesame, sulphites, lupin), plus lactose, fructose, FODMAP, histamine, sorbitol, caffeine and alcohol | Only watched items appear on the meal sheet, so most people see 2–3 rows |
+| `saved_meal` ★ | name, meal type, text, tags, exposures | |
+| `feeling` | mood, energy and stress (1–5), symptom tags with severity, note | One tap from Today |
+| `sleep` | fell asleep, woke up (both full timestamps, so midnight is handled), quality 1–5, awakenings (0–3+), naps, note | Pre-filled from the user's usual times; "Usual night" one-tap repeat |
+| `measurement` | measurement type id, value(s), unit, context chips (morning, before breakfast, …), note | **Weight is a built-in type and its own quick-log tile** ★. The last value is the default, with ±0.1 steppers |
+| `measurement_type` | name, unit(s), number of values (e.g. 2 for blood pressure), decimals | |
+| `bowel` ★ | time, type 1–7 (Bristol Stool Form Scale, own illustrations and wording), flags (urgent, straining, pain, not finished, blood seen, mucus), note | 2 taps + Save |
+| `pain` | points (region, side, space, u, v, intensity, quality, note) | §5 |
+| `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
+| `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm |
+| `note` | free text, tags | |
+| `settings`, `tag` | client settings, tag definitions | |
+
+**Recurring medication, how it works:** due doses are *computed on the device* from active `medication` records. Nothing is
+stored until the user acts, so changing a schedule never rewrites history. A dose record links to its scheduled slot, so "late"
+is just "logged after the slot". The server only knows the union of reminder times (§6). Not a medical device: amounts are copied
+from what the user typed, and the app never multiplies, totals, suggests or checks doses. Pill-count and refill tracking is left
+out of v1, to stay clearly on the right side of "dose calculation".
+
+**Food sensitivities and MDR:** the app records exposures and shows the user's *own* entries side by side: "after meals with
+gluten", listing what was logged in the following 24 h. It never scores, ranks or concludes ("gluten seems to cause…"), because
+that would be a diagnostic insight (MDR Rule 11). The same rule applies to bowel entries: "blood seen" is recorded and appears in
+the doctor-visit PDF, but it never triggers a message or alert. General, static information ("talk to your doctor about anything
+that worries you") lives on the About page, never as a reaction to an entry.
+
 ## 6. Medication reminders (Web Push)
 
 - Opt-in per device. The user picks reminder *times* (for example 08:00 and 20:00 on weekdays). The server stores only the times
@@ -405,4 +438,8 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | D13 | Nightly backup: in-app job at 04:00 into `~/mydaybook/backup`, newest 3 kept; the Home Assistant script copies it to the NAS at 04:30 (§10) | **Approved** |
 | D14 | Retention: 3 local snapshots; 14 days on the NAS (set by the Home Assistant backup script) | **Approved** |
 | D15 | Doctor-visit PDF: try a print stylesheet first in M5; fall back to pdf-lib if the installed iPhone app fails | **Approved** (plan) |
-| D16 | Design direction "Linen & Clay" (`design/`) | **Open**: owner handling separately |
+| D16 | Design direction "Linen & Clay" (`design/`) | **Approved** |
+| D17 | Scope additions ★: food watch list (intolerances and allergens) with saved meals; bowel movements; recurring medication schedules with "All taken"; dedicated sleep and weight logging (§5.3) | **Approved** (owner request) |
+| D18 | Food and symptom views stay descriptive: side-by-side entries, no correlation scores or conclusions; no alerts on bowel entries (MDR) | **Proposed** |
+| D19 | No BMI, target weights or reference ranges anywhere; weight is shown as plain numbers and change over time | **Proposed** |
+| D20 | Pill counts and refill reminders left out of v1 | **Proposed** |

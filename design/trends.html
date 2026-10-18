@@ -31,6 +31,15 @@
 .heat { display: flex; gap: var(--sp-4); align-items: center; }
 .heat-legend { display: flex; gap: 2px; margin: 6px 0 2px; }
 .heat-legend span { flex: 1; height: 8px; border-radius: 3px; }
+.gut { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: var(--sp-3); }
+.gcol { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gdots { display: flex; flex-direction: column-reverse; gap: 4px; min-height: 60px; justify-content: flex-start; }
+.gdots span { width: 28px; height: 28px; border-radius: 50%; background: var(--gut-tint); color: var(--gut-ink); display: grid; place-items: center;
+  font-size: var(--fs-footnote); font-weight: var(--fw-bold); }
+.gd { font-size: var(--fs-caption); color: var(--text-3); }
+.after { display: flex; gap: var(--sp-3); padding: 10px 0; border-top: 1px solid var(--line); margin-top: 10px; font-size: var(--fs-callout); }
+.after > div:first-child { flex: 1; display: flex; flex-direction: column; } .after span { color: var(--text-2); font-size: var(--fs-footnote); }
+.after .then { flex: 1; font-size: var(--fs-footnote); }
 </style>
 </head>
 <body>
@@ -71,6 +80,18 @@
         <div class="xaxis" style="padding:0;margin:0"><span>Less often</span><span>More</span></div>
       </div>
     </div>
+  </section>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#toilet"/></svg> Bowel movements</div><div class="card-sub">7 this week · type per visit</div>
+    <div class="gut"><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Mon</span></div><div class="gcol"><div class="gdots"><span title="Type 3">3</span></div><span class="gd">Tue</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span><span title="Type 5">5</span></div><span class="gd">Wed</span></div><div class="gcol"><div class="gdots"></div><span class="gd">Thu</span></div><div class="gcol"><div class="gdots"><span title="Type 2">2</span></div><span class="gd">Fri</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Sat</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Sun</span></div></div>
+  </section>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#wheat"/></svg> After meals with gluten</div>
+    <div class="card-sub">Your own entries side by side, from the 24 hours after each meal. The app doesn't draw conclusions.</div>
+    <div class="after"><div><b>Thu 15 · Lunch</b><span>Pasta salad, eating out</span></div><div class="then">Bloated (2) at 16:10<br>Bowel type 6 at 19:30</div></div>
+    <div class="after"><div><b>Sun 11 · Dinner</b><span>Pizza</span></div><div class="then muted">Nothing logged</div></div>
   </section>
 
   <button class="btn btn-soft btn-block" style="margin-top:var(--sp-4)"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg> Doctor visit summary (PDF)</button>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log meal: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.tri { display: flex; align-items: center; gap: var(--sp-3); padding: 6px 0; }
+.tri .what { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
+.tri .segmented { flex: none; width: 190px; } .tri .segmented button { min-height: 34px; font-size: var(--fs-footnote); }
+.tri .segmented button.yes { background: var(--food-tint); color: var(--food-ink); font-weight: var(--fw-bold); box-shadow: none; }
+.row2 { display: flex; gap: var(--sp-2); }
+.row2 .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="top:52px; overflow:hidden">
+  <div class="grabber"></div>
+  <div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button>
+    <h2 id="sh" style="flex:1; margin-left:4px">Meal</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> 08:10</span></div>
+  
+  <div class="scroll-row"><span class="chip on">Breakfast</span><span class="chip">Lunch</span><span class="chip">Dinner</span><span class="chip">Snack</span><span class="chip">Drink</span></div>
+  <p class="label">Eat it often? <span class="hint">saved meals fill everything in</span></p>
+  <div class="scroll-row"><span class="chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bookmark"/></svg> Oatmeal</span><span class="chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bookmark"/></svg> Rye bread &amp; cheese</span><span class="chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bookmark"/></svg> Smoothie</span></div>
+  <p class="label">What did you have?</p>
+  <div class="field" style="color:var(--text); padding-right:6px"><span style="flex:1">Oatmeal with berries and yoghurt</span>
+    <button class="icon-btn" aria-label="Add photo"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#camera"/></svg></button><button class="icon-btn" aria-label="Tags"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#tag"/></svg></button></div>
+  <p class="label">Your watch list <span class="hint">you choose what to track</span></p>
+  <div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#wheat"/></svg></span>Gluten</span><div class="segmented"><button class="on">No</button><button class="">Not sure</button><button class="">Yes</button></div></div>
+  <div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#milk"/></svg></span>Lactose</span><div class="segmented"><button class="">No</button><button class="">Not sure</button><button class="on yes">Yes</button></div></div>
+  <div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bean"/></svg></span>FODMAP</span><div class="segmented"><button class="">No</button><button class="on">Not sure</button><button class="">Yes</button></div></div>
+  <span class="chip" style="margin-top:6px; color:var(--primary-press)"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> Track something else</span>
+  <p class="label">Where</p>
+  <div class="chip-row"><span class="chip on"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#house"/></svg> Home</span><span class="chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#store"/></svg> Eating out</span><span class="chip">Takeaway</span></div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-5)">Save</button>
+
+</section>
+
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

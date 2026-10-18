@@ -205,16 +205,21 @@ def today():
       Morning medication <span class="muted small" style="margin-left:auto">08:00</span></div>
     <div class="dose" style="margin-top:8px"><div class="grow"><div class="name">Vitamin D</div><div class="card-sub">20 µg · tablet</div></div>
       <button class="btn btn-soft btn-sm">{icon("check", "i i-sm")} Taken</button></div>
-    <div class="dose"><div class="grow"><div class="name">Allergy tablet</div><div class="card-sub">10 mg · tablet</div></div>
-      <span class="taken">{icon("circle-check", "i i-sm")} 08:12</span></div>
+    <div class="dose"><div class="grow"><div class="name">Magnesium</div><div class="card-sub">250 mg · tablet</div></div>
+      <button class="btn btn-soft btn-sm">{icon("check", "i i-sm")} Taken</button></div>
+    <button class="btn btn-primary btn-block" style="margin-top:var(--sp-2); min-height:46px">{icon("check-check", "i i-sm")} Both taken now</button>
   </section>
 
   <h2 class="section-title">Today <a href="#">See all</a></h2>
   <ol class="tl">
-    <li><time>07:40</time><span class="cat cat-sleep">{icon("bed")}</span>
-      <div><div class="t">Slept 7 h 20 min</div><div class="s">Quality: rested</div></div></li>
+    <li><time>07:10</time><span class="cat cat-sleep">{icon("bed")}</span>
+      <div><div class="t">Slept 7 h 20 min</div><div class="s">23:50 to 07:10 · rested · woke once</div></div></li>
+    <li><time>07:25</time><span class="cat cat-measure">{icon("scale")}</span>
+      <div><div class="t">Weight 72.4 kg</div><div class="s">Morning, before breakfast</div></div></li>
+    <li><time>07:40</time><span class="cat cat-gut">{icon("toilet")}</span>
+      <div><div class="t">Bowel movement</div><div class="s">Type 4 · no discomfort</div></div></li>
     <li><time>08:10</time><span class="cat cat-food">{icon("utensils")}</span>
-      <div><div class="t">Breakfast</div><div class="s">Oatmeal with berries and yoghurt</div><span class="tag">#home</span>
+      <div><div class="t">Breakfast</div><div class="s">Oatmeal with berries and yoghurt</div><span class="tag">Gluten-free</span> <span class="tag">Contains lactose</span>
       <div class="thumb" role="img" aria-label="Photo of breakfast"></div></div></li>
     <li><time>10:30</time><span class="cat cat-feel">{icon("smile")}</span>
       <div><div class="t">Feeling good</div><div class="s">Mood 4 · Energy 3 · Stress 2</div></div></li>
@@ -232,7 +237,7 @@ def quicklog():
     css = """
 .bg-blur { filter: blur(1.5px); opacity: .9; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
-.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 96px;
+.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 84px;
   border-radius: var(--r-lg); font-weight: var(--fw-semibold); font-size: var(--fs-callout); }
 .tile .i { width: 30px; height: 30px; }
 .recent { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2);
@@ -241,10 +246,11 @@ def quicklog():
 .recent .cat { width: 30px; height: 30px; border-radius: 9px; }
 """
     tiles = [("food", "utensils", "Meal"), ("feel", "smile", "Feeling"), ("sleep", "bed", "Sleep"),
-             ("pain", "activity", "Pain"), ("meds", "pill", "Medicine"), ("measure", "ruler", "Measure")]
+             ("pain", "activity", "Pain"), ("meds", "pill", "Medicine"), ("gut", "toilet", "Bowel"),
+             ("measure", "scale", "Weight"), ("measure", "ruler", "Measure"), ("note", "notebook-pen", "Note")]
     tile_html = "".join(f'<button class="tile cat-{c}">{icon(i)}{t}</button>' for c, i, t in tiles)
-    rec = [("food", "utensils", "Oatmeal", "breakfast"), ("meds", "pill", "Allergy tablet", "10 mg"),
-           ("measure", "weight", "Weight", "72.4 kg")]
+    rec = [("food", "bookmark", "Oatmeal", "saved meal"), ("meds", "check-check", "Morning meds", "all taken"),
+           ("sleep", "bed", "Usual night", "23:30 to 07:00")]
     rec_html = "".join(
         f'<button class="recent"><span class="cat cat-{c}">{icon(i, "i i-sm")}</span><span><b>{a}</b> <span class="muted">{b}</span></span></button>'
         for c, i, a, b in rec)
@@ -261,7 +267,6 @@ def quicklog():
   <div class="tiles">{tile_html}</div>
   <p class="label" style="margin-top:var(--sp-5)">Again? One tap <span class="hint">based on your recent entries</span></p>
   <div class="scroll-row">{rec_html}</div>
-  <button class="btn btn-quiet btn-block" style="margin-top:var(--sp-4)">{icon("notebook-pen")} Write a note</button>
   <p class="footnote-lock">{icon("lock", "i i-sm")} Encrypted on this phone before it's saved</p>
 </section>
 """
@@ -381,27 +386,28 @@ def meds():
     <button class="icon-btn" aria-label="Add medication" style="background:var(--primary-soft);color:var(--primary-press)">{icon("plus")}</button></header>
   <div class="segmented" role="tablist"><button class="on" role="tab" aria-selected="true">Today</button><button role="tab">My list</button><button role="tab">History</button></div>
 
-  <div class="slot"><h3>{icon("sunrise", "i i-sm")} Morning · 08:00</h3>
+  <div class="slot"><h3>{icon("sunrise", "i i-sm")} Morning · 08:00
+    <button class="btn btn-soft btn-sm" style="margin-left:auto; text-transform:none; letter-spacing:0">{icon("check-check", "i i-sm")} All taken</button></h3>
     <div class="card"><div class="med"><span class="cat cat-meds">{icon("pill")}</span>
-      <div class="grow"><div class="name">Allergy tablet</div><div class="card-sub">10 mg · tablet · 1</div></div>
+      <div class="grow"><div class="name">Allergy tablet</div><div class="card-sub">10 mg · 1 tablet · {icon("repeat", "i i-xs")} every day</div></div>
       <span class="status st-taken">{icon("check", "i i-sm")} 08:12</span></div></div>
     <div class="card"><div class="med"><span class="cat cat-meds">{icon("pill")}</span>
-      <div class="grow"><div class="name">Vitamin D</div><div class="card-sub">20 µg · tablet · 1</div></div>
+      <div class="grow"><div class="name">Vitamin D</div><div class="card-sub">20 µg · 1 tablet · {icon("repeat", "i i-xs")} every day</div></div>
       <div class="actions"><button class="btn btn-quiet btn-sm">Skip</button><button class="btn btn-primary btn-sm">Taken</button></div></div></div>
   </div>
   <div class="slot"><h3>{icon("sun", "i i-sm")} Midday · 13:00</h3>
     <div class="card"><div class="med"><span class="cat cat-meds">{icon("pill")}</span>
-      <div class="grow"><div class="name">Iron supplement</div><div class="card-sub">14 mg · capsule · 1</div></div>
+      <div class="grow"><div class="name">Iron supplement</div><div class="card-sub">14 mg · 1 capsule · {icon("repeat", "i i-xs")} Mon, Wed, Fri</div></div>
       <span class="status st-late">{icon("clock-alert", "i i-sm")} Late · 13:40</span></div></div>
   </div>
   <div class="slot"><h3>{icon("moon-star", "i i-sm")} Evening · 20:00</h3>
     <div class="card"><div class="med"><span class="cat cat-meds">{icon("pill")}</span>
-      <div class="grow"><div class="name">Magnesium</div><div class="card-sub">250 mg · tablet · 1</div></div>
+      <div class="grow"><div class="name">Magnesium</div><div class="card-sub">250 mg · 1 tablet · {icon("repeat", "i i-xs")} until 31 Oct</div></div>
       <span class="muted small">Upcoming</span></div></div>
   </div>
   <div class="slot"><h3>{icon("clock", "i i-sm")} When needed</h3>
     <div class="card"><div class="list-row" style="padding:0"><span class="cat cat-meds">{icon("pill")}</span>
-      <div style="flex:1"><div style="font-weight:600">Ibuprofen</div><div class="card-sub">200 mg · tablet · last: Thursday</div></div>
+      <div style="flex:1"><div style="font-weight:600">Ibuprofen</div><div class="card-sub">200 mg · tablet · as needed · last: Thursday</div></div>
       <button class="btn btn-soft btn-sm">Log dose</button></div></div>
   </div>
 
@@ -442,6 +448,15 @@ def trends():
 .heat { display: flex; gap: var(--sp-4); align-items: center; }
 .heat-legend { display: flex; gap: 2px; margin: 6px 0 2px; }
 .heat-legend span { flex: 1; height: 8px; border-radius: 3px; }
+.gut { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: var(--sp-3); }
+.gcol { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gdots { display: flex; flex-direction: column-reverse; gap: 4px; min-height: 60px; justify-content: flex-start; }
+.gdots span { width: 28px; height: 28px; border-radius: 50%; background: var(--gut-tint); color: var(--gut-ink); display: grid; place-items: center;
+  font-size: var(--fs-footnote); font-weight: var(--fw-bold); }
+.gd { font-size: var(--fs-caption); color: var(--text-3); }
+.after { display: flex; gap: var(--sp-3); padding: 10px 0; border-top: 1px solid var(--line); margin-top: 10px; font-size: var(--fs-callout); }
+.after > div:first-child { flex: 1; display: flex; flex-direction: column; } .after span { color: var(--text-2); font-size: var(--fs-footnote); }
+.after .then { flex: 1; font-size: var(--fs-footnote); }
 """
     heat = {"knee-right": 6, "lower-abdomen": 3, "head": 2, "shoulder-left": 2, "forearm-right": 1, "neck": 1}
     body = f"""
@@ -477,6 +492,18 @@ def trends():
         <div class="xaxis" style="padding:0;margin:0"><span>Less often</span><span>More</span></div>
       </div>
     </div>
+  </section>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title">{icon("toilet", "i i-sm")} Bowel movements</div><div class="card-sub">7 this week · type per visit</div>
+    <div class="gut"><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Mon</span></div><div class="gcol"><div class="gdots"><span title="Type 3">3</span></div><span class="gd">Tue</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span><span title="Type 5">5</span></div><span class="gd">Wed</span></div><div class="gcol"><div class="gdots"></div><span class="gd">Thu</span></div><div class="gcol"><div class="gdots"><span title="Type 2">2</span></div><span class="gd">Fri</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Sat</span></div><div class="gcol"><div class="gdots"><span title="Type 4">4</span></div><span class="gd">Sun</span></div></div>
+  </section>
+
+  <section class="card" style="margin-top:var(--sp-3)">
+    <div class="card-title">{icon("wheat", "i i-sm")} After meals with gluten</div>
+    <div class="card-sub">Your own entries side by side, from the 24 hours after each meal. The app doesn't draw conclusions.</div>
+    <div class="after"><div><b>Thu 15 · Lunch</b><span>Pasta salad, eating out</span></div><div class="then">Bloated (2) at 16:10<br>Bowel type 6 at 19:30</div></div>
+    <div class="after"><div><b>Sun 11 · Dinner</b><span>Pizza</span></div><div class="then muted">Nothing logged</div></div>
   </section>
 
   <button class="btn btn-soft btn-block" style="margin-top:var(--sp-4)">{icon("file-down")} Doctor visit summary (PDF)</button>
@@ -547,7 +574,7 @@ h2 { font-size: var(--fs-title3); margin: var(--sp-7) 0 var(--sp-3); }
                         sw("primary", "var(--on-primary)"), sw("primary-soft", "var(--primary-press)")])
     cats = "".join(f'<div class="cat-{c}">{icon(i)}{n}</div>' for c, i, n in
                    [("food", "utensils", "Food"), ("feel", "smile", "Feeling"), ("sleep", "bed", "Sleep"), ("measure", "ruler", "Measure"),
-                    ("pain", "activity", "Pain"), ("meds", "pill", "Meds"), ("note", "notebook-pen", "Note")])
+                    ("pain", "activity", "Pain"), ("meds", "pill", "Meds"), ("gut", "toilet", "Bowel"), ("note", "notebook-pen", "Note")])
     icons = "".join(icon(n) for n in ["house", "chart-spline", "pill", "user-round", "utensils", "smile", "bed", "ruler",
                                        "activity", "weight", "thermometer", "heart-pulse", "bell", "lock", "key-round", "shield-check",
                                        "search", "calendar", "camera", "tag", "printer", "file-down", "undo-2", "settings"])
@@ -606,9 +633,205 @@ h2 { font-size: var(--fs-title3); margin: var(--sp-7) 0 var(--sp-3); }
     return page("Design system", body, css, long=True)
 
 
+SHEET_PAGE_CSS = """
+.tri { display: flex; align-items: center; gap: var(--sp-3); padding: 6px 0; }
+.tri .what { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
+.tri .segmented { flex: none; width: 190px; } .tri .segmented button { min-height: 34px; font-size: var(--fs-footnote); }
+.tri .segmented button.yes { background: var(--food-tint); color: var(--food-ink); font-weight: var(--fw-bold); box-shadow: none; }
+.row2 { display: flex; gap: var(--sp-2); }
+.row2 .btn { flex: 1; }
+"""
+
+
+def sheet_page(title, head_title, time_label, inner, css=""):
+    body = f"""
+<div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh" style="top:52px; overflow:hidden">
+  <div class="grabber"></div>
+  <div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back">{icon("chevron-left")}</button>
+    <h2 id="sh" style="flex:1; margin-left:4px">{head_title}</h2><span class="time-chip">{icon("clock", "i i-sm")} {time_label}</span></div>
+  {inner}
+</section>
+"""
+    return page(title, body, SHEET_PAGE_CSS + css)
+
+
+def log_meal():
+    meal_types = "".join(f'<span class="chip{" on" if m == "Breakfast" else ""}">{m}</span>' for m in ["Breakfast", "Lunch", "Dinner", "Snack", "Drink"])
+    saved = "".join(f'<span class="chip">{icon("bookmark", "i i-sm")} {m}</span>' for m in ["Oatmeal", "Rye bread &amp; cheese", "Smoothie"])
+
+    def tri(ic, name, sel):
+        opts = "".join(f'<button class="{("on" if o == sel else "") + (" yes" if o == sel == "Yes" else "")}">{o}</button>' for o in ["No", "Not sure", "Yes"])
+        return f'<div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px">{icon(ic, "i i-sm")}</span>{name}</span><div class="segmented">{opts}</div></div>'
+    inner = f"""
+  <div class="scroll-row">{meal_types}</div>
+  <p class="label">Eat it often? <span class="hint">saved meals fill everything in</span></p>
+  <div class="scroll-row">{saved}</div>
+  <p class="label">What did you have?</p>
+  <div class="field" style="color:var(--text); padding-right:6px"><span style="flex:1">Oatmeal with berries and yoghurt</span>
+    <button class="icon-btn" aria-label="Add photo">{icon("camera")}</button><button class="icon-btn" aria-label="Tags">{icon("tag")}</button></div>
+  <p class="label">Your watch list <span class="hint">you choose what to track</span></p>
+  {tri("wheat", "Gluten", "No")}
+  {tri("milk", "Lactose", "Yes")}
+  {tri("bean", "FODMAP", "Not sure")}
+  <span class="chip" style="margin-top:6px; color:var(--primary-press)">{icon("plus", "i i-sm")} Track something else</span>
+  <p class="label">Where</p>
+  <div class="chip-row"><span class="chip on">{icon("house", "i i-sm")} Home</span><span class="chip">{icon("store", "i i-sm")} Eating out</span><span class="chip">Takeaway</span></div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-5)">Save</button>
+"""
+    return sheet_page("Log meal", "Meal", "08:10", inner)
+
+
+STOOL_SHAPES = {
+    1: '<circle cx="10" cy="14" r="4"/><circle cx="20" cy="11" r="3.5"/><circle cx="29" cy="15" r="4"/><circle cx="18" cy="20" r="3"/>',
+    2: '<path d="M6 15c0-4 3-6 6-5 2-3 6-3 8 0 3-2 7-1 8 2 3 1 4 5 2 7-1 3-5 3-7 2-2 2-6 2-8 0-3 1-7 0-9-6z"/>',
+    3: '<rect x="5" y="9" width="30" height="11" rx="5.5"/><path d="M13 9v3M20 20v-3M27 9v3" stroke="var(--gut-tint)" stroke-width="1.6"/>',
+    4: '<path d="M6 17c4-7 10-7 14-3s10 4 14-3" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round"/>',
+    5: '<ellipse cx="10" cy="15" rx="5" ry="4"/><ellipse cx="21" cy="12" rx="5" ry="4"/><ellipse cx="30" cy="17" rx="5" ry="4"/>',
+    6: '<path d="M5 18c2-6 6-4 8-7 3 3 5-1 8 2 2-3 6-1 7 1 3 0 6 2 6 5-4 3-25 3-29-1z"/>',
+    7: '<path d="M12 6c3 5 5 7 5 10a5 5 0 0 1-10 0c0-3 2-5 5-10zM27 9c2.5 4 4 6 4 8.5a4 4 0 0 1-8 0c0-2.5 1.5-4.5 4-8.5z"/>',
+}
+STOOL_LABELS = {1: "Hard lumps", 2: "Lumpy", 3: "Cracked", 4: "Smooth", 5: "Soft pieces", 6: "Mushy", 7: "Watery"}
+
+
+def stool_svg(k):
+    return f'<svg viewBox="0 0 40 26" width="44" height="28" fill="currentColor" aria-hidden="true">{STOOL_SHAPES[k]}</svg>'
+
+
+def log_bowel():
+    css = """
+.types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.types button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px 8px; border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--gut-ink); font-size: var(--fs-caption); }
+.types button b { color: var(--text); font-size: var(--fs-callout); }
+.types button span { color: var(--text-2); }
+.types button.on { background: var(--gut-tint); box-shadow: inset 0 0 0 2px var(--gut-ink); }
+"""
+    types = "".join(f'<button class="{"on" if k == 4 else ""}" aria-label="Type {k}, {STOOL_LABELS[k]}">{stool_svg(k)}<b>{k}</b><span>{STOOL_LABELS[k]}</span></button>' for k in range(1, 8))
+    extras = "".join(f'<span class="chip">{x}</span>' for x in ["Urgent", "Straining", "Pain", "Not finished", "Blood seen", "Mucus"])
+    inner = f"""
+  <p class="label" style="margin-top:0">Type <span class="hint">based on the Bristol scale</span></p>
+  <div class="types">{types}</div>
+  <p class="label">Anything else? <span class="hint">optional</span></p>
+  <div class="chip-row">{extras}</div>
+  <p class="label">Note</p>
+  <div class="field">Optional</div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-5)">Save</button>
+  <p class="footnote-lock">{icon("lock", "i i-sm")} Only you can see this. Not even the server can.</p>
+"""
+    return sheet_page("Log bowel movement", "Bowel movement", "07:40", inner, css)
+
+
+def log_sleep():
+    css = """
+.sum { text-align: center; padding: var(--sp-2) 0 var(--sp-4); }
+.sum .big { font-size: var(--fs-display); font-weight: var(--fw-bold); line-height: 1.1; }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.tcard { background: var(--sleep-tint); color: var(--sleep-ink); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); }
+.tcard .v { font-size: var(--fs-title2); font-weight: var(--fw-bold); color: var(--text); }
+.tcard .k { display: flex; gap: 6px; align-items: center; font-size: var(--fs-footnote); font-weight: var(--fw-semibold); }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button { height: 46px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2); font-weight: var(--fw-semibold); }
+.scale button.on { background: var(--sleep-tint); color: var(--sleep-ink); box-shadow: inset 0 0 0 2px var(--sleep-ink); }
+.ends { display: flex; justify-content: space-between; font-size: var(--fs-caption); color: var(--text-3); margin-top: 4px; }
+"""
+    q = "".join(f'<button class="{"on" if k == 4 else ""}" aria-label="Quality {k} of 5">{k}</button>' for k in range(1, 6))
+    woke = "".join(f'<button class="{"on" if w == "1" else ""}">{w}</button>' for w in ["0", "1", "2", "3+"])
+    inner = f"""
+  <div class="sum"><div class="big">7 h 20 min</div><div class="muted small">Last night · filled in from your usual times</div></div>
+  <div class="times">
+    <div class="tcard"><div class="k">{icon("moon", "i i-sm")} Fell asleep</div><div class="v">23:50</div><div class="small">Saturday</div></div>
+    <div class="tcard"><div class="k">{icon("sunrise", "i i-sm")} Woke up</div><div class="v">07:10</div><div class="small">Sunday</div></div>
+  </div>
+  <p class="label">How did you sleep?</p>
+  <div class="scale">{q}</div>
+  <div class="ends"><span>Restless</span><span>Rested</span></div>
+  <p class="label">Woke up during the night</p>
+  <div class="segmented">{woke}</div>
+  <div class="row2" style="margin-top:var(--sp-4)"><button class="btn btn-quiet">{icon("plus", "i i-sm")} Nap</button><button class="btn btn-quiet">{icon("notebook-pen", "i i-sm")} Note</button></div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save</button>
+"""
+    return sheet_page("Log sleep", "Sleep", "Last night", inner, css)
+
+
+def log_weight():
+    css = """
+.value { display: flex; align-items: center; justify-content: space-between; margin: var(--sp-5) 0 var(--sp-2); }
+.value .num { font-size: 3.4rem; font-weight: var(--fw-bold); letter-spacing: -0.02em; line-height: 1; }
+.value .num small { font-size: var(--fs-title3); color: var(--text-2); font-weight: var(--fw-semibold); margin-left: 4px; }
+.step { width: 56px; height: 56px; border-radius: var(--r-full); background: var(--measure-tint); color: var(--measure-ink); display: grid; place-items: center; }
+.step .i { width: 26px; height: 26px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: var(--sp-4); }
+.keypad button { height: 48px; border-radius: var(--r-md); background: var(--surface-2); font-size: var(--fs-title3); font-weight: var(--fw-semibold); }
+"""
+    kinds = "".join(f'<span class="chip{" on" if k == "Weight" else ""}">{k}</span>' for k in ["Weight", "Blood pressure", "Temperature", "Waist"])
+    ctx = "".join(f'<span class="chip{" on" if c == "Morning" else ""}">{c}</span>' for c in ["Morning", "Before breakfast", "After exercise"])
+    keys = "".join(f"<button>{k}</button>" for k in ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫"])
+    inner = f"""
+  <div class="scroll-row">{kinds}<span class="chip" style="color:var(--primary-press)">{icon("plus", "i i-sm")} New type</span></div>
+  <div class="value"><button class="step" aria-label="Minus 0.1">{icon("minus")}</button>
+    <div class="num" aria-live="polite">72.4<small>kg</small></div>
+    <button class="step" aria-label="Plus 0.1">{icon("plus")}</button></div>
+  <p class="muted small" style="text-align:center">Last time: 72.6 kg on Thursday</p>
+  <p class="label">When</p>
+  <div class="chip-row">{ctx}</div>
+  <div class="keypad" aria-hidden="true">{keys}</div>
+  <button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save</button>
+"""
+    return sheet_page("Log weight", "Measurement", "07:25", inner, css)
+
+
+def med_edit():
+    css = """
+.form-row { display: flex; gap: var(--sp-2); }
+.form-row .field { flex: 1; }
+.timerow { display: flex; align-items: center; gap: var(--sp-3); padding: 10px 0; }
+.timerow + .timerow { border-top: 1px solid var(--line); }
+.timerow .t { font-size: var(--fs-title3); font-weight: var(--fw-bold); width: 68px; }
+.timerow .grow { flex: 1; color: var(--text-2); }
+.toggle { width: 51px; height: 31px; border-radius: 16px; background: var(--meds-ink); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-1); }
+.toggle.off { background: var(--surface-3); } .toggle.off::after { right: auto; left: 2px; }
+.setrow { display: flex; align-items: center; gap: var(--sp-3); padding: 12px 0; }
+.setrow + .setrow { border-top: 1px solid var(--line); }
+.setrow .grow { flex: 1; } .setrow .v { color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+"""
+    forms = "".join(f'<span class="chip{" on" if f == "Tablet" else ""}">{f}</span>' for f in ["Tablet", "Capsule", "Liquid", "Drops", "Spray", "Inhaler", "Patch", "Other"])
+    often = "".join(f'<span class="chip{" on" if f == "Every day" else ""}">{f}</span>' for f in ["Every day", "Some weekdays", "Every few days", "As needed"])
+    body = f"""
+<main class="content">
+  <div class="nav-head"><button class="btn btn-sm" style="color:var(--primary-press)">Cancel</button>
+    <span class="title">New medication</span><button class="btn btn-sm" style="color:var(--primary-press); font-weight:700">Save</button></div>
+  <p class="label">Name</p>
+  <div class="field" style="color:var(--text)">Vitamin D</div>
+  <p class="label">Strength <span class="hint">as on the package</span></p>
+  <div class="form-row"><div class="field" style="color:var(--text)">20</div>
+    <div class="field" style="color:var(--text); flex:0 0 110px; justify-content:space-between">µg {icon("chevron-down", "i i-sm")}</div></div>
+  <p class="label">Form</p>
+  <div class="scroll-row">{forms}</div>
+  <p class="label">How often</p>
+  <div class="chip-row">{often}</div>
+  <p class="label">Times and amount <span class="hint">as you were told to take it</span></p>
+  <div class="card" style="padding-top:4px; padding-bottom:4px">
+    <div class="timerow"><span class="t">08:00</span><span class="grow">1 tablet</span>{icon("x", "i i-sm")}</div>
+    <div class="timerow" style="color:var(--primary-press); font-weight:600">{icon("plus", "i i-sm")} Add a time</div>
+  </div>
+  <div class="card" style="margin-top:var(--sp-4); padding-top:4px; padding-bottom:4px">
+    <div class="setrow"><span class="grow">Starts</span><span class="v">Today {icon("chevron-right", "i i-sm")}</span></div>
+    <div class="setrow"><span class="grow">Ends</span><span class="v">No end date {icon("chevron-right", "i i-sm")}</span></div>
+    <div class="setrow"><span class="grow">Remind me on this phone</span><span class="toggle" role="switch" aria-checked="true" aria-label="Reminders"></span></div>
+  </div>
+  <p class="small muted" style="margin-top:var(--sp-3)">Once saved, it shows up on Today at the right times, so you only tap "Taken". You enter the amount;
+    the app never calculates or suggests doses.</p>
+</main>
+"""
+    return page("New medication", body, css)
+
+
 SCREENS = {
     "today": today, "quicklog": quicklog, "log-feeling": log_feeling, "bodymap": bodymap,
-    "meds": meds, "trends": trends, "onboarding-recovery": recovery, "system": system,
+    "log-meal": log_meal, "log-bowel": log_bowel, "log-sleep": log_sleep, "log-weight": log_weight,
+    "meds": meds, "med-edit": med_edit, "trends": trends, "onboarding-recovery": recovery, "system": system,
 }
 
 if __name__ == "__main__":

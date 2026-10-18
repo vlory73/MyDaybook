@@ -20,6 +20,7 @@ h1, h2, h3, p { margin: 0; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 .i { width: 22px; height: 22px; flex: none; display: inline-block; vertical-align: middle; }
 .i-sm { width: 18px; height: 18px; }
+.i-xs { width: 14px; height: 14px; margin-top: -2px; }
 .i-lg { width: 28px; height: 28px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -91,6 +92,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .cat-pain { background: var(--pain-tint); color: var(--pain-ink); }
 .cat-meds { background: var(--meds-tint); color: var(--meds-ink); }
 .cat-note { background: var(--note-tint); color: var(--note-ink); }
+.cat-gut { background: var(--gut-tint); color: var(--gut-ink); }
 
 /* ---------- Tab bar with central quick-log button ---------- */
 .tabbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
