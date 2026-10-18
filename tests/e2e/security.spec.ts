@@ -16,7 +16,7 @@ test('strict hash-based CSP and security headers', async ({ request }) => {
 test('no third-party requests', async ({ page }) => {
 	const foreign: string[] = [];
 	page.on('request', (r) => {
-		if (!r.url().startsWith('http://127.0.0.1:4173')) foreign.push(r.url());
+		if (!r.url().startsWith(`http://127.0.0.1:${process.env.E2E_PORT ?? 4173}`)) foreign.push(r.url());
 	});
 	await page.goto('/');
 	await page.goto('/me');

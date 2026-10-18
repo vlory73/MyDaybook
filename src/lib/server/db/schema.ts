@@ -32,7 +32,9 @@ export const users = sqliteTable('users', {
 	wrappedMkRk: bytes('wrapped_mk_rk').notNull(),
 	publicKey: bytes('public_key').notNull(),
 	wrappedPrivateKey: bytes('wrapped_private_key').notNull(),
-	totpSecretEnc: bytes('totp_secret_enc'),
+	totpSecretEnc: bytes('totp_secret_enc'), // active secret (AES-256-GCM under a key derived from SESSION_SECRET)
+	totpPendingEnc: bytes('totp_pending_enc'), // secret shown during enrolment, not yet confirmed
+	totpLastStep: integer('totp_last_step'), // newest accepted 30 s step, for replay protection
 	storageBytes: integer('storage_bytes').notNull().default(0)
 });
 

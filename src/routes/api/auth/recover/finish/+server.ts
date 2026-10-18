@@ -46,7 +46,11 @@ export const POST = api(async (event) => {
 				authVerifier: sha256(authKey),
 				wrappedMkPw,
 				recoveryVerifier: sha256(recoveryAuthKey),
-				wrappedMkRk
+				wrappedMkRk,
+				// The recovery key is the stronger secret, so recovering also switches two-step sign-in off.
+				totpSecretEnc: null,
+				totpPendingEnc: null,
+				totpLastStep: null
 			})
 			.where(eq(users.id, row.userId))
 			.run();

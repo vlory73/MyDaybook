@@ -33,6 +33,7 @@ export { default as ToastHost } from './ToastHost.svelte';
 export { default as Toggle } from './Toggle.svelte';
 export { default as WatchList } from './WatchList.svelte';
 export { default as WeekStrip } from './WeekStrip.svelte';
+export { default as TotpCard } from './TotpCard.svelte';
 export { default as UnlockView } from './UnlockView.svelte';
 export { showToast, dismissToast } from './toast.svelte';
 export { categories, type Category } from './categories';

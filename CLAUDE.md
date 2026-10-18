@@ -101,6 +101,8 @@ Other key documents:
 | 2026-10-18 | M1: SvelteKit 2.70 / Svelte 5 / Vite 7 / TypeScript 5.9 / Vitest 5 pinned (newer majors skipped deliberately). `cookie` overridden to 0.7.2 (audit). D21 (in-house i18n) and D22 (tooling licences) proposed | M1 |
 | 2026-10-18 | Approved: D21 in-house i18n, D22 BlueOak-1.0.0/Python-2.0 for build/test tooling only, and the M1 dev dependencies over 1 MB (TypeScript, Prettier, svelte-check, Svelte, ESLint, Vitest, @types/node, Vite, eslint-plugin-svelte, SvelteKit) | Owner |
 | 2026-10-18 | D23 approved: on account deletion, the user's security_events are deleted; admin_audit rows are kept for accountability | Owner |
+| 2026-10-18 | Photos: 1280 px JPEG q0.7 (~150 KB), 256 px thumbnails, 1.25 MiB blob cap, `BODY_SIZE_LIMIT=2M`. Declined for now: separate JSON body cap; per-user storage quota deferred to the backlog | Owner, PR #11 |
+| 2026-10-18 | TOTP: using the recovery key bypasses and switches off two-step sign-in; no backup codes in v1; optional `E2E_PORT` test setting kept | Owner, PR #12 |
 
 ## Backlog (owner requests to raise later)
 
@@ -113,7 +115,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, during M2 (feature/photos, stacked on feature/log-meals)._
+_Last updated: 2026-10-18, during M2 (feature/totp, stacked on feature/photos)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
   rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
@@ -124,7 +126,7 @@ _Last updated: 2026-10-18, during M2 (feature/photos, stacked on feature/log-mea
   live duration, naps), weight and custom measurements (steppers, two-value types), bowel (Bristol types, flags), edit and
   delete with Undo, and an "Again?" row in quick-log (screenshots in `docs/screenshots/log-body/`). `feature/log-meals` (stacked on log-body): food watch list in Me (EU allergens + intolerances, own items,
   reorder), meal sheet with Yes / Not sure / No per watched item, saved meals (one-tap fill and "Again?"), timeline tags such
-  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; photos about 150 KB each, 1.25 MiB cap, `BODY_SIZE_LIMIT=2M` needed; screenshots in `docs/screenshots/photos/`). Next: pain/body map and medication sheets.
+  as "Gluten-free" (screenshots in `docs/screenshots/log-meals/`). `feature/photos` (stacked on log-meals): encrypted photo attachments on meals and notes (secretstream blobs, `/api/attachments`, canvas re-encode, thumbnails, viewer, deferred delete for Undo; photos about 150 KB each, 1.25 MiB cap, `BODY_SIZE_LIMIT=2M` needed; screenshots in `docs/screenshots/photos/`). `feature/totp` (stacked on photos): optional TOTP second factor (own RFC 6238 on node:crypto, sealed at rest, replay-protected, recovery key bypasses and switches it off; Me card, enrol sheet, login code step; screenshots in `docs/screenshots/totp/`; `E2E_PORT` env lets several checkouts run e2e side by side). Next: pain/body map and medication sheets.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
   (en + da), Today / Trends / Meds / Me screens with empty states, quick-log sheet (tiles not wired yet), About text with the

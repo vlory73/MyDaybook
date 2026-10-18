@@ -200,8 +200,29 @@ stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API call
 ### 3.4 Optional TOTP
 
 TOTP protects the *login session* (for example, against someone who has learned the passphrase but not the device). It does
-not change encryption. The TOTP secret is stored encrypted with a server key from `.env`. TOTP gives modest
-additional value under E2EE; it stays optional as specified.
+not change encryption and never touches the diary keys. It stays optional, as specified.
+
+**Implemented (feature/totp).** RFC 6238 with SHA-1, 6 digits, 30 s steps, written on `node:crypto` (no dependency); a code is accepted
+for the current step and one step either side.
+
+- **Enrolment** (all need a session): `POST /api/auth/totp/setup {authKey}` re-authenticates with the current auth key, creates a 20-byte
+  secret and stores it as *pending* (`users.totp_pending_enc`), returning `{ secret, uri }` once (`otpauth://totp/<name>:<user>?secret=...&issuer=<name>&digits=6&period=30`).
+  Nothing changes at sign-in yet. `POST /api/auth/totp/enable {code}` checks the code against the pending secret and, if valid, makes it the active
+  one (`totp_secret_enc`). `POST /api/auth/totp/disable {authKey, code}` needs the passphrase and a fresh code. `GET /api/auth/totp` returns
+  `{ enabled }`. There is no QR code (no library); the screen shows the key in groups of four and an "Open in authenticator app" link that
+  hands the otpauth URI to an installed authenticator app.
+- **Sign-in:** `POST /api/auth/login {username, authKey, totp?}`. The TOTP state is looked at only AFTER the auth key verified. Without
+  `totp` the answer is 401 `totp_required`; with a wrong code, 401 `invalid_totp`. Wrong codes count against the same login limiter as wrong
+  passphrases and are recorded as `totp_failed` security events. An unknown user or wrong key always gets the generic 401 `invalid_credentials`,
+  so a stranger cannot learn who uses TOTP. The client keeps the derived keys in memory for the code step (no second Argon2id run).
+- **Replay protection:** `users.totp_last_step` holds the newest accepted time step. A code whose step is at or below it is refused, and the
+  update is conditional (`WHERE totp_last_step IS NULL OR totp_last_step < ?`), so two parallel requests cannot both spend one code.
+- **At rest:** the secret is sealed with AES-256-GCM under a key derived from `SESSION_SECRET` with HKDF-SHA-256 (info `totp-v1`), stored as
+  nonce (12) | tag (16) | ciphertext. If `SESSION_SECRET` is lost, the secrets no longer open; users then get back in with the recovery key.
+- **Recovery bypasses TOTP.** Recovering with the recovery key (§3.3) is the stronger secret, so `recover/finish` signs the user in without a
+  code and clears the TOTP secret, pending secret and last step: two-step sign-in is switched off and can be enrolled again. The Me card says so.
+- **No backup codes in v1.** The recovery key already covers lock-out (lost phone), and a second set of long-lived codes would be another
+  secret to store.
 
 ### 3.5 Better than Bitwarden-style? OPAQUE
 
@@ -261,7 +282,7 @@ configuration from diary entries.
 
 | Table | Columns (server-visible) |
 | --- | --- |
-| `users` | id (UUIDv4), username, kind (adult/dependent), role (member/admin), status, created_at, kdf_salt, kdf_params, auth_scheme, auth_verifier, recovery_verifier, wrapped_mk_pw, wrapped_mk_rk, public_key, wrapped_private_key, totp_secret_enc?, storage_bytes |
+| `users` | id (UUIDv4), username, kind (adult/dependent), role (member/admin), status, created_at, kdf_salt, kdf_params, auth_scheme, auth_verifier, recovery_verifier, wrapped_mk_pw, wrapped_mk_rk, public_key, wrapped_private_key, totp_secret_enc?, totp_pending_enc?, totp_last_step?, storage_bytes |
 | `guardianships` | dependent_id, guardian_id, sealed_mk, created_at |
 | `records` | id (client-generated UUIDv4), user_id, wrapped_key, ciphertext, size, created_at, updated_at, rev, deleted_at (tombstone, content nulled) |
 | `attachments` | id, user_id, size, created_at (the link to a record lives **only inside the encrypted record**) |

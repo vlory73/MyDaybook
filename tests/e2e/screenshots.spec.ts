@@ -1,4 +1,5 @@
 import { test, type Page } from '@playwright/test';
+import { codeFor } from './totp-code';
 import { createInvite, newPassphrase, newUsername, signUpAndSignIn, signUpViaApi } from './helpers';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
@@ -255,6 +256,38 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.goto('/recover');
 			await page.getByRole('heading', { name: 'Get back into your diary' }).waitFor();
 			await snap(page, 'recover', scheme);
+		});
+
+		test(`two-step sign-in ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'totp', 'totp screenshots only');
+			await prepare(page, scheme);
+			const user = await signUpAndSignIn(page, '/me');
+			const card = page.locator('section.card', {
+				has: page.getByRole('heading', { name: 'Two-step sign-in' })
+			});
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-card-off', scheme);
+			await card.getByRole('button', { name: 'Turn on' }).click();
+			await page.waitForTimeout(400);
+			await page.getByRole('dialog').getByLabel('Passphrase', { exact: true }).fill(user.passphrase);
+			await page.getByRole('dialog').getByRole('button', { name: 'Show setup key' }).click();
+			await page.getByTestId('totp-secret').waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'enable-sheet', scheme);
+			const secret = (await page.getByTestId('totp-secret').locator('span').allTextContents()).join('');
+			await page.getByRole('dialog').getByLabel('Six-digit code from the app').fill(codeFor(secret, -1));
+			await page.getByRole('button', { name: 'Confirm and turn on' }).click();
+			await page.getByTestId('totp-state').filter({ hasText: 'On' }).waitFor();
+			await page.waitForTimeout(400);
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-card-on', scheme);
+			await page.getByRole('button', { name: 'Sign out' }).click();
+			await page.getByRole('heading', { name: 'Welcome back' }).waitFor();
+			await page.getByLabel('Username').fill(user.username);
+			await page.getByLabel('Passphrase', { exact: true }).fill(user.passphrase);
+			await page.getByRole('button', { name: 'Sign in' }).click();
+			await page.getByRole('heading', { name: 'One more step' }).waitFor();
+			await snap(page, 'login-code', scheme);
 		});
 
 		test(`join journey ${scheme}`, async ({ page }) => {
