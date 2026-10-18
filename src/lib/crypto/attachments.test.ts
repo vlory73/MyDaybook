@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
 	CHUNK,
 	MAX_ATTACHMENT_PLAIN,
+	MAX_BLOB_BYTES,
 	decryptAttachment,
 	encryptAttachment,
 	encryptedSize,
@@ -77,9 +78,9 @@ describe('attachment encryption', () => {
 		expect(Buffer.from(blob).includes(Buffer.from(marker))).toBe(false);
 	});
 
-	it('refuses data that cannot fit the 4 MiB blob limit', () => {
-		expect(encryptedSize(MAX_ATTACHMENT_PLAIN)).toBeLessThanOrEqual(4 * 1024 * 1024);
-		expect(encryptedSize(MAX_ATTACHMENT_PLAIN + 1)).toBeGreaterThan(4 * 1024 * 1024);
+	it('refuses data that cannot fit the 1.25 MiB blob limit', () => {
+		expect(encryptedSize(MAX_ATTACHMENT_PLAIN)).toBeLessThanOrEqual(MAX_BLOB_BYTES);
+		expect(encryptedSize(MAX_ATTACHMENT_PLAIN + 1)).toBeGreaterThan(MAX_BLOB_BYTES);
 		expect(() => encryptAttachment(new Uint8Array(MAX_ATTACHMENT_PLAIN + 1))).toThrow();
 	});
 });

@@ -18,8 +18,8 @@ import { dataDir, db, writeTx } from './db';
 import { attachments } from './db/schema';
 import { adjustStorage } from './records';
 
-/** Ciphertext limit per attachment: header + 63 chunks of 64 KiB fit; the client's photos are far smaller. */
-export const MAX_BLOB_BYTES = 4 * 1024 * 1024;
+/** Ciphertext limit per attachment (1.25 MiB): header + 19 chunks of 64 KiB fit; a typical photo needs 3. */
+export const MAX_BLOB_BYTES = 1.25 * 1024 * 1024;
 
 const blobDir = (userId: string) => join(dataDir(), 'blobs', userId);
 export const blobPath = (userId: string, id: string) => join(blobDir(userId), id);

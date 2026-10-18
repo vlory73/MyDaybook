@@ -25,7 +25,7 @@ export default defineConfig({
 			HSTS_MAX_AGE: '86400',
 			ACCESS_LOG: 'off',
 			// Photos are uploaded as raw ciphertext of up to 4 MiB; adapter-node's default limit is 512 kB (ARCHITECTURE §5.2).
-			BODY_SIZE_LIMIT: '5M',
+			BODY_SIZE_LIMIT: '2M',
 			DATA_DIR: 'test-results/e2e-data',
 			// Plain http on 127.0.0.1: the session cookie is `sid` without Secure (ARCHITECTURE §3.2).
 			COOKIE_SECURE: 'false',

@@ -67,15 +67,15 @@ test('attach a photo to a meal: thumbnail, viewer, reload, opaque on disk, delet
 	await expect(thumb(page)).toBeVisible();
 	await loaded(page);
 
-	// Viewer: the full image, resized to at most 1600 px on its longest side
+	// Viewer: the full image, resized to at most 1280 px on its longest side
 	await page.getByRole('button', { name: 'Open photo' }).click();
 	const viewer = page.getByRole('dialog', { name: 'Photo' });
 	const full = viewer.getByRole('img', { name: PHOTO_ALT });
 	await expect(full).toBeVisible();
 	await expect
 		.poll(() => full.evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 15_000 })
-		.toBe(1600);
-	expect(await full.evaluate((el) => (el as HTMLImageElement).naturalHeight)).toBe(1200);
+		.toBe(1280);
+	expect(await full.evaluate((el) => (el as HTMLImageElement).naturalHeight)).toBe(960);
 	await viewer.getByRole('button', { name: 'Close' }).click();
 	await expect(viewer).toBeHidden();
 
