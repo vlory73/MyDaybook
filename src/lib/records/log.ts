@@ -4,8 +4,9 @@
  * compares a value with a target or a range (not a medical device).
  */
 import type { StoredRecord } from './codec';
+import { lastSavedMeal, foodFromSaved } from './watch';
 import { addDays, dayKey, formatAt, fromLocalInput, instant, minutesBetween, todayKey } from './time';
-import type { FeelingPayload, MeasurementPayload, Payload, SleepPayload } from './types';
+import type { FeelingPayload, MeasurementPayload, Payload, SavedMealPayload, SleepPayload } from './types';
 
 export const DEFAULT_ASLEEP = '23:00';
 export const DEFAULT_WAKE = '07:00';
@@ -133,11 +134,13 @@ export function lastFeeling(all: Iterable<Rec>, field: 'mood' | 'energy' | 'stre
 // ---- Again? ----
 
 export type Again =
-	{ kind: 'sleep'; asleep: string; wake: string } | { kind: 'weight'; value: number; unit: string };
+	| { kind: 'sleep'; asleep: string; wake: string }
+	| { kind: 'weight'; value: number; unit: string }
+	| { kind: 'meal'; id: string; saved: SavedMealPayload };
 
 /**
  * Up to three one-tap repeats from recent records, in a fixed order: the usual night (when at least one night is
- * logged and none ends today), and the last weight (when none is logged today).
+ * logged and none ends today), the last weight (when none is logged today) and the last saved meal.
  */
 export function againOptions(all: Iterable<Rec>, now: Date): Again[] {
 	const records = [...all];
@@ -152,11 +155,18 @@ export function againOptions(all: Iterable<Rec>, now: Date): Again[] {
 	if (weight && dayKey(weight.at) !== today) {
 		out.push({ kind: 'weight', value: weight.values[0]!, unit: weight.unit });
 	}
+	const meal = lastSavedMeal(records);
+	if (meal) out.push({ kind: 'meal', id: meal.id, saved: meal.payload });
 	return out.slice(0, 3);
 }
 
 /** The record an Again? option would save, stamped with the current time. */
-export function againPayload(option: Again, now: Date): Payload | null {
+export function againPayload(
+	option: Again,
+	now: Date,
+	watched: ReadonlySet<string> = new Set()
+): Payload | null {
+	if (option.kind === 'meal') return foodFromSaved(option.saved, formatAt(now), watched);
 	if (option.kind === 'weight') {
 		return {
 			v: 1,
