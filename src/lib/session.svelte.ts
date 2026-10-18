@@ -61,6 +61,7 @@ export const session = $state<{
 let keys: UnlockedKeys | null = null;
 let bundle: StoredBundle | null = null;
 let lockHooks: (() => void)[] = [];
+let signOutHooks: ((userId: string | null) => void)[] = [];
 
 setUnauthenticatedHandler(() => {
 	if (session.status === 'locked' || session.status === 'unlocked') {
@@ -86,6 +87,17 @@ export function onLock(hook: () => void): () => void {
 	lockHooks.push(hook);
 	return () => {
 		lockHooks = lockHooks.filter((h) => h !== hook);
+	};
+}
+
+/**
+ * Register cleanup for when this device forgets the account (sign-out, ended session, deletion), e.g. deleting the
+ * ciphertext cache. Receives the user id that was signed in, if known.
+ */
+export function onSignOut(hook: (userId: string | null) => void): () => void {
+	signOutHooks.push(hook);
+	return () => {
+		signOutHooks = signOutHooks.filter((h) => h !== hook);
 	};
 }
 
@@ -116,7 +128,15 @@ function dropKeys(): void {
 }
 
 function dropEverything(): void {
+	const userId = session.identity?.userId ?? null;
 	dropKeys();
+	for (const hook of signOutHooks) {
+		try {
+			hook(userId);
+		} catch {
+			// A failing hook must not stop the sign-out.
+		}
+	}
 	bundle = null;
 	session.identity = null;
 	session.status = 'signed-out';
