@@ -23,7 +23,15 @@ export default defineConfig({
 			STYLEGUIDE: '1',
 			HSTS_MAX_AGE: '86400',
 			ACCESS_LOG: 'off',
-			DATA_DIR: 'test-results/e2e-data'
+			DATA_DIR: 'test-results/e2e-data',
+			// Plain http on 127.0.0.1: the session cookie is `sid` without Secure (ARCHITECTURE §3.2).
+			COOKIE_SECURE: 'false',
+			// Synthetic test value, not a secret.
+			SESSION_SECRET: 'e2e-synthetic-session-secret-not-for-production',
+			// Per-user-name burst is small enough for a quick rate-limit test; the IP bucket is loose because every
+			// test shares 127.0.0.1.
+			AUTH_RATE_USER_BURST: '20',
+			AUTH_RATE_IP_BURST: '10000'
 		}
 	},
 	projects: [
