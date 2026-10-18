@@ -495,7 +495,7 @@ in again (no data is lost; the local cache holds only ciphertext). For self-host
 
 The app container speaks plain HTTP on port 8090, **published on 127.0.0.1 only**, so it is reachable solely through Caddy. As a
 second line of defence for other self-hosters, requests that did not come through the trusted proxy get a page pointing to the
-HTTPS URL instead of the app. `TRUSTED_PROXY` names the proxy whose `X-Forwarded-*` headers are believed. The proxy's access log for this
+HTTPS URL instead of the app. `TRUSTED_PROXY` (comma-separated IPs) names the proxy whose `X-Forwarded-For` is believed: the app uses the socket peer unless the peer is listed, then the last `X-Forwarded-For` entry (`src/lib/server/auth/proxy.ts`; adapter-node's `ADDRESS_HEADER` is deliberately not set). `PUBLIC_URL` is the one documented origin setting; the image entrypoint passes it to adapter-node as `ORIGIN`, and protocol and host come from it, not from forwarded headers. The proxy's access log for this
 site is switched off (IP retention, §8).
 
 **HSTS:** it applies to a host name on *every* port, so `HSTS_MAX_AGE` is configurable and never adds `includeSubDomains` or
@@ -529,12 +529,18 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
   - `db/app-YYYY-MM-DDTHHMMSSZ.sqlite` (a stable name pattern the NAS job relies on): a consistent snapshot via SQLite's online backup API, newest `BACKUP_KEEP` kept (default 3).
   - `blobs/`: a mirror of the encrypted photo store. Blobs are immutable and written atomically, so mirroring them after the DB
     snapshot is consistent.
-  - On demand: a `backup` command in `scripts/cli.mjs` arrives with the Docker work (`docker compose exec app node scripts/cli.mjs backup`).
-  - First admin: `docker compose exec app node scripts/cli.mjs invite --admin [--hours 72]` prints one line, `<PUBLIC_URL>/join#t=<token>`.
+  - On demand: a `backup` command in `scripts/cli.mjs` arrives with the Docker work (`docker compose exec app cli backup`).
+  - First admin: `docker compose exec app cli invite --admin [--hours 72]` (`cli` is a wrapper for `node /app/scripts/cli.mjs`) prints one line, `<PUBLIC_URL>/join#t=<token>`.
     The CLI opens `<DATA_DIR>/app.db` directly and does not migrate, so the server must have started once. The token is in the URL
     fragment, so it never reaches server logs or Referer headers; only its SHA-256 is stored.
   - The Home Assistant session's script copies that folder to the NAS at 04:30 and keeps 14 days (D14). **A deleted account therefore
     persists, still encrypted, for up to about 14 days**, which the privacy notice will state.
+- **Image (feature/docker):** two stages on `node:24-bookworm-slim` pinned by digest. The build stage runs `npm ci --ignore-scripts`
+  (better-sqlite3 13 bundles prebuilt linux x64/arm64 addons, so no compiler is needed), `npm run build`, `npm prune --omit=dev`.
+  The runtime stage copies `build/`, production `node_modules`, `package.json`, `drizzle/` and the two scripts; runs as 1000:1000 with
+  `WORKDIR /app`, `DATA_DIR=/data`, `PORT=8090`, and a node-based `HEALTHCHECK`. It needs only `/data`, `/backup` and a tmpfs `/tmp`
+  to be writable. The entrypoint dispatches `gen-secrets` and `cli`, otherwise starts the server. Compose sets `BACKUP_DIR=/backup`,
+  which enables the nightly job already in the app.
 - **Implementation notes (server-db):** the schema is `src/lib/server/db/schema.ts`; generated SQL migrations are committed in `drizzle/`
   and applied at startup from `./drizzle` relative to the working directory (override with `MIGRATIONS_DIR`), so the Docker image must
   copy `drizzle/` next to `build/` and run with that working directory. Environment: `DATA_DIR` (default `./data`; holds `app.db`,

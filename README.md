@@ -21,8 +21,26 @@ npm run dev
 ```
 
 First admin (after the server has started once so the database exists): `node scripts/cli.mjs invite --admin` prints a one-time
-`/join#t=…` link (in Docker: `docker compose exec app node scripts/cli.mjs invite --admin`). The token sits in the URL fragment, so it
+`/join#t=…` link (in Docker: `docker compose exec app cli invite --admin`). The token sits in the URL fragment, so it
 never reaches server logs.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and checks, and [SECURITY.md](SECURITY.md) to report a vulnerability.
-Self-hosting instructions (Docker Compose, `.env.example`, the `gen-secrets` command) arrive with the first release, 0.1.0.
+
+## Run on a Raspberry Pi (Docker)
+
+The full self-hosting guide (`docs/SELF_HOSTING.md`) arrives in M7. The home setup is described in
+[docs/HOME_DEPLOYMENT.md](docs/HOME_DEPLOYMENT.md). You need a reverse proxy with HTTPS in front (the app speaks plain HTTP on
+`127.0.0.1:8090` only).
+
+```sh
+mkdir -p ~/mydaybook/data ~/mydaybook/backup && cd ~/mydaybook
+sudo chown 1000:1000 data backup                 # the container runs as uid:gid 1000:1000 (PUID/PGID in .env if different)
+# copy compose.yaml and .env.example (as .env) from this repo at the release tag, then edit PUBLIC_URL etc. in .env
+docker run --rm ghcr.io/vlory73/mydaybook:0.1.0 gen-secrets >> .env   # appends the three secrets without printing them
+chmod 600 .env
+docker compose up -d
+curl -s http://127.0.0.1:8090/healthz            # {"status":"ok"}
+docker compose exec app cli invite --admin       # first admin: run in your own terminal, the link is a one-time credential
+```
+
+Upgrades are deliberate: change the image tag in `compose.yaml`, then `docker compose up -d`.
