@@ -14,7 +14,7 @@ import {
 	writeFileSync
 } from 'node:fs';
 import { join } from 'node:path';
-import { db, dataDir } from './db';
+import { dataDir, db, writeTx } from './db';
 import { attachments } from './db/schema';
 import { adjustStorage } from './records';
 
@@ -41,22 +41,18 @@ export function putBlob(userId: string, id: string, bytes: Buffer, now = Date.no
 
 	let existed = early !== undefined;
 	try {
-		// IMMEDIATE: the read-then-write must not fail with SQLITE_BUSY_SNAPSHOT when another process commits in between.
-		db().transaction(
-			() => {
-				const existing = db().select().from(attachments).where(eq(attachments.id, id)).get();
-				existed = existing !== undefined;
-				if (existing && existing.userId !== userId) throw new ForeignBlob();
-				if (existing) {
-					db().update(attachments).set({ size: bytes.length }).where(eq(attachments.id, id)).run();
-					adjustStorage(userId, bytes.length - existing.size);
-				} else {
-					db().insert(attachments).values({ id, userId, size: bytes.length, createdAt: now }).run();
-					adjustStorage(userId, bytes.length);
-				}
-			},
-			{ behavior: 'immediate' }
-		);
+		writeTx(() => {
+			const existing = db().select().from(attachments).where(eq(attachments.id, id)).get();
+			existed = existing !== undefined;
+			if (existing && existing.userId !== userId) throw new ForeignBlob();
+			if (existing) {
+				db().update(attachments).set({ size: bytes.length }).where(eq(attachments.id, id)).run();
+				adjustStorage(userId, bytes.length - existing.size);
+			} else {
+				db().insert(attachments).values({ id, userId, size: bytes.length, createdAt: now }).run();
+				adjustStorage(userId, bytes.length);
+			}
+		});
 	} catch (err) {
 		if (!existed || err instanceof ForeignBlob) rmSync(target, { force: true });
 		if (err instanceof ForeignBlob) return { ok: false, reason: 'not_found' };
@@ -79,19 +75,16 @@ export function openBlob(userId: string, id: string) {
 
 /** Removes file, row and storage accounting. False when it is missing or belongs to someone else. */
 export function deleteBlob(userId: string, id: string): boolean {
-	return db().transaction(
-		() => {
-			const row = db()
-				.select()
-				.from(attachments)
-				.where(and(eq(attachments.id, id), eq(attachments.userId, userId)))
-				.get();
-			if (!row) return false;
-			db().delete(attachments).where(eq(attachments.id, id)).run();
-			adjustStorage(userId, -row.size);
-			rmSync(blobPath(userId, id), { force: true });
-			return true;
-		},
-		{ behavior: 'immediate' }
-	);
+	return writeTx(() => {
+		const row = db()
+			.select()
+			.from(attachments)
+			.where(and(eq(attachments.id, id), eq(attachments.userId, userId)))
+			.get();
+		if (!row) return false;
+		db().delete(attachments).where(eq(attachments.id, id)).run();
+		adjustStorage(userId, -row.size);
+		rmSync(blobPath(userId, id), { force: true });
+		return true;
+	});
 }
