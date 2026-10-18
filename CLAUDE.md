@@ -106,7 +106,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 _Last updated: 2026-10-18, during M2 (feature/auth-server)._
 
 - **Milestone:** M2 in progress. Merged: crypto-core (#2) and server-db (#3). In review: `feature/auth-server` (sessions, origin guard,
-  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Built, stacked on auth-server:
+  rate limits, signup/login/recovery/passphrase/delete API, first-admin invite CLI). Merged: auth-server (#4). In review:
   `feature/auth-ui` (join, login, unlock view, auto-lock, recovery, Me account section; screenshots in
   `docs/screenshots/auth-ui/`). Next: `feature/entries`.
   TOTP and admin user management will come in their own branches. Every change goes through a `feature/*` branch and a PR.
