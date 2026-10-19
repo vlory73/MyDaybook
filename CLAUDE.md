@@ -135,7 +135,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), then 0.4.0 and M4; iPhone check of reminders pending (owner)._
+_Last updated: 2026-10-19, 0.4.0 on the Pi; M4 branch 2 in review (#45), then 0.5.0 (owner); next session: `feature/bodymap-zoom` (→ 0.6.0). Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -191,12 +191,17 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), th
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
 - **M4 (body map):** `feature/release-tooling` merged (#43: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block that
-  asks for the version); `feature/bodymap-regions` in review (#44); then `feature/bodymap-entry` (→ 0.5.0), `feature/bodymap-zoom` (→ 0.6.0).
+  asks for the version); `feature/bodymap-regions` merged (#44, belly as four quarters); `feature/bodymap-entry` in review (#45, → 0.5.0), `feature/bodymap-zoom` (→ 0.6.0).
   0.4.0 (fluids) released and on the Pi.
-- **`feature/bodymap-regions` (M4 branch 1, in review #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
+- **`feature/bodymap-regions` (M4 branch 1, merged #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
   (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
 - **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
   with an older copy of the block. Copy it fresh from the doc.
+- **`feature/bodymap-entry` (M4 branch 2, in review):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
+  (`cat.pain` now reads "Body map" / "Kropskort"); `BodyMapSheet.svelte` ("Where do you feel it?": map, Find, pinned point panel with
+  intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
+  time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
+  `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

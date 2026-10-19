@@ -4,12 +4,18 @@
 	/** A toggleable chip. Pass `selected` for toggle behaviour, or omit it for a plain action chip. */
 	let {
 		selected,
+		disabled = false,
 		onclick,
 		children
-	}: { selected?: boolean; onclick?: (event: MouseEvent) => void; children: Snippet } = $props();
+	}: {
+		selected?: boolean;
+		disabled?: boolean;
+		onclick?: (event: MouseEvent) => void;
+		children: Snippet;
+	} = $props();
 </script>
 
-<button type="button" class="chip" class:on={selected} aria-pressed={selected} {onclick}>
+<button type="button" class="chip" class:on={selected} aria-pressed={selected} {disabled} {onclick}>
 	{@render children()}
 </button>
 
@@ -28,6 +34,9 @@
 		white-space: nowrap;
 		border: 1.5px solid transparent;
 		transition: background var(--dur-2) var(--ease-out);
+	}
+	.chip:disabled {
+		opacity: 0.45;
 	}
 	.on {
 		background: var(--primary-soft);

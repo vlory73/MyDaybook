@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import {
 		CategoryBadge,
 		DueDoses,
@@ -10,13 +11,15 @@
 		WeekStrip,
 		type IconName
 	} from '$lib/components';
-	import { i18n, t, tn } from '$lib/i18n/index.svelte';
+	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { openPhoto } from '$lib/photos/viewer.svelte';
 	import { openDetail, openDose, openLog, openNote } from '$lib/records/editor.svelte';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
 	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
 	import { allRecords, daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
+	import { regionName } from '$lib/bodymap/catalogue';
+	import { readDismissed, stillThere, writeDismissed, type StillThere } from '$lib/records/painEntry';
 	import { dayDate, formatAt, timeOf, todayKey, weekDays } from '$lib/records/time';
 
 	const now = new Date();
@@ -50,7 +53,8 @@
 			type === 'bowel' ||
 			type === 'gut' ||
 			type === 'food' ||
-			type === 'drink'
+			type === 'drink' ||
+			type === 'pain'
 		)
 			openLog(type, { id });
 		else if (type === 'measurement') openLog('measurement', { id });
@@ -58,6 +62,23 @@
 			const p = store.items[id]?.payload;
 			if (p?.type === 'dose') openDose({ id, medicationId: p.medicationId, slot: p.slot });
 		} else openDetail(id);
+	}
+
+	// "Still there?": a quiet convenience when a body map entry is from the last two days. Dismissing it remembers
+	// only the id of that entry on this device; a newer entry brings the card back.
+	let dismissed = $state<string | null>(browser ? readDismissed(localStorage) : null);
+	const still = $derived(isToday ? stillThere(allRecords(), new Date(), dismissed) : null);
+	function stillText(s: StillThere): string {
+		const text = t('pain.still.text', {
+			name: regionName(i18n.locale, s.point.region, s.point.side),
+			n: s.point.intensity,
+			when: t(`pain.still.day.${Math.min(s.daysAgo, 2)}` as MessageKey)
+		});
+		return s.more > 0 ? `${text} · ${t('fmt.pain.more', { n: s.more })}` : text;
+	}
+	function dismissStill(id: string) {
+		dismissed = id;
+		writeDismissed(browser ? localStorage : undefined, id);
 	}
 
 	// One-tap mood: saves a feeling with just the mood and offers Undo.
@@ -106,6 +127,21 @@
 			{/each}
 		</div>
 		<button type="button" class="more" onclick={() => openLog('feeling')}>{t('today.mood.more')}</button>
+	</section>
+{/if}
+
+{#if still}
+	<section class="card still" aria-labelledby="still">
+		<h2 class="card-title" id="still">{t('pain.still.title')}</h2>
+		<p class="card-sub still-text">{stillText(still)}</p>
+		<div class="still-actions">
+			<button type="button" class="more" onclick={() => openLog('pain', { same: true })}
+				>{t('pain.still.log')}</button
+			>
+			<button type="button" class="more quiet" onclick={() => dismissStill(still.id)}
+				>{t('pain.still.dismiss')}</button
+			>
+		</div>
 	</section>
 {/if}
 
@@ -216,6 +252,19 @@
 		color: var(--primary);
 		font-size: var(--fs-callout);
 		font-weight: var(--fw-semibold);
+	}
+	.still-text {
+		text-wrap: pretty;
+	}
+	.still-actions {
+		display: flex;
+		gap: var(--sp-5);
+	}
+	.still-actions .more {
+		margin-top: 0;
+	}
+	.still-actions .quiet {
+		color: var(--text-2);
 	}
 	.section-title {
 		font-size: var(--fs-title3);

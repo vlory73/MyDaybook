@@ -26,6 +26,9 @@
 		time = $bindable(''),
 		showTime = true,
 		photos,
+		saveLabel,
+		dock,
+		extra,
 		children
 	}: {
 		kind: LogKind;
@@ -41,6 +44,12 @@
 		showTime?: boolean;
 		/** Photos of the entry (sheets that offer them). Uploaded when saving; sheets without it keep existing photos as they are. */
 		photos?: PhotoDrafts;
+		/** Text of the Save button when it is not just "Save". */
+		saveLabel?: string;
+		/** Content pinned above the buttons at the bottom of the sheet (the body map's panel); it stays in view while the sheet scrolls. */
+		dock?: Snippet;
+		/** Another button between Delete and Save. */
+		extra?: Snippet;
 		children: Snippet;
 	} = $props();
 
@@ -126,11 +135,15 @@
 		{#if failed}
 			<Notice tone="error">{failed === 'save' ? t('entry.error.save') : t('entry.error.delete')}</Notice>
 		{/if}
-		<div class="actions">
-			{#if id}
-				<Button variant="quiet" disabled={busy} onclick={onDelete}>{t('common.delete')}</Button>
-			{/if}
-			<Button disabled={!valid || busy} onclick={onSave}>{t('common.save')}</Button>
+		<div class={['bottom', { dock: dock !== undefined }]}>
+			{#if dock}{@render dock()}{/if}
+			<div class="actions">
+				{#if id}
+					<Button variant="quiet" disabled={busy} onclick={onDelete}>{t('common.delete')}</Button>
+				{/if}
+				{#if extra}{@render extra()}{/if}
+				<Button disabled={!valid || busy} onclick={onSave}>{saveLabel ?? t('common.save')}</Button>
+			</div>
 		</div>
 	</div>
 </Sheet>
@@ -141,6 +154,18 @@
 		flex-direction: column;
 		gap: var(--sp-3);
 	}
+	.dock {
+		position: sticky;
+		bottom: 0;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-3);
+		margin: 0 calc(-1 * var(--gutter));
+		padding: var(--sp-3) var(--gutter) calc(env(safe-area-inset-bottom) + var(--sp-3));
+		background: var(--surface);
+		box-shadow: 0 -10px 24px -12px rgb(0 0 0 / 0.18);
+	}
 	.actions {
 		display: flex;
 		justify-content: space-between;
@@ -149,6 +174,9 @@
 	}
 	.actions :global(.btn:last-child) {
 		margin-left: auto;
+	}
+	.dock .actions {
+		margin-top: 0;
 	}
 	.time-chip {
 		align-self: flex-start;

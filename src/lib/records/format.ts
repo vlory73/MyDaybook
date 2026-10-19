@@ -3,10 +3,11 @@
  * it repeats what the person entered and never rates, scores or advises (not a medical device).
  */
 import type { Category } from '$lib/components/categories';
-import { t, tn } from '$lib/i18n/index.svelte';
+import { i18n, t, tn } from '$lib/i18n/index.svelte';
 import type { MessageKey } from '$lib/i18n/en';
 import { categories } from '$lib/components/categories';
 import { mlToCl, storedLabel } from './drinks';
+import { painSummary } from './painEntry';
 import { BUILT_IN_CONTEXT } from './log';
 import { minutesBetween } from './time';
 import { exposureTags, inline, suggestionId } from './watch';
@@ -146,6 +147,13 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 				])
 			};
 		}
+		case 'pain':
+			// The places and numbers the person chose, as entered; nothing is rated or compared.
+			return {
+				category: 'pain',
+				title: t(categories.pain.label),
+				summary: painSummary(i18n.locale, p.points)
+			};
 		case 'note':
 			return { category: 'note', title: t(categories.note.label), summary: firstLine(p.text) };
 	}

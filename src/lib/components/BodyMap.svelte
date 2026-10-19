@@ -27,7 +27,8 @@
 		space: BodyPlace['space'];
 		u: number;
 		v: number;
-		intensity: number;
+		/** Not chosen yet: the dot is drawn empty. */
+		intensity?: number;
 	};
 
 	let {
@@ -35,12 +36,15 @@
 		points = [],
 		selected = null,
 		showToggle = true,
+		width = 252,
 		ontap
 	}: {
 		view?: View;
 		points?: Dot[];
 		selected?: { region: RegionId; side: Side } | null;
 		showToggle?: boolean;
+		/** Width of the figure in CSS px (at most; it shrinks on narrow screens). */
+		width?: number;
 		/** Called with the region, side, space and region-local (u, v) of the tap. */
 		ontap?: (place: BodyPlace) => void;
 	} = $props();
@@ -81,8 +85,10 @@
 		report(s, 0.5, 0.5);
 	}
 
-	const heatVar = (i: number) => `var(--heat-${heatStep(i)})`;
-	const textVar = (i: number) => (heatStep(i) >= 4 ? 'var(--on-heat-hi)' : 'var(--text)');
+	const heatVar = (i: number | undefined) =>
+		i === undefined ? 'var(--surface)' : `var(--heat-${heatStep(i)})`;
+	const textVar = (i: number | undefined) =>
+		i !== undefined && heatStep(i) >= 4 ? 'var(--on-heat-hi)' : 'var(--text)';
 </script>
 
 <div class="bodymap">
@@ -96,7 +102,7 @@
 			]}
 		/>
 	{/if}
-	<div class="stage">
+	<div class="stage" style:--figure="{width}px">
 		<span class="edge left">{t(sideKey(edges.screenLeft))}</span>
 		<span class="edge right">{t(sideKey(edges.screenRight))}</span>
 		<svg
@@ -129,8 +135,17 @@
 			{#each dots as d, i (i)}
 				<g class="dot" aria-hidden="true">
 					<circle cx={d.x} cy={d.y} r="9.5" class="halo" />
-					<circle cx={d.x} cy={d.y} r="7.5" fill={heatVar(d.intensity)} class="pt" />
-					<text x={d.x} y={d.y} fill={textVar(d.intensity)}>{d.intensity}</text>
+					<circle
+						cx={d.x}
+						cy={d.y}
+						r="7.5"
+						fill={heatVar(d.intensity)}
+						class="pt"
+						class:unset={d.intensity === undefined}
+					/>
+					{#if d.intensity !== undefined}
+						<text x={d.x} y={d.y} fill={textVar(d.intensity)}>{d.intensity}</text>
+					{/if}
 				</g>
 			{/each}
 		</svg>
@@ -167,7 +182,7 @@
 		text-align: right;
 	}
 	.body {
-		width: min(100%, 252px);
+		width: min(100%, var(--figure, 252px));
 		height: auto;
 		aspect-ratio: 200 / 440;
 		overflow: visible;
@@ -203,6 +218,10 @@
 	.pt {
 		stroke: var(--surface);
 		stroke-width: 1.2;
+	}
+	.pt.unset {
+		stroke: var(--primary);
+		stroke-width: 1.6;
 	}
 	.dot {
 		pointer-events: none;

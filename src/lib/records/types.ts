@@ -1,11 +1,12 @@
 /**
  * Record payloads, version 1 (ARCHITECTURE §5.3). This is what lives inside the ciphertext.
  * Every payload has `v: 1` and a `type`; entries that happen at a moment also have `at`, an ISO 8601 timestamp with
- * the UTC offset the person was in when they logged it ("2026-10-18T08:10:00+02:00"). Pain
- * arrives in a later milestone; `parsePayload` returns null for types it does not know yet, and the store keeps
- * such records out of the UI instead of failing.
+ * the UTC offset the person was in when they logged it ("2026-10-18T08:10:00+02:00"). `parsePayload` returns null
+ * for types it does not know, and the store keeps such records out of the UI instead of failing.
  * Validators are small and hand-written: a payload that fails them is skipped, never trusted.
  */
+
+import { isPainPayload, type PainPayload } from './pain';
 
 export const PAYLOAD_VERSION = 1;
 
@@ -222,6 +223,7 @@ export type Payload =
 	| DosePayload
 	| DrinkPayload
 	| DrinkPresetsPayload
+	| PainPayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -446,6 +448,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	dose: isDose,
 	drink: isDrink,
 	drink_presets: isDrinkPresets,
+	pain: isPainPayload,
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),
