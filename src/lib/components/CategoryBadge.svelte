@@ -41,6 +41,10 @@
 		background: var(--gut-tint);
 		color: var(--gut-ink);
 	}
+	.tint-drink {
+		background: var(--drink-tint);
+		color: var(--drink-ink);
+	}
 	.tint-measure {
 		background: var(--measure-tint);
 		color: var(--measure-ink);

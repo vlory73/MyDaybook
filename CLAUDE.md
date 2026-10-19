@@ -182,6 +182,9 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in progress; iPhone
   matches any version and stops when the tag did not change (#39). **Pending:** the owner's iPhone check (Home Screen app,
   iOS 16.4+); after that M3 is done.
 - **`feature/fluids` (in progress, before M4):** fluid intake as agreed in the decisions log; then 0.4.0, then M4 (body map).
+- **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
+  (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
+  day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

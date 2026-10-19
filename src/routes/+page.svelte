@@ -15,7 +15,8 @@
 	import { openDetail, openDose, openLog, openNote } from '$lib/records/editor.svelte';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
-	import { daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
+	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
+	import { allRecords, daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
 	import { dayDate, formatAt, timeOf, todayKey, weekDays } from '$lib/records/time';
 
 	const now = new Date();
@@ -38,9 +39,19 @@
 				)
 	);
 
+	// A plain sum of the day's drinks; shown only when there is one, never compared with anything.
+	const drinkMl = $derived(dayTotalMl(allRecords(), selected));
+
 	function open(id: string, type: string) {
 		if (type === 'note') openNote(id);
-		else if (type === 'feeling' || type === 'sleep' || type === 'bowel' || type === 'gut' || type === 'food')
+		else if (
+			type === 'feeling' ||
+			type === 'sleep' ||
+			type === 'bowel' ||
+			type === 'gut' ||
+			type === 'food' ||
+			type === 'drink'
+		)
 			openLog(type, { id });
 		else if (type === 'measurement') openLog('measurement', { id });
 		else if (type === 'dose') {
@@ -101,6 +112,13 @@
 <DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
 
 <h2 class="section-title">{heading}</h2>
+
+{#if drinkMl > 0}
+	<p class="day-total">
+		<CategoryBadge category="drink" size={28} />
+		{t(isToday ? 'drink.day.today' : 'drink.day.other', { total: t('fmt.cl', { n: mlToCl(drinkMl) }) })}
+	</p>
+{/if}
 
 {#if entries.length > 0}
 	<ol class="tl">
@@ -203,6 +221,15 @@
 		font-size: var(--fs-title3);
 		font-weight: var(--fw-bold);
 		margin: var(--sp-4) 0 var(--sp-1);
+	}
+	.day-total {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+		margin: 0 0 var(--sp-1);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-medium);
+		color: var(--text-2);
 	}
 	.tl {
 		list-style: none;
