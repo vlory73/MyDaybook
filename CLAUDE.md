@@ -106,6 +106,7 @@ Other key documents:
 | 2026-10-18 | M3 approved: medication, doses, reminders (Web Push opt-in, needs an installed PWA on iOS 16.4+; iPhone check after 0.1.0), plus nausea/heartburn logging moved from the backlog into M3 | Owner |
 | 2026-10-18 | Medication: weekdays not preselected, amount may be empty, times follow the phone's 12/24-hour setting (not forced). Nausea/heartburn gets its own stomach icon (CC0, drawn in-house) | Owner, PRs #15/#16 |
 | 2026-10-19 | "Log another medicine" (ad-hoc dose) built before reminders; "Keep in my medicines" on by default; suggestions from the person's own medicines only. Built-in medicine name list goes to the backlog | Owner |
+| 2026-10-19 | Tester feedback: visible Edit on Meds rows; logged doses editable (time for Taken as well as Taken late; an as-needed dose can move to another medicine); "Sachet (powder)" form added | Owner |
 | 2026-10-18 | Doses: "All taken" only for slots with 2+ open doses; doses of archived/changed medications stay on the timeline only; duplicate times on one medication to be refused in the set-up sheet (follow-up). Order changed: Pi setup (Docker image, GHCR publishing, compose, nightly backup) and 0.1.0 before reminders | Owner, PR #19 |
 | 2026-10-18 | Backups: the NAS is off during the night, so everything must be done by 01:00. App dump moves to 23:30 (new default `BACKUP_TIME`), NAS copy to 00:00; both adjustable. Replaces the 04:00 / 04:30 of D13 | Owner; confirmed by the HA session |
 
@@ -153,7 +154,9 @@ _Last updated: 2026-10-19, after 0.1.0 (next: feature/reminders)._
 - **0.1.0 released** (2026-10-18): release PR #24 into main, owner's GitHub release, image `ghcr.io/vlory73/mydaybook:0.1.0`
   (amd64 + arm64, public), main merged back into develop (#25). Deployed on the Pi by the HA session (healthy, proxy trusted,
   NAS copy at 00:00 tested with a restore). In the container the command is `cli …` (see docs/HOME_DEPLOYMENT.md).
-- **`feature/dose-adhoc` built:** "Log another medicine" in the Medicine sheet and on Meds (`AdhocDoseSheet.svelte`,
+- **`feature/dose-edit` built:** Edit label on Meds rows, date and time for Taken, medicine picker for as-needed doses
+  (`src/lib/meds/doseTime.ts`); screenshots in `docs/screenshots/dose-edit/`. `feature/med-form-sachet`: sachet form.
+- **`feature/dose-adhoc` merged (#27):** "Log another medicine" in the Medicine sheet and on Meds (`AdhocDoseSheet.svelte`,
   `src/lib/meds/adhoc.ts`); screenshots in `docs/screenshots/dose-adhoc/`.
 - **Next:** `feature/reminders` (last M3 part), checked on the owner's iPhone against the Pi.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes

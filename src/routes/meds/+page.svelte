@@ -37,13 +37,19 @@
 
 {#snippet row(item: Med)}
 	<li>
-		<button type="button" class="med" onclick={() => openMedication(item.id)}>
+		<button
+			type="button"
+			class="med"
+			aria-label={t('meds.edit.aria', { name: item.med.name })}
+			onclick={() => openMedication(item.id)}
+		>
 			<CategoryBadge category="meds" size={40} />
 			<span class="text">
 				<b>{item.med.name}</b>
 				<span class="muted">{detail(item.med)}</span>
 				<span class="muted">{scheduleSummary(item.med, t, i18n.locale)}</span>
 			</span>
+			<span class="edit" aria-hidden="true">{t('meds.edit')}</span>
 			<Icon name="chevron-right" size={18} />
 		</button>
 	</li>
@@ -102,6 +108,12 @@
 		flex-direction: column;
 		gap: 2px;
 		overflow-wrap: anywhere;
+	}
+	.edit {
+		flex: none;
+		color: var(--primary-press);
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-semibold);
 	}
 	.text .muted {
 		font-size: var(--fs-footnote);

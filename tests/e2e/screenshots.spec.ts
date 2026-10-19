@@ -385,6 +385,70 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'today-timeline', scheme, true);
 		});
 
+		test(`dose edit and meds edit ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'dose-edit', 'dose-edit screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/meds');
+			const sheet = page.getByRole('dialog', { name: /medication/i });
+			const saved = page.getByRole('status').getByText('Saved', { exact: true });
+			const add = async (name: string, asNeeded = false) => {
+				await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+				await page.getByRole('button', { name: 'Add medication' }).click();
+				await page.waitForTimeout(300);
+				await sheet.getByLabel('Name', { exact: true }).fill(name);
+				if (asNeeded) await sheet.getByRole('radio', { name: 'When needed' }).click();
+				else await sheet.getByLabel('Amount 1', { exact: true }).fill('1 tablet');
+				await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+				await saved.waitFor();
+				await sheet.waitFor({ state: 'hidden' });
+				await saved.waitFor({ state: 'hidden' });
+			};
+			await add('Vitamin D');
+			await add('Throat spray', true);
+			await add('Nasal spray', true);
+			const day = await page.evaluate(() => {
+				const d = new Date();
+				const p = (n: number) => String(n).padStart(2, '0');
+				return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+			});
+
+			const due = page.getByRole('region', { name: "Today's medication" });
+			await due.getByRole('button', { name: 'Mark Vitamin D as taken' }).click();
+			await due.locator('.pill.taken').first().waitFor();
+			await due.locator('.pill.taken').first().click();
+			const dose = page.getByRole('dialog', { name: 'Vitamin D' });
+			await page.waitForTimeout(400);
+			await dose.getByLabel('When did you take it?').fill(`${day}T07:12`);
+			await snap(page, 'dose-taken-time', scheme);
+			await dose.getByRole('button', { name: 'Save', exact: true }).click();
+			await dose.waitFor({ state: 'hidden' });
+			await saved.waitFor({ state: 'hidden' });
+
+			await due.getByRole('button', { name: 'Log a dose of Throat spray' }).click();
+			const asNeeded = page.getByRole('dialog', { name: 'Log a dose' });
+			await asNeeded.getByLabel('Amount', { exact: false }).fill('2 puffs');
+			await asNeeded.getByRole('button', { name: 'Save', exact: true }).click();
+			await asNeeded.waitFor({ state: 'hidden' });
+			await saved.waitFor({ state: 'hidden' });
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await page.getByText('Throat spray · Taken').click();
+			await page.getByRole('dialog', { name: 'Dose', exact: true }).waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'dose-asneeded-edit', scheme);
+			await page
+				.getByRole('dialog', { name: 'Dose', exact: true })
+				.getByRole('button', { name: 'Save', exact: true })
+				.click();
+			await page.getByRole('dialog', { name: 'Dose', exact: true }).waitFor({ state: 'hidden' });
+			await saved.waitFor({ state: 'hidden' });
+
+			await page.getByRole('link', { name: 'Meds', exact: true }).click();
+			await page.getByRole('button', { name: 'Edit Vitamin D', exact: true }).waitFor();
+			await page.waitForTimeout(300);
+			await snap(page, 'meds-edit', scheme, true);
+		});
+
 		test(`log another medicine ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'dose-adhoc', 'dose-adhoc screenshots only');
 			test.setTimeout(120_000);
