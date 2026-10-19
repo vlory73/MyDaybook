@@ -43,4 +43,5 @@ curl -s http://127.0.0.1:8090/healthz            # {"status":"ok"}
 docker compose exec app cli invite --admin       # first admin: run in your own terminal, the link is a one-time credential
 ```
 
-Upgrades are deliberate: change the image tag in `compose.yaml`, then `docker compose up -d`.
+Upgrades are deliberate: change the image tag in `compose.yaml`, then `docker compose up -d`. Releasing and upgrading step
+by step: [docs/RELEASING.md](docs/RELEASING.md).

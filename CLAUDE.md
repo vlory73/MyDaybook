@@ -122,7 +122,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, after 0.1.0 (next: feature/reminders)._
+_Last updated: 2026-10-19, end of session (next: 0.2.0 by the owner, then feature/reminders)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -154,10 +154,13 @@ _Last updated: 2026-10-19, after 0.1.0 (next: feature/reminders)._
 - **0.1.0 released** (2026-10-18): release PR #24 into main, owner's GitHub release, image `ghcr.io/vlory73/mydaybook:0.1.0`
   (amd64 + arm64, public), main merged back into develop (#25). Deployed on the Pi by the HA session (healthy, proxy trusted,
   NAS copy at 00:00 tested with a restore). In the container the command is `cli …` (see docs/HOME_DEPLOYMENT.md).
-- **`feature/dose-edit` built:** Edit label on Meds rows, date and time for Taken, medicine picker for as-needed doses
-  (`src/lib/meds/doseTime.ts`); screenshots in `docs/screenshots/dose-edit/`. `feature/med-form-sachet`: sachet form.
+- **`feature/dose-edit` merged (#29):** Edit label on Meds rows, date and time for Taken, medicine picker for as-needed doses
+  (`src/lib/meds/doseTime.ts`); screenshots in `docs/screenshots/dose-edit/`. `feature/med-form-sachet` merged (#28): sachet form.
 - **`feature/dose-adhoc` merged (#27):** "Log another medicine" in the Medicine sheet and on Meds (`AdhocDoseSheet.svelte`,
   `src/lib/meds/adhoc.ts`); screenshots in `docs/screenshots/dose-adhoc/`.
+- **Release guide:** `docs/RELEASING.md` (owner's step-by-step for releases and Pi upgrades). The owner plans to release 0.2.0
+  on their own with it.
+- **Open decision (from #27):** medicines from "Log another medicine" show "Other" as their form on Meds; keep, or hide it?
 - **Next:** `feature/reminders` (last M3 part), checked on the owner's iPhone against the Pi.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").

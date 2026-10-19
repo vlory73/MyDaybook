@@ -32,6 +32,8 @@ Thanks for helping. Please read [`docs/SPEC.md`](docs/SPEC.md) (source of truth)
 
 ## Releases and images
 
+Step-by-step instructions for the owner, including deploying to the Pi: [docs/RELEASING.md](docs/RELEASING.md).
+
 - **Every merge into develop** publishes `ghcr.io/vlory73/mydaybook:edge` (and `:edge-<sha>`) for amd64 and arm64, after the
   checks pass. Pull requests build and start the image on both architectures without publishing it.
 - **A release:**
