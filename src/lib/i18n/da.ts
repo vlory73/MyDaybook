@@ -81,7 +81,8 @@ export const da: Record<MessageKey, string> = {
 	'meds.ends': 'Har en slutdato',
 	'meds.ends.date': 'Slutter',
 	'meds.reminders': 'Påmind mig på denne telefon',
-	'meds.reminders.hint': 'Påmindelser kommer i en senere opdatering. Dit valg gemmes indtil da.',
+	'meds.reminders.hint':
+		'Sendes som en neutral notifikation på disse tidspunkter, på de enheder hvor du har slået påmindelser til under Mig. Medicin, der tages hver få dage eller kun ved behov, får ingen.',
 	'meds.exact': 'Mængder vises præcis, som du skriver dem. Appen beregner eller foreslår aldrig doser.',
 	'meds.error.dates': 'Slutdatoen er før startdatoen.',
 	'meds.error.duplicateTime': 'Det tidspunkt står der allerede. Brug én række pr. tidspunkt.',
@@ -269,6 +270,24 @@ export const da: Record<MessageKey, string> = {
 	'me.account.signedInAs': 'Logget ind som {username}',
 	'me.account.lockNow': 'Lås nu',
 	'me.account.signOut': 'Log ud',
+	'me.reminders.heading': 'Påmindelser på denne enhed',
+	'me.reminders.toggle': 'Påmind mig på denne enhed',
+	'me.reminders.lead':
+		'Et diskret skub på tidspunkterne for den medicin, hvor påmindelser er slået til. Den sendes også, selvom du allerede har noteret dosen.',
+	'me.reminders.times_one': '{count} påmindelsestidspunkt på denne enhed.',
+	'me.reminders.times_other': '{count} påmindelsestidspunkter på denne enhed.',
+	'me.reminders.noneYet':
+		'Ingen medicin har påmindelser slået til endnu. Slå dem til, når du opretter medicin.',
+	'me.reminders.privacy':
+		'Notifikationer sendes via Apples, Googles eller Mozillas pushtjeneste og indeholder aldrig sundhedsoplysninger. Serveren får kun tidspunkterne og din tidszone at vide, aldrig et medicinnavn eller en dosis.',
+	'me.reminders.serverOff': 'Påmindelser er ikke sat op på denne server. Spørg den, der driver den.',
+	'me.reminders.unsupported': 'Denne browser kan ikke vise påmindelser.',
+	'me.reminders.iosInstall':
+		'På iPhone og iPad kræver påmindelser, at appen ligger på hjemmeskærmen: tryk på Del, derefter Føj til hjemmeskærm, og åbn den derfra. Det kræver iOS 16.4 eller nyere.',
+	'me.reminders.denied':
+		'Notifikationer er blokeret for denne app. Tillad dem i enhedens indstillinger, og kom så tilbage hertil.',
+	'me.reminders.error': 'Kunne ikke slå påmindelser til. Prøv igen.',
+	'push.body': 'Du har en påmindelse.',
 	'me.autolock.heading': 'Automatisk lås',
 	'me.autolock.label': 'Lås efter',
 	'me.autolock.option': '{minutes} min.',

@@ -7,6 +7,7 @@
 		Icon,
 		Notice,
 		PassphraseFields,
+		RemindersCard,
 		Segmented,
 		SelectField,
 		Sheet,
@@ -157,6 +158,7 @@
 	/>
 	<p class="small muted hint">{t('me.autolock.hint')}</p>
 </Card>
+<RemindersCard />
 <Card title={t('me.passphrase.heading')}>
 	<p class="small muted hint">{t('me.passphrase.lead')}</p>
 	<Button variant="quiet" onclick={() => (changeOpen = true)}>
