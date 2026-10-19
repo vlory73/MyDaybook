@@ -202,6 +202,57 @@ completely and open it again.
 **When `compose.yaml` or `.env.example` changed in the release:** the release notes and the PR into `main` show it. Compare
 them with your copies on the Pi (`.env` holds your secrets, so add new settings to it by hand; never replace it).
 
+### Option C: Portainer
+
+Yes, but only after a one-time move. The app was started with `docker compose` in `~/mydaybook`, so Portainer lists it under
+**Stacks** as created outside Portainer, with **limited control**. In that state Portainer can show the container, its logs
+and a console, and restart it, but it cannot change the image tag. "Recreate" with "Re-pull image" only fetches the same
+pinned version again, so it does not upgrade.
+
+**What works in Portainer today, without the move:**
+
+- **Backup before an upgrade:** Containers → `mydaybook-app-1` → **Console** → Command `/bin/sh` → **Connect**, then type
+  `cli backup`.
+- **Health and logs:** the container's status and **Logs** page. For `/healthz`, use Option B's `curl` line.
+
+**C1. One-time move to a Portainer-managed stack.** Do it once, at a calm moment, with a fresh backup. It changes the Pi
+agreement, so tell the Home Assistant session (or let it do the move); from then on, upgrades go through Portainer and the HA
+session should no longer run `docker compose` in `~/mydaybook`.
+
+1. Take a backup (console above, or Option B's first lines), and note your Pi user's home folder (e.g. `/home/pi`).
+2. Stop the old stack on the Pi: `cd ~/mydaybook && docker compose down`. Your data stays in `~/mydaybook/data` and
+   `~/mydaybook/backup`; `down` removes only the container and its network.
+3. In Portainer: **Stacks → Add stack**, name **`mydaybook`**, build method **Web editor**. Paste the contents of
+   `~/mydaybook/compose.yaml`, then make exactly two changes:
+   - Under `volumes`, replace the relative paths with absolute ones, otherwise Portainer creates new, empty folders and the
+     app starts with no data:
+     ```yaml
+     volumes:
+       - /home/pi/mydaybook/data:/data # your real home folder
+       - /home/pi/mydaybook/backup:/backup
+     ```
+   - Replace `env_file: .env` with `env_file: stack.env`. That is the file in which Portainer stores the variables you load
+     in the next step.
+4. Under **Environment variables**, choose **Load variables from .env file** and pick your `~/mydaybook/.env` (copy it to
+   your computer first, and delete that copy afterwards). Check that the session secret and the other values appear.
+   **Note:** from now on your secrets are also stored inside Portainer, so anyone with Portainer admin access can read them.
+5. **Deploy the stack.** Then check `curl -s http://127.0.0.1:8090/healthz` on the Pi, open the app and sign in. Your data
+   must be there. If it isn't, stop the stack, recheck the two paths in step 3 and deploy again; nothing was lost, the data
+   is still in `~/mydaybook/data`.
+
+**C2. Every upgrade after the move:**
+
+1. Backup: Containers → `mydaybook-app-1` → **Console** → `cli backup`.
+2. **Stacks → mydaybook → Editor**: change `ghcr.io/vlory73/mydaybook:0.1.0` to `:0.2.0`.
+3. Click **Update the stack**, with **Re-pull image and redeploy** switched on.
+4. Check the container's **Logs** and `/healthz`, then open the app.
+
+To roll back in Portainer, put the old tag back in the editor and update the stack again; the database note under "Roll back"
+below applies in the same way.
+
+Portainer's **Repository** build method (deploying `compose.yaml` straight from GitHub) is not recommended here: the repo's
+file uses relative paths and `env_file: .env`, which point to the wrong places in a Portainer stack.
+
 ### If something goes wrong: roll back
 
 1. Put the old tag back in `compose.yaml` (`0.1.0`) and run `docker compose up -d`.

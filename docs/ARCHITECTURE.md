@@ -288,8 +288,7 @@ configuration from diary entries.
 | `attachments` | id, user_id, size, created_at (the link to a record lives **only inside the encrypted record**) |
 | `consents` | user_id, version, text_hash, locale, actor, accepted_at, withdrawn_at |
 | `invites`, `sessions`, `handovers`, `recovery_tokens` | hashes of tokens, expiry, minimal metadata |
-| `push_subscriptions` | user_id, endpoint, keys, created_at |
-| `reminder_slots` | user_id, local time, weekday mask, IANA time zone, enabled. **Not linked to any medication** (see the threat model) |
+| `push_subscriptions` | user_id, endpoint (unique), keys (p256dh/auth, stored but unused), **schedule** (JSON: IANA time zone and `{ time, days }` slots, **not linked to any medication**, see the threat model), last_fired, created_at, updated_at |
 | `security_events` | type (login_failed, rate_limited, …), user_id?, ip?, at. Pruned after `IP_RETENTION_DAYS` (default 7) |
 | `admin_audit` | admin actions (invite, disable, enable, delete); no content |
 
@@ -404,7 +403,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 
 **Recurring medication, how it works:** due doses are *computed on the device* from active `medication` records. Nothing is
 stored until the user acts, so changing a schedule never rewrites history. A dose record links to its scheduled slot, so "late"
-is just "logged after the slot". The server only knows the union of reminder times (§6). Not a medical device: amounts are copied
+is just "logged after the slot". The server only knows the merged reminder times of a device (§6). Not a medical device: amounts are copied
 from what the user typed, and the app never multiplies, totals, suggests or checks doses. Pill-count and refill tracking is left
 out of v1, to stay clearly on the right side of "dose calculation".
 
@@ -416,13 +415,43 @@ that worries you") lives on the About page, never as a reaction to an entry.
 
 ## 6. Medication reminders (Web Push)
 
-- Opt-in per device. The user picks reminder *times* (for example 08:00 and 20:00 on weekdays). The server stores only the times
-  and time zone, not which medication they relate to.
-- At each slot the server sends a **payload-less** push signed with VAPID. The service worker shows "Time for a check-in" from
-  local i18n strings. Opening it unlocks the app, which computes locally what is due.
-- Push transits Apple (iOS) or Google/Mozilla (others). On iOS it requires an **installed PWA (Add to Home Screen) on iOS 16.4+**,
-  and permission must be requested from a user gesture. This is documented in-app and in `SELF_HOSTING.md`.
-- The server never sends pushes based on measurements (MDR).
+Opt-in per device (Me → "Reminders on this device"); the medication toggle only says which medicines are included.
+
+**Flow**
+
+1. The server has `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`. Without all three the feature is off: `GET /api/push/key`
+   and `PUT /api/push/subscription` answer 503 `push_not_configured`, no scheduler runs, and the Me card says reminders are not set up.
+2. On the tap of the toggle the device asks for notification permission, fetches the public key (`GET /api/push/key`) and calls
+   `pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })`.
+3. **The device computes the schedule** (`src/lib/push/schedule.ts`) from its decrypted, active, non-archived medications with
+   reminders on and fixed times: `{ tz, slots: [{ time: "HH:MM", days: [0..6] }] }`. One slot per clock time, with the union of the
+   weekdays, so a slot cannot be traced to one medicine. As-needed and "every N days" medicines are left out; so are medicines whose
+   end date has passed. No names, doses, forms or record ids are ever uploaded.
+4. `PUT /api/push/subscription` (session and CSRF checks like every other route) stores endpoint, keys and schedule, upserted by
+   endpoint and owned by the caller (another user's endpoint is refused with 403). It is repeated only when the computed schedule
+   differs from the last upload (a digest is kept in localStorage), i.e. after a medication is saved or synced. `DELETE` removes the
+   caller's own subscription; sign-out does this best effort, and so does turning the toggle off.
+5. **Scheduler** (`src/lib/server/push/scheduler.ts`): an in-process tick every minute, started with the server (like the nightly backup;
+   `PUSH_SCHEDULER=off` disables it, which the e2e server uses). For each subscription it takes the wall clock in the subscription's time
+   zone (`Intl.DateTimeFormat`) for the current minute and the five before it (catch-up after a missed tick), and fires when a slot matches
+   time and weekday. `last_fired` holds the local `YYYY-MM-DDTHH:MM` keys already sent in that window, so a slot fires at most once per
+   day. DST: a skipped local time never appears on the clock and so does not fire; a repeated one has the same key and fires once.
+   Reminders are sent even if the dose was already logged, because the server cannot know.
+6. **Sender** (`send.ts`, `vapid.ts`): a POST with an empty body to the endpoint, `Authorization: vapid t=<ES256 JWT>, k=<public key>`
+   (aud = endpoint origin, exp 12 h, sub = `VAPID_SUBJECT`), `TTL: 3600`, `Urgency: high`, `Content-Length: 0`, a 10 s timeout, no redirects.
+   Everything uses `node:crypto`; there is no push library and no payload encryption, because there is no payload. On 404 or 410 the
+   subscription is deleted. Logs hold status and host only, never the endpoint path.
+7. **SSRF guard** (`endpoint.ts`): endpoints are accepted only over https, default port, no credentials, on `fcm.googleapis.com`,
+   `*.push.apple.com`, `updates.push.services.mozilla.com` or `*.notify.windows.com`. Anything else is 400 `bad_endpoint`.
+8. **Service worker** (`src/service-worker.ts`): on `push` it shows a notification titled with the app name and the fixed text
+   "You have a reminder." / "Du har en påmindelse.", tag `reminder`. The app leaves that one sentence, already in the chosen language,
+   in the Cache API (`prefs`); the worker never touches keys or records and the notification says nothing about medicines. A tap
+   focuses an open window or opens `/`, which unlocks the app, which computes locally what is due.
+
+Push transits Apple (iOS), Google or Mozilla, or Microsoft. On iOS it requires an **installed PWA (Add to Home Screen) on iOS 16.4+**,
+and permission must be requested from a user gesture (the toggle does). The Me card explains this where `PushManager` is missing.
+Subscription happens in the browser, so the CSP is unaffected (`connect-src 'self'` covers the app's own API calls); the server's
+outbound request is not subject to it. The server never sends pushes based on measurements (MDR).
 
 ## 7. Accounts and admin
 
@@ -444,12 +473,12 @@ that worries you") lives on the About page, never as a reaction to an entry.
   - UI: Me shows an Admin card only for admins; it opens `/me/admin` (people, invites, "Invite someone" with the one-time link).
     Disable/enable use an Undo toast; delete needs a confirmation sheet and the admin's passphrase.
 - **Account deletion (Art. 17):** the user re-authenticates, gets an export offered, and confirms. Then, in one transaction, the server deletes
-  records, attachment files, wrapped keys, sessions, push subscriptions, reminder slots and guardianships. With `PRAGMA secure_delete=ON`
+  records, attachment files, wrapped keys, sessions, push subscriptions (with their schedules) and guardianships. With `PRAGMA secure_delete=ON`
   plus `VACUUM` and a WAL checkpoint, the freed pages are overwritten. Deleting the wrapped keys is the crypto-shredding step. **Honest
   caveat:** backups made before the deletion still contain the ciphertext *and* the wrapped keys until rotation (still only
   openable with the user's passphrase or recovery key). The privacy notice will say this, with the backup retention period.
 - **Implemented (auth-server):** `POST /api/account/delete` verifies the auth key, then in one transaction deletes the user (foreign keys
-  cascade to records, sessions, consents, guardianships, push subscriptions, reminder slots, recovery tokens) **and the user's
+  cascade to records, sessions, consents, guardianships, push subscriptions, recovery tokens) **and the user's
   `security_events` rows**. `admin_audit` rows are kept for accountability (D23). Afterwards it removes `<DATA_DIR>/blobs/<userId>/`
   and runs `PRAGMA wal_checkpoint(TRUNCATE)`. Deletion is refused with 409 `last_guardian` when the user is the only guardian of a
   dependent (D12). `VACUUM` is left to the maintenance work in the Docker branch.

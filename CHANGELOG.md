@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 (2026-10-19)
+
+### Features
+
+- **reminders:** opt-in, payload-less medication reminders (Web Push, D7) (#35)
+
+### Fixes
+
+- **meds:** leave the form out of a Meds row when it is "Other" (#34)
+
+### Documentation
+
+- status after reminders and the Pi preparation for 0.3.0 (#36)
+- Portainer upgrade route and status after 0.2.0 (#33)
+
 ## 0.2.0 (2026-10-19)
 
 ### Features

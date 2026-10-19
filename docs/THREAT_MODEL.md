@@ -23,7 +23,7 @@ auth, crypto, storage, push or export.
 | Guardian | A dependent's diary *until handover* | Anything after the handover is confirmed |
 | Server host (Pi, OS, Docker) | Availability, storing ciphertext | Confidentiality of content |
 | Network: LAN, VPN, ISP | Nothing | Everything (TLS required) |
-| Apple / Google push services | Delivering a wake-up | Any content (none is sent) |
+| Apple / Google / Mozilla / Microsoft push services | Delivering a wake-up | Any content (the request has no body). They see the device endpoint, the server that pushes to it, and the timing of each push, i.e. the reminder times |
 | npm dependencies and base images | Integrity, verified through pinning, audit and licence checks | Assumed possibly compromised; the main supply-chain risk |
 | NAS / backup storage | Storing ciphertext | Confidentiality |
 
@@ -39,8 +39,12 @@ the code** the server delivers.
 - Household structure: which profiles are dependents, and who their guardians are.
 - Number of records per user, their **padded** sizes (bucketed), and their create, update and delete times (upload times, not event times).
 - Number, approximate size and upload times of attachments. Not which record they belong to.
-- Reminder **times of day**, weekdays and time zone for users who enable push. Not what the reminder is for.
-- The push service endpoint, which reveals Apple or Google/Mozilla, and therefore roughly the device type.
+- Reminder **times of day**, weekdays and time zone for users who enable push, as one merged list per device. Not what the reminder is for,
+  how many medicines there are, or whether a dose was logged. The list changes when medication schedules change, so an observer of the
+  database over time can see that a schedule was edited, and when.
+- The push service endpoint (a per-device capability URL), which reveals Apple, Google/Mozilla or Microsoft, and therefore roughly the device type.
+- The **timing of every push** the server sends (it sends one at each slot), which equals the uploaded times. Logs record the status and
+  host of each push, never the endpoint path.
 - Login and session times. IP addresses for failed or rate-limited attempts, kept only for `IP_RETENTION_DAYS` (default 7).
 - Whether TOTP is enabled, storage used per user, consent versions and timestamps.
 - Activity patterns derived from the above. Example: "uploads a small record most days around 08:05, shortly after a reminder slot".
@@ -90,7 +94,7 @@ For the first deployment you are both the operator and a user, so case d reduces
 | T8 | XSS leading to key theft | Strict hash-based CSP with no `unsafe-inline` and `default-src 'none'`; Svelte auto-escaping; no `{@html}` with user data (lint rule); user text is never rendered as HTML |
 | T9 | Supply-chain compromise (npm, base image) | Lockfile with `npm ci`; `npm audit` and licence check in CI; minimal dependencies (one crypto library); Renovate/Dependabot PRs reviewed by a person; pinned base image digests; consider `--ignore-scripts` builds where possible |
 | T10 | Metadata inference (timing, size) | Padding buckets; attachments allowed on any record type (the server sees count, padded size and upload time of blobs, but not which record they belong to, because the link and the keys are inside the encrypted record); reminder slots not linked to medications; all chunks precached. **Residual:** activity timing remains visible (see 3.1) |
-| T11 | Push service learns health information | Payload-less pushes; generic notification text generated on the device; opt-in |
+| T11 | Push service learns health information | Payload-less pushes (empty body, so nothing to decrypt or leak); the notification text is fixed and neutral ("You have a reminder.") and shown by the service worker from a sentence stored on the device; opt-in per device. **Residual:** the push service and the server learn the reminder times and time zone, and the push service the timing of pushes. Endpoints are restricted to the known push services (SSRF guard) |
 | T12 | Photo location leakage (EXIF/GPS) | Client-side re-encoding strips all metadata before encryption; a unit test verifies it |
 | T13 | Plaintext leaves the E2EE boundary through exports (JSON/CSV/PDF) | Export happens only on explicit user action, is generated on the device, and comes with a short warning that the file is not encrypted |
 | T14 | Guardian keeps access after handover | Master key rotation at handover (headers re-wrapped); guardian rows deleted after explicit confirmation. **Residual:** anything the guardian already saw or exported |

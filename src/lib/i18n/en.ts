@@ -78,7 +78,8 @@ export const en = {
 	'meds.ends': 'Has an end date',
 	'meds.ends.date': 'Ends',
 	'meds.reminders': 'Remind me on this phone',
-	'meds.reminders.hint': 'Reminders arrive in a later update. Your choice is saved until then.',
+	'meds.reminders.hint':
+		'Sent as a plain notification at these times, on the devices where you turned reminders on under Me. Medicines taken every few days or only when needed get none.',
 	'meds.exact': 'Amounts are shown exactly as you enter them. The app never calculates or suggests doses.',
 	'meds.error.dates': 'The end date is before the start date.',
 	'meds.error.duplicateTime': 'This time is already listed. Use one row per time.',
@@ -265,6 +266,23 @@ export const en = {
 	'me.account.signedInAs': 'Signed in as {username}',
 	'me.account.lockNow': 'Lock now',
 	'me.account.signOut': 'Sign out',
+	'me.reminders.heading': 'Reminders on this device',
+	'me.reminders.toggle': 'Remind me on this device',
+	'me.reminders.lead':
+		'A quiet nudge at the times of the medicines that have reminders turned on. It is sent even if you have already logged the dose.',
+	'me.reminders.times_one': '{count} reminder time on this device.',
+	'me.reminders.times_other': '{count} reminder times on this device.',
+	'me.reminders.noneYet': 'No medicine has reminders turned on yet. Turn them on when you set up a medicine.',
+	'me.reminders.privacy':
+		'Notifications travel through Apple’s, Google’s or Mozilla’s push service and never contain health information. The server only learns the times and your time zone, never a medicine name or dose.',
+	'me.reminders.serverOff': 'Reminders are not set up on this server. Ask the person who runs it.',
+	'me.reminders.unsupported': 'This browser cannot show reminders.',
+	'me.reminders.iosInstall':
+		'On iPhone and iPad, reminders need the app on your Home Screen: tap Share, then Add to Home Screen, and open it from there. It needs iOS 16.4 or newer.',
+	'me.reminders.denied':
+		'Notifications are blocked for this app. Allow them in your device settings, then come back here.',
+	'me.reminders.error': 'Could not turn reminders on. Please try again.',
+	'push.body': 'You have a reminder.',
 	'me.autolock.heading': 'Auto-lock',
 	'me.autolock.label': 'Lock after',
 	'me.autolock.option': '{minutes} min',
