@@ -3,15 +3,23 @@ name: Release
 # The owner publishes a GitHub release on main with a vX.Y.Z tag (CLAUDE.md "Git workflow"). This builds and pushes
 # ghcr.io/<owner>/<repo>:X.Y.Z and :latest for amd64 and arm64, then puts that version's CHANGELOG.md section into the
 # release notes.
+# "Run workflow" (manual) rebuilds the same thing for an existing release, e.g. when GitHub missed the publish event during
+# an incident. It takes the tag, which must already have a GitHub release on main.
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to rebuild, e.g. v0.4.0'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
 jobs:
@@ -23,11 +31,18 @@ jobs:
       contents: write
       packages: write
     env:
-      TAG: ${{ github.event.release.tag_name }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
+      - name: Check that the release exists (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag $TAG is not vX.Y.Z"; exit 1; }
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName > /dev/null || { echo "No GitHub release for $TAG"; exit 1; }
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ env.TAG }}
           fetch-depth: 0
       - name: Check the tag, the version and the branch
         run: |
@@ -67,6 +82,8 @@ jobs:
         # Anything the owner wrote in the release is kept, below the generated changelog.
         run: |
           own="$(gh release view "$TAG" --json body --jq .body)"
+          # A manual rebuild of a release whose notes were already written leaves them as they are.
+          if grep -qF '**Image:**' <<< "$own"; then echo "Release notes already written"; exit 0; fi
           {
             cat release-notes.md
             echo
