@@ -52,8 +52,10 @@ jobs:
           fi
           git switch -c "$branch"
           node scripts/release-prep.mjs "$VERSION"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Attributed to the person who ran the workflow rather than a bot, so the PR into main never counts as
+          # "unattributed changes" (a setting in the main and develop rulesets).
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
           git add -A
           git commit -m "chore(release): $VERSION"
           git push -u origin "$branch"
