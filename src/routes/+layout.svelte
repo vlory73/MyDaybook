@@ -21,6 +21,7 @@
 		GutSheet,
 		Button,
 		CategoryBadge,
+		AdhocDoseSheet,
 		DoseSheet,
 		EntryDetailSheet,
 		FeelingSheet,
@@ -224,6 +225,7 @@
 	<MedicineSheet bind:open={medicineOpen} />
 	<MedicationSheet />
 	<DoseSheet />
+	<AdhocDoseSheet />
 	<BowelSheet />
 	<GutSheet />
 	<MealSheet />

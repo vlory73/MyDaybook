@@ -606,6 +606,13 @@ export const en = {
 	'dose.whenNeeded': 'When needed',
 	'dose.asNeeded': 'As needed',
 	'dose.none': 'Nothing is scheduled for today. Add medication to see it here.',
+	'adhoc.open': 'Log another medicine',
+	'adhoc.name': 'Medicine',
+	'adhoc.keep': 'Keep in my medicines',
+	'adhoc.keep.hint': 'Next time it is one tap under When needed.',
+	'adhoc.known.active': 'Already in your medicines',
+	'adhoc.known.archived': 'Logged with your earlier entries',
+	'adhoc.toast': 'Dose logged',
 	'fmt.dose.taken': '{name} · Taken',
 	'fmt.dose.skipped': '{name} · Skipped',
 	'fmt.dose.late': '{name} · Taken late {time}'
