@@ -124,7 +124,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, reminders merged; 0.3.0 next (owner)._
+_Last updated: 2026-10-19, 0.3.0 released and on the Pi; iPhone check next._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -172,9 +172,10 @@ _Last updated: 2026-10-19, reminders merged; 0.3.0 next (owner)._
   VAPID-signed pushes (own ES256 code, `node:crypto`, endpoint allowlist); the service worker shows a fixed neutral text. Needs
   `VAPID_SUBJECT` in the Pi's `.env` (docs/HOME_DEPLOYMENT.md); screenshots in `docs/screenshots/reminders/`.
   The six open decisions in #35 were accepted with the merge. **Pi prepared** by the HA session: `VAPID_SUBJECT` in `.env` (3 VAPID
-  lines), outbound HTTPS to all four push hosts works, 0.2.0 untouched. **Next:** the owner releases 0.3.0; the HA session then pins
-  0.3.0, upgrades and checks `/healthz` + `"push_schedule","enabled":true`; then the iPhone check (Home Screen app, iOS 16.4+).
-  After that, M3 is done and M4 (body map) is next.
+  lines), outbound HTTPS to all four push hosts works. **0.3.0 released** by the owner and deployed on the Pi by the HA session
+  (healthy). The upgrade block in docs/RELEASING.md only matched 0.1.0, so it silently kept 0.2.0; it now takes `V=<version>`,
+  matches any version and stops when the tag did not change (`feature/upgrade-docs-any-version`). **Next:** the iPhone check
+  (Home Screen app, iOS 16.4+); after that M3 is done and M4 (body map) is next.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
