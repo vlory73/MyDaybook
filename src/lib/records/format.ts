@@ -6,6 +6,7 @@ import type { Category } from '$lib/components/categories';
 import { t, tn } from '$lib/i18n/index.svelte';
 import type { MessageKey } from '$lib/i18n/en';
 import { categories } from '$lib/components/categories';
+import { mlToCl, storedLabel } from './drinks';
 import { BUILT_IN_CONTEXT } from './log';
 import { minutesBetween } from './time';
 import { exposureTags, inline, suggestionId } from './watch';
@@ -22,6 +23,10 @@ export type Names = {
 	/** Medication name by record id (for dose entries). */
 	medication?: (id: string) => string | undefined;
 };
+
+/** The name of a built-in drink or size in the language in use. */
+export const drinkName = (kind: 'drink' | 'size', id: string): string =>
+	t(`drink.${kind === 'drink' ? 'name' : 'size'}.${id}` as MessageKey);
 
 const join = (parts: (string | undefined | false)[]) => parts.filter(Boolean).join(' · ');
 const firstLine = (text: string) =>
@@ -124,6 +129,21 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 						? t('fmt.dose.late', { name, time: clock(p.at) })
 						: t(p.status === 'skipped' ? 'fmt.dose.skipped' : 'fmt.dose.taken', { name }),
 				summary: join([p.amount, !p.slot && t('dose.asNeeded'), p.note && firstLine(p.note)])
+			};
+		}
+		case 'drink': {
+			// What was logged, as it was logged: the drink and size are the names saved with the entry.
+			const total = t('fmt.cl', { n: mlToCl(p.totalMl) });
+			const size = p.size ? storedLabel('size', p.size, drinkName) : '';
+			return {
+				category: 'drink',
+				title: storedLabel('drink', p.drink, drinkName),
+				summary: join([
+					!size
+						? t('fmt.drink.custom', { total })
+						: t(p.count > 1 ? 'fmt.drink.many' : 'fmt.drink.one', { count: p.count, size, total }),
+					p.note && firstLine(p.note)
+				])
 			};
 		}
 		case 'note':

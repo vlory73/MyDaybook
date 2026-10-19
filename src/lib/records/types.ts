@@ -165,6 +165,45 @@ export type DosePayload = Timed<'dose'> & {
 	amount?: string;
 	note?: string;
 };
+
+/** Built-in drinks and sizes (ids only; the names come from i18n). Ids of anything else are the person's own. */
+export const DEFAULT_DRINK_IDS = [
+	'water',
+	'coffee',
+	'tea',
+	'milk',
+	'juice',
+	'soft',
+	'beer',
+	'wine',
+	'spirits',
+	'soup'
+] as const;
+export const DEFAULT_SIZE_IDS = ['cup', 'glass', 'mug', 'can', 'bottle', 'wineGlass', 'shot'] as const;
+export const MAX_DRINK_COUNT = 10;
+/** Sizes are stored in whole millilitres and shown in centilitres. */
+export const MAX_SIZE_ML = 5000;
+/** A built-in drink or size is stored on an entry as `def:<id>` so that it is shown in the language in use. */
+export const DEFAULT_PREFIX = 'def:';
+/**
+ * One drink. `drink` and `size` are snapshots of what the person saw (`def:<id>` for an unrenamed built-in, else
+ * the name), so later edits to the presets never change an entry. `size` is empty for a typed amount. Descriptive
+ * only: no goal, no comparison, no health meaning (not a medical device).
+ */
+export type DrinkPayload = Timed<'drink'> & {
+	drink: string;
+	size: string;
+	sizeMl: number;
+	count: number;
+	totalMl: number;
+	note?: string;
+};
+/** A drink in the presets: a built-in (optionally renamed or hidden) or the person's own (name required). */
+export type DrinkPreset = { id: string; name?: string; hidden?: boolean; sizeId?: string };
+/** A size in the presets: a built-in (optionally renamed, changed or hidden) or the person's own (name, ml required). */
+export type SizePreset = { id: string; name?: string; ml?: number; hidden?: boolean };
+/** All of the person's drink choices in one record, so they sync between devices. Missing record = the defaults. */
+export type DrinkPresetsPayload = Base<'drink_presets'> & { drinks: DrinkPreset[]; sizes: SizePreset[] };
 export type SettingsPayload = Base<'settings'> & { values: Record<string, string | number | boolean> };
 export type TagPayload = Base<'tag'> & { name: string };
 
@@ -181,6 +220,8 @@ export type Payload =
 	| SavedMealPayload
 	| MedicationPayload
 	| DosePayload
+	| DrinkPayload
+	| DrinkPresetsPayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -288,6 +329,49 @@ function isDose(o: Obj): boolean {
 	return o.slot === undefined || (isObj(o.slot) && isDay(o.slot.date) && isClock(o.slot.time));
 }
 
+const isDefaultId = (list: readonly string[], id: string) => list.includes(id);
+
+function isDrink(o: Obj): boolean {
+	if (!isAt(o.at) || !isStr(o.drink, 100) || o.drink.trim() === '' || !isStr(o.size, 100)) return false;
+	if (!isInt(o.sizeMl, 1, MAX_SIZE_ML) || !isInt(o.count, 1, MAX_DRINK_COUNT)) return false;
+	return o.totalMl === o.sizeMl * o.count && optStr(o.note, 2000);
+}
+
+function isPresetList(
+	x: unknown,
+	max: number,
+	each: (o: Obj, own: boolean) => boolean,
+	defaults: readonly string[]
+) {
+	if (!Array.isArray(x) || x.length > max) return false;
+	const ids = new Set<string>();
+	for (const item of x) {
+		if (!isObj(item) || !isStr(item.id, 60) || item.id === '' || ids.has(item.id)) return false;
+		ids.add(item.id);
+		if (!(item.name === undefined || (isStr(item.name, 40) && item.name.trim() !== ''))) return false;
+		if (!(item.hidden === undefined || typeof item.hidden === 'boolean')) return false;
+		if (!each(item, !isDefaultId(defaults, item.id))) return false;
+	}
+	return true;
+}
+
+function isDrinkPresets(o: Obj): boolean {
+	return (
+		isPresetList(
+			o.drinks,
+			60,
+			(d, own) => (!own || d.name !== undefined) && (d.sizeId === undefined || isStr(d.sizeId, 60)),
+			DEFAULT_DRINK_IDS
+		) &&
+		isPresetList(
+			o.sizes,
+			40,
+			(s, own) => (!own || (s.name !== undefined && s.ml !== undefined)) && optInt(s.ml, 1, MAX_SIZE_ML),
+			DEFAULT_SIZE_IDS
+		)
+	);
+}
+
 function isTimed(o: Obj): boolean {
 	return isAt(o.at);
 }
@@ -360,6 +444,8 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		isExposures(o.exposures),
 	medication: isMedication,
 	dose: isDose,
+	drink: isDrink,
+	drink_presets: isDrinkPresets,
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),
