@@ -117,7 +117,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-18, M3 (feature/doses)._
+_Last updated: 2026-10-19, after 0.1.0 (next: feature/reminders)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -131,12 +131,12 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.
   `feature/doses` merged (#19): `dose` record, due doses computed on the device (`src/lib/meds/due.ts`), "All taken" per slot with one Undo,
   Today / Meds / quick-log "Medicine" cards, timeline entries; screenshots in `docs/screenshots/doses/`.
-  `feature/backup` built: nightly backup job, `cli.mjs backup`, verified dumps, blob mirror (`scripts/backup-core.mjs`).
+  `feature/backup` merged (#21): nightly backup job, `cli backup`, verified dumps, blob mirror (`scripts/backup-core.mjs`).
   `feature/log-gut` merged (#15): nausea / heartburn quick-log tile and sheet (`gut` record); screenshots in
   `docs/screenshots/log-gut/`.
-- **feature/docker built:** `Dockerfile` (pinned node:24-bookworm-slim, non-root, read-only root), `scripts/docker-entrypoint.sh`,
+- **feature/docker merged (#22):** `Dockerfile` (pinned node:24-bookworm-slim, non-root, read-only root), `scripts/docker-entrypoint.sh`,
   `gen-secrets`, `cli` command, root `compose.yaml`, `.env.example`, `TRUSTED_PROXY` support (`src/lib/server/auth/proxy.ts`).
-- **feature/image-publish built:** CI builds and starts the image on amd64 and arm64 for every PR, publishes `:edge` on merges
+- **feature/image-publish merged (#23):** CI builds and starts the image on amd64 and arm64 for every PR, publishes `:edge` on merges
   into develop, and `release.yml` publishes `:X.Y.Z` + `:latest` with the changelog (`scripts/changelog.mjs`) on a release.
   Owner step after the first publish: make the GHCR package public (CONTRIBUTING "Releases and images").
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
@@ -146,7 +146,10 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   SECURITY. Screenshots in `docs/screenshots/m1/`.
 - **Decisions D1–D23 all approved.** The owner is setting up branch protection (rulesets for `develop`, `main` and `v*` tags,
   see "Branch protection" in CONTRIBUTING.md).
-- **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
-  invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant. Raise the backlog items when
-  planning the next milestone.
-- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`. The image-publishing workflow and the `cli backup` command are separate branches.
+- **0.1.0 released** (2026-10-18): release PR #24 into main, owner's GitHub release, image `ghcr.io/vlory73/mydaybook:0.1.0`
+  (amd64 + arm64, public), main merged back into develop (#25). Deployed on the Pi by the HA session (healthy, proxy trusted,
+  NAS copy at 00:00 tested with a restore). In the container the command is `cli …` (see docs/HOME_DEPLOYMENT.md).
+- **Next:** `feature/reminders` (last M3 part), checked on the owner's iPhone against the Pi.
+- **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
+  relevant. The storage quota stays in the backlog ("much later").
+- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
