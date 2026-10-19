@@ -77,6 +77,8 @@ describe('pain validator', () => {
 		expect(isPainPoint(point({ region: 'nose' }))).toBe(false);
 		expect(isPainPoint(point({ side: 'middle' }))).toBe(false);
 		expect(isPainPoint(point({ side: 'midline' }))).toBe(false); // the knee is paired
+		expect(isPainPoint(point({ region: 'upper_belly', side: 'midline' }))).toBe(false); // the belly is paired
+		expect(isPainPoint(point({ region: 'lower_belly', side: 'left' }))).toBe(true);
 		expect(isPainPoint(point({ region: 'lower_back', side: 'left', space: '2d-back-v1' }))).toBe(false);
 		expect(isPainPoint(point({ region: 'lower_back', side: 'midline', space: '2d-back-v1' }))).toBe(true);
 		expect(isPainPoint(point({ space: '3d-mesh-v1' }))).toBe(false);
