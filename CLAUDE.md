@@ -116,6 +116,10 @@ Other key documents:
 | 2026-10-19 | No GitHub milestones. Issues: how to use them is decided later (users are family only for now); when feedback grows, revisit labels, an issue template that keeps health details out, and moving the backlog into issues | Owner |
 | 2026-10-19 | Fluid intake added before M4 (`feature/fluids`, 0.4.0): Drink tile, default drinks + own drinks, editable presets (drinks with a usual size; sizes in cl), quantity stepper (2 × 15 cl = 30 cl), typed amount, "Same again", plain daily total. Stored in ml (per entry: drink, size name, size ml, count, total), shown in cl. No goals, nudges, hydration warnings, caffeine or alcohol-unit calculations (D19) | Owner |
 | 2026-10-19 | Offline-first is a must-have right after v1 (M8); the spec already keeps it out of v1 | Owner |
+| 2026-10-19 | Fluids (#40) merged with its 9 open decisions as built (built-in names follow the language, own amount 1–500 cl, "Other" saves an own drink, day total on Today and in the sheet, presets last-writer-wins, own Drink category = 11 tiles, removed presets stay selectable on old entries, deleting a size clears it as usual size; no "restore defaults", "Same again" only in the sheet) | Owner |
+| 2026-10-19 | M4 plan approved: segmented outline (refined mockup), ~30 main regions + ~10–15 per zoom view, intensity 0–10 on a plain warm-to-plum scale (0 allowed, no thresholds), text summary on Today (body thumbnail idea kept for M5), no FMA IDs. Qualities: sharp, dull, burning, throbbing, aching, tingling, numb, itchy (0–3 per point, multi-select), no "other" (the note covers it). "Same as last time" and a dismissible "Still there?" card on Today for pain logged in the last 2 days. Branches: release-tooling → bodymap-regions → bodymap-entry (→ 0.5.0) → bodymap-zoom (→ 0.6.0) | Owner |
+| 2026-10-19 | No children's body outline (spec deviation): the 2D outline is not anatomically accurate anyway, and the same region IDs would let one be added later without converting data. Revisit only if testers ask | Owner |
+| 2026-10-19 | `release.yml` gets a manual "Run workflow" (tag input) to rebuild an existing release's images; the Pi upgrade block asks for the version | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -126,6 +130,8 @@ Remind the owner of these when planning the next feature milestone; don't build 
 - **Built-in medicine name list** (requested 2026-10-19): name suggestions beyond the person's own history, bundled in the app
   (no runtime lookups). First check the licence (CC0/CC-BY only; e.g. the Danish Medicines Agency's product data) and the size
   (over 1 MB needs approval); names only, never strengths, doses or interactions, and typed text always stays free.
+- **Pain episodes** (requested 2026-10-19, for the M5 plan): link pain entries over several days into one episode with a start and
+  end ("knee pain, 3 Oct → 9 Oct"), for charts and the doctor-visit PDF. Adds an optional episode link to entries; no migration.
 
 ## Current status
 
@@ -184,6 +190,9 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), th
 - **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
+- **M4 (body map) started:** `feature/release-tooling` (this branch: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block
+  that asks for the version), then `feature/bodymap-regions` (in progress), `feature/bodymap-entry` (→ 0.5.0), `feature/bodymap-zoom`.
+  0.4.0 (fluids) is being released by the owner.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
