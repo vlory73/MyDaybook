@@ -34,7 +34,10 @@ test('log another medicine: keep on and off, existing name, Undo, reload, cipher
 	await logAdhoc(page, kept, { amount: '3 drops' });
 	await expect(page.getByRole('button', { name: `Log a dose of ${kept}` })).toBeVisible();
 	// Listed on Meds as well (the row is named "Edit <name>").
-	await expect(page.getByRole('button', { name: `Edit ${kept}`, exact: true })).toBeVisible();
+	const keptRow = page.getByRole('button', { name: `Edit ${kept}`, exact: true });
+	await expect(keptRow).toBeVisible();
+	// Its form is "Other", which the row leaves out.
+	await expect(keptRow).not.toContainText('Other');
 
 	// Keep OFF: archived, not under When needed.
 	await toast(page, 'Dose logged').waitFor({ state: 'hidden' });
