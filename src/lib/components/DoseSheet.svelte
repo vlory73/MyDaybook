@@ -4,23 +4,26 @@
 	import Icon from './Icon.svelte';
 	import Notice from './Notice.svelte';
 	import Segmented from './Segmented.svelte';
+	import SelectField from './SelectField.svelte';
 	import Sheet from './Sheet.svelte';
 	import { showToast } from './toast.svelte';
 	import { t } from '$lib/i18n/index.svelte';
-	import { defaultAt } from '$lib/meds/due';
+	import { asksForTime, initialDoseAt, medicineChoices, storedDoseAt } from '$lib/meds/doseTime';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
-	import { remove, save, store } from '$lib/records/store.svelte';
-	import { formatAt, fromLocalInput, toLocalInput, todayKey } from '$lib/records/time';
+	import { allRecords, remove, save, store } from '$lib/records/store.svelte';
+	import { fromLocalInput, toLocalInput, todayKey } from '$lib/records/time';
 	import type { DosePayload, DoseStatus } from '$lib/records/types';
 
 	/**
-	 * Logs, changes or clears one dose. A scheduled dose is Taken, Skipped or Taken late (late = the person picks the
-	 * time it was really taken, default now); an as-needed dose has an optional amount and a time. The amount of a
+	 * Logs, changes or clears one dose. A scheduled dose is Taken, Skipped or Taken late; Taken and Taken late both let
+	 * the person pick the time it was really taken (default now, or the planned time on a past day). An as-needed dose
+	 * has a medicine (changeable), an optional amount and a time. The amount of a
 	 * scheduled dose is copied from the medication's time row, never computed.
 	 */
 	let status = $state<DoseStatus>('taken');
 	let time = $state('');
 	let amount = $state('');
+	let medicationId = $state('');
 	let busy = $state(false);
 	let failed = $state<'save' | 'delete' | null>(null);
 	let existing = $state.raw<DosePayload | null>(null);
@@ -29,7 +32,7 @@
 	const slot = $derived(target?.slot);
 	const id = $derived(target?.id ?? null);
 	const medication = $derived.by(() => {
-		const p = target ? store.items[target.medicationId]?.payload : undefined;
+		const p = medicationId ? store.items[medicationId]?.payload : undefined;
 		return p?.type === 'medication' ? p : null;
 	});
 	const name = $derived(medication?.name ?? t('cat.meds'));
@@ -41,7 +44,9 @@
 			const p = current.id ? store.items[current.id]?.payload : undefined;
 			existing = p?.type === 'dose' ? p : null;
 			status = existing?.status ?? 'taken';
-			time = toLocalInput(existing?.at ?? formatAt(new Date()));
+			const now = new Date();
+			time = toLocalInput(initialDoseAt(existing?.at, current.slot, now, todayKey(now)));
+			medicationId = current.medicationId;
 			amount = existing?.amount ?? '';
 			busy = false;
 			failed = null;
@@ -54,28 +59,24 @@
 		{ value: 'late', label: t('dose.late') }
 	]);
 
-	const showTime = $derived(!slot || status === 'late');
+	const choices = $derived(!slot && target ? medicineChoices(allRecords(), target.medicationId) : []);
+	const showTime = $derived(asksForTime(slot, status));
 	const valid = $derived(!showTime || fromLocalInput(time) !== null);
 
 	function payload(): DosePayload | null {
 		const current = target;
 		if (!current || !valid) return null;
 		const picked = fromLocalInput(time);
-		let at: string;
-		let st: DoseStatus = 'taken';
-		if (slot) {
-			st = status;
-			const now = new Date();
-			at =
-				st === 'late'
-					? picked!
-					: existing && existing.status !== 'late'
-						? existing.at
-						: defaultAt(slot, now, todayKey(now));
-		} else {
-			at = picked!;
-		}
-		const p: DosePayload = { v: 1, type: 'dose', at, medicationId: current.medicationId, status: st };
+		const st: DoseStatus = slot ? status : 'taken';
+		const now = new Date();
+		const at = storedDoseAt(st, slot, picked ?? '', existing?.at, now, todayKey(now));
+		const p: DosePayload = {
+			v: 1,
+			type: 'dose',
+			at,
+			medicationId: slot ? current.medicationId : medicationId,
+			status: st
+		};
 		if (slot) p.slot = slot;
 		// Copied from the medication's time row (or typed for an as-needed dose); never calculated.
 		const text = slot
@@ -128,12 +129,10 @@
 
 <Sheet
 	bind:open={() => target !== null, (v) => !v && closeEditors()}
-	title={slot || id ? name : t('dose.sheet.asNeeded')}
+	title={slot ? name : id ? t('dose.sheet.title') : t('dose.sheet.asNeeded')}
 >
 	<div class="form">
-		{#if !slot && !id}
-			<p class="who">{name}</p>
-		{:else if slot}
+		{#if slot}
 			<p class="muted planned">{t('dose.planned', { time: slot.time })}</p>
 		{/if}
 
@@ -141,6 +140,11 @@
 			<p class="label">{t('dose.status')}</p>
 			<Segmented {options} bind:value={status} label={t('dose.status')} />
 		{:else}
+			<SelectField
+				label={t('dose.medicine')}
+				options={choices.map((c) => ({ value: c.id, label: c.name }))}
+				bind:value={medicationId}
+			/>
 			<label class="label" for="dose-amount"
 				>{t('dose.amount')}<span class="hint">{t('common.optional')}</span></label
 			>
@@ -184,10 +188,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--sp-3);
-	}
-	.who {
-		font-weight: var(--fw-semibold);
-		overflow-wrap: anywhere;
 	}
 	.planned {
 		font-size: var(--fs-callout);

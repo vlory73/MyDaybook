@@ -33,7 +33,8 @@ test('log another medicine: keep on and off, existing name, Undo, reload, cipher
 	// Keep ON (the default): it is a "when needed" medicine afterwards.
 	await logAdhoc(page, kept, { amount: '3 drops' });
 	await expect(page.getByRole('button', { name: `Log a dose of ${kept}` })).toBeVisible();
-	await expect(page.getByRole('button', { name: new RegExp(`^${kept}`) }).first()).toBeVisible();
+	// Listed on Meds as well (the row is named "Edit <name>").
+	await expect(page.getByRole('button', { name: `Edit ${kept}`, exact: true })).toBeVisible();
 
 	// Keep OFF: archived, not under When needed.
 	await toast(page, 'Dose logged').waitFor({ state: 'hidden' });
