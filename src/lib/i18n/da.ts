@@ -611,6 +611,13 @@ export const da: Record<MessageKey, string> = {
 	'dose.whenNeeded': 'Ved behov',
 	'dose.asNeeded': 'Ved behov',
 	'dose.none': 'Intet er planlagt i dag. Tilføj medicin, så vises den her.',
+	'adhoc.open': 'Log en anden medicin',
+	'adhoc.name': 'Medicin',
+	'adhoc.keep': 'Behold i min medicin',
+	'adhoc.keep.hint': 'Næste gang er det ét tryk under Ved behov.',
+	'adhoc.known.active': 'Står allerede i din medicin',
+	'adhoc.known.archived': 'Logget sammen med dine tidligere registreringer',
+	'adhoc.toast': 'Dosis logget',
 	'fmt.dose.taken': '{name} · Taget',
 	'fmt.dose.skipped': '{name} · Sprunget over',
 	'fmt.dose.late': '{name} · Taget forsinket kl. {time}'

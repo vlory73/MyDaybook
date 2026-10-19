@@ -383,6 +383,24 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'today-timeline', scheme, true);
 		});
 
+		test(`log another medicine ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'dose-adhoc', 'dose-adhoc screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/meds');
+			await page.getByRole('button', { name: 'Log another medicine' }).click();
+			const sheet = page.getByRole('dialog', { name: 'Log another medicine' });
+			await page.waitForTimeout(400);
+			await sheet.getByLabel('Medicine', { exact: true }).fill('Throat lozenge');
+			await sheet.getByLabel('Amount', { exact: false }).fill('1 lozenge');
+			await snap(page, 'adhoc-sheet', scheme);
+			await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+			await sheet.waitFor({ state: 'hidden' });
+			await page.getByRole('status').getByText('Dose logged', { exact: true }).waitFor({ state: 'hidden' });
+			await page.waitForTimeout(300);
+			await snap(page, 'adhoc-meds', scheme);
+		});
+
 		test(`me ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/me');
