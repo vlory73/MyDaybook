@@ -116,6 +116,10 @@ Other key documents:
 | 2026-10-19 | No GitHub milestones. Issues: how to use them is decided later (users are family only for now); when feedback grows, revisit labels, an issue template that keeps health details out, and moving the backlog into issues | Owner |
 | 2026-10-19 | Fluid intake added before M4 (`feature/fluids`, 0.4.0): Drink tile, default drinks + own drinks, editable presets (drinks with a usual size; sizes in cl), quantity stepper (2 × 15 cl = 30 cl), typed amount, "Same again", plain daily total. Stored in ml (per entry: drink, size name, size ml, count, total), shown in cl. No goals, nudges, hydration warnings, caffeine or alcohol-unit calculations (D19) | Owner |
 | 2026-10-19 | Offline-first is a must-have right after v1 (M8); the spec already keeps it out of v1 | Owner |
+| 2026-10-19 | Fluids (#40) merged with its 9 open decisions as built (built-in names follow the language, own amount 1–500 cl, "Other" saves an own drink, day total on Today and in the sheet, presets last-writer-wins, own Drink category = 11 tiles, removed presets stay selectable on old entries, deleting a size clears it as usual size; no "restore defaults", "Same again" only in the sheet) | Owner |
+| 2026-10-19 | M4 plan approved: segmented outline (refined mockup), ~30 main regions + ~10–15 per zoom view, intensity 0–10 on a plain warm-to-plum scale (0 allowed, no thresholds), text summary on Today (body thumbnail idea kept for M5), no FMA IDs. Qualities: sharp, dull, burning, throbbing, aching, tingling, numb, itchy (0–3 per point, multi-select), no "other" (the note covers it). "Same as last time" and a dismissible "Still there?" card on Today for pain logged in the last 2 days. Branches: release-tooling → bodymap-regions → bodymap-entry (→ 0.5.0) → bodymap-zoom (→ 0.6.0) | Owner |
+| 2026-10-19 | No children's body outline (spec deviation): the 2D outline is not anatomically accurate anyway, and the same region IDs would let one be added later without converting data. Revisit only if testers ask | Owner |
+| 2026-10-19 | `release.yml` gets a manual "Run workflow" (tag input) to rebuild an existing release's images; the Pi upgrade block asks for the version | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -126,10 +130,12 @@ Remind the owner of these when planning the next feature milestone; don't build 
 - **Built-in medicine name list** (requested 2026-10-19): name suggestions beyond the person's own history, bundled in the app
   (no runtime lookups). First check the licence (CC0/CC-BY only; e.g. the Danish Medicines Agency's product data) and the size
   (over 1 MB needs approval); names only, never strengths, doses or interactions, and typed text always stays free.
+- **Pain episodes** (requested 2026-10-19, for the M5 plan): link pain entries over several days into one episode with a start and
+  end ("knee pain, 3 Oct → 9 Oct"), for charts and the doctor-visit PDF. Adds an optional episode link to entries; no migration.
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), then 0.4.0 and M4; iPhone check of reminders pending (owner)._
+_Last updated: 2026-10-19, 0.4.0 on the Pi; M4 branch 2 in review (#45), then 0.5.0 (owner); next session: `feature/bodymap-zoom` (→ 0.6.0). Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -184,6 +190,18 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), th
 - **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
+- **M4 (body map):** `feature/release-tooling` merged (#43: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block that
+  asks for the version); `feature/bodymap-regions` merged (#44, belly as four quarters); `feature/bodymap-entry` in review (#45, → 0.5.0), `feature/bodymap-zoom` (→ 0.6.0).
+  0.4.0 (fluids) released and on the Pi.
+- **`feature/bodymap-regions` (M4 branch 1, merged #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
+  (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
+- **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
+  with an older copy of the block. Copy it fresh from the doc.
+- **`feature/bodymap-entry` (M4 branch 2, in review):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
+  (`cat.pain` now reads "Body map" / "Kropskort"); `BodyMapSheet.svelte` ("Where do you feel it?": map, Find, pinned point panel with
+  intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
+  time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
+  `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

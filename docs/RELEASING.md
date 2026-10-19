@@ -185,11 +185,13 @@ Compare compose.yaml and .env.example with the repo at tag v0.2.0 and report any
 
 ### Option B: do it yourself on the Pi
 
-Set `V` to the new version and paste the whole block. It works whatever version the Pi runs now, and it stops with an error
-instead of carrying on when a step fails (for example when the tag in `compose.yaml` did not change).
+Paste the whole block as it is. It shows the version running now and asks which version to install (type e.g. `0.4.0`
+and press Enter). It works whatever version the Pi runs, and it stops with an error instead of carrying on when a step fails:
+a version that is not like `0.4.0`, a failed backup, or a tag in `compose.yaml` that did not change.
 
 ```sh
-cd ~/mydaybook && V=0.3.0 sh -eu <<'UPGRADE'
+cd ~/mydaybook && grep image: compose.yaml && printf 'Version to install (e.g. 0.4.0): ' && read V && V="$V" sh -eu <<'UPGRADE'
+echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "STOP: '$V' is not a version like 0.4.0"; exit 1; }
 docker compose exec -T app cli backup             # a fresh, verified backup first; prints the file name
 sed -i -E "s|(ghcr\.io/vlory73/mydaybook:)[0-9]+\.[0-9]+\.[0-9]+|\1$V|" compose.yaml
 grep -q "ghcr.io/vlory73/mydaybook:$V\$" compose.yaml || { echo "STOP: compose.yaml does not pin $V"; exit 1; }

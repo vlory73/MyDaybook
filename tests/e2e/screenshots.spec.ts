@@ -253,6 +253,49 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'presets-sizes', scheme);
 		});
 
+		test(`body map entry sheet, same as last time and today ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'bodymap-entry', 'bodymap-entry screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			const open = async () => {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: 'Body map', exact: true }).click();
+				await page.waitForTimeout(400);
+			};
+			const intensity = (n: number) =>
+				sheet
+					.getByRole('radiogroup', { name: /^Intensity/ })
+					.getByRole('radio', { name: String(n), exact: true })
+					.click();
+			const region = (name: string) =>
+				sheet.locator('svg[role=group]').getByRole('button', { name, exact: true }).click();
+			await open();
+			await snap(page, 'sheet-empty', scheme);
+			await region('Your left shoulder');
+			await intensity(3);
+			await region('Your right knee');
+			await intensity(6);
+			await sheet.getByRole('button', { name: 'Aching', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Throbbing', exact: true }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'sheet-bodymap', scheme);
+			await sheet.getByRole('button', { name: 'Find', exact: true }).click();
+			await sheet.getByLabel('Find a body part').fill('knee');
+			await snap(page, 'sheet-find', scheme);
+			await sheet.getByRole('button', { name: 'Back to the body map' }).click();
+			await sheet.getByRole('button', { name: 'Save 2 points' }).click();
+			await page.getByText('Your left shoulder 3 · Your right knee 6').waitFor();
+			await page
+				.getByRole('status')
+				.getByText('Saved', { exact: true })
+				.waitFor({ state: 'hidden', timeout: 15_000 });
+			await page.waitForTimeout(300);
+			await snap(page, 'today-bodymap', scheme);
+			await open();
+			await snap(page, 'sheet-same', scheme);
+		});
+
 		test(`photos meal sheet, timeline and viewer ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'photos', 'photos screenshots only');
 			await prepare(page, scheme);
@@ -525,6 +568,31 @@ for (const scheme of ['light', 'dark'] as const) {
 			await prepare(page, scheme);
 			await page.goto('/styleguide');
 			await snap(page, 'styleguide', scheme, true);
+		});
+
+		test(`bodymap outlines ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await page.goto('/styleguide');
+			const toggle = page.getByRole('radiogroup', { name: 'View' });
+			const top = () =>
+				toggle.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 16));
+			await top();
+			await page.locator('svg[role=group]').getByRole('button', { name: 'Your right knee' }).click();
+			await snap(page, 'bodymap-front', scheme);
+			await page.getByRole('radio', { name: 'Back' }).click();
+			await page.locator('svg[role=group]').getByRole('button', { name: 'Your left calf' }).click();
+			await top();
+			await snap(page, 'bodymap-back', scheme);
+		});
+
+		test(`bodymap find ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await page.goto('/styleguide');
+			const search = page.getByLabel('Find a body part');
+			await search.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 80));
+			await snap(page, 'bodymap-find', scheme);
+			await search.fill('knee');
+			await snap(page, 'bodymap-find-filtered', scheme);
 		});
 
 		test(`login, recover and unlock ${scheme}`, async ({ page }) => {

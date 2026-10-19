@@ -302,18 +302,18 @@ does not reveal the record type (most records fall into the first two buckets). 
 { "v": 1, "type": "food", "at": "2026-10-18T08:10:00+02:00", "meal": "breakfast",
   "text": "Oatmeal with berries", "tags": ["t_home"], "attachments": [{ "id": "…", "key": "…" }] }
 
-{ "v": 1, "type": "pain", "at": "…", "points": [
+{ "v": 1, "type": "pain", "at": "…", "note": "optional", "points": [
   { "region": "knee", "side": "right", "space": "2d-front-v1", "u": 0.42, "v": 0.61,
-    "intensity": 6, "quality": "aching", "note": "after running" } ] }
+    "intensity": 6, "qualities": ["aching", "throbbing"], "note": "after running" } ] }
 ```
 
 **Body map, ready for 3D later without migration:** `region` + `side` come from a stable, view-independent
-catalogue (for example `knee`, `lower_back`, `temple`; side `left|right|midline`). The catalogue maps each region to its
-SVG path and, optionally, an FMA anatomy ID (FMA is CC-BY). Coordinates are region-local `(u, v)` in a **named,
+catalogue (`src/lib/bodymap/catalogue.ts`: 26 regions such as `knee`, `lower_back`, `back_of_head`; side `left|right|midline`,
+the person's own sides, so the front view mirrors them). The catalogue maps each region to its shape in each view and has a
+`parent` field for finer zoom-view regions later. No FMA anatomy IDs (decided). Coordinates are region-local `(u, v)` in a **named,
 versioned coordinate space** (`2d-front-v1`, `2d-back-v1`, `2d-head-v1`, …). A future 3D view adds a `3d-mesh-v1` space
 (for example, barycentric coordinates on a mesh face). Old 2D points still render on the 3D model at their region's
-anchor plus a projected (u, v). Nothing is rewritten. Children's profiles use a scaled outline with the **same region IDs and
-spaces**, so heat maps stay comparable.
+anchor plus a projected (u, v). Nothing is rewritten. There is no separate children's outline (decided); the same regions and spaces serve every profile.
 
 ### 5.1 Sync and client storage
 
@@ -397,7 +397,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `gut` ★ | time, symptoms (1–2 of `nausea` / `heartburn`, each with intensity 1–5), context flags (vomited, after a meal, lying down, at night; `vomited` only with nausea), note. Records only: a flag never triggers a message or alert (MDR), as for bowel | 2 taps + Save |
 | `drink` ★ | time, drink (`def:<id>` for a built-in, else the name), size name (snapshot), size in ml, count 1–10, total in ml, note. Stored in whole ml, shown in cl. Later preset edits never change an entry. Descriptive only: a plain daily sum, no goals, nudges, warnings or caffeine / alcohol calculations (D19) | Drink tile: water in 2 taps; "Same again" repeats the last drink |
 | `drink_presets` ★ | ONE record per person: drinks (built-in overrides, hidden flag, own drinks, order, usual size) and sizes (built-in overrides, hidden flag, own sizes). No record = the built-in defaults (names from i18n) | |
-| `pain` | points (region, side, space, u, v, intensity, quality, note) | §5 |
+| `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, aching, tingling, numb, itchy; note ≤ 500). The UI calls it "Body map" | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
 | `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm. A medicine not in the list can be logged from the Medicine sheet ("Log another medicine"); it is saved as a "when needed" medication (archived when "Keep in my medicines" is off), so every dose still links to a medication. The time of a taken dose can be set or corrected in the dose sheet; an as-needed dose can be moved to another medicine |
 | `note` | free text, tags | |

@@ -21,6 +21,7 @@
 	import { todayKey } from '$lib/records/time';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
+		BodyMapSheet,
 		BowelSheet,
 		GutSheet,
 		Button,
@@ -149,6 +150,7 @@
 		if (key === 'note') openNote();
 		else if (key === 'food') openLog('food');
 		else if (key === 'drink') openLog('drink');
+		else if (key === 'pain') openLog('pain');
 		else if (key === 'feel') openLog('feeling');
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
@@ -254,6 +256,7 @@
 	<MedicationSheet />
 	<DoseSheet />
 	<AdhocDoseSheet />
+	<BodyMapSheet />
 	<BowelSheet />
 	<GutSheet />
 	<DrinkSheet />
