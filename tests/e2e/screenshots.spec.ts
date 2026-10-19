@@ -260,7 +260,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
 			const open = async () => {
 				await page.getByRole('button', { name: 'Log something' }).click();
-				await page.getByRole('button', { name: 'Body map', exact: true }).click();
+				await page.getByRole('button', { name: 'Pain', exact: true }).click();
 				await page.waitForTimeout(400);
 			};
 			const intensity = (n: number) =>

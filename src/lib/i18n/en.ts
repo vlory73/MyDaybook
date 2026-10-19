@@ -114,7 +114,7 @@ export const en = {
 	'cat.drink': 'Drink',
 	'cat.feel': 'Feeling',
 	'cat.sleep': 'Sleep',
-	'cat.pain': 'Body map',
+	'cat.pain': 'Pain',
 	'cat.meds': 'Medicine',
 	'cat.gut': 'Bowel',
 	'cat.stomach': 'Nausea / heartburn',

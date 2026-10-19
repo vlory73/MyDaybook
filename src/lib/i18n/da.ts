@@ -117,7 +117,7 @@ export const da: Record<MessageKey, string> = {
 	'cat.drink': 'Drikke',
 	'cat.feel': 'Humør',
 	'cat.sleep': 'Søvn',
-	'cat.pain': 'Kropskort',
+	'cat.pain': 'Smerter',
 	'cat.meds': 'Medicin',
 	'cat.gut': 'Toilet',
 	'cat.stomach': 'Kvalme / halsbrand',

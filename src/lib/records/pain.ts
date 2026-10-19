@@ -1,6 +1,6 @@
 /**
  * The `pain` record (ARCHITECTURE §5): one entry marks 1 to 20 points on the body map. The record keeps the name
- * `pain`; the app says "Body map" and "Where do you feel it?".
+ * `pain`; the app says "Pain" and "Where do you feel it?".
  */
 import { isRegionId, isPlace, type RegionId, type Side, type Space } from '$lib/bodymap/catalogue';
 import { isAt, isAttachments, type AttachmentRef } from './types';

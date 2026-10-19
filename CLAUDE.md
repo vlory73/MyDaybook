@@ -120,6 +120,7 @@ Other key documents:
 | 2026-10-19 | M4 plan approved: segmented outline (refined mockup), ~30 main regions + ~10–15 per zoom view, intensity 0–10 on a plain warm-to-plum scale (0 allowed, no thresholds), text summary on Today (body thumbnail idea kept for M5), no FMA IDs. Qualities: sharp, dull, burning, throbbing, aching, tingling, numb, itchy (0–3 per point, multi-select), no "other" (the note covers it). "Same as last time" and a dismissible "Still there?" card on Today for pain logged in the last 2 days. Branches: release-tooling → bodymap-regions → bodymap-entry (→ 0.5.0) → bodymap-zoom (→ 0.6.0) | Owner |
 | 2026-10-19 | No children's body outline (spec deviation): the 2D outline is not anatomically accurate anyway, and the same region IDs would let one be added later without converting data. Revisit only if testers ask | Owner |
 | 2026-10-19 | `release.yml` gets a manual "Run workflow" (tag input) to rebuild an existing release's images; the Pi upgrade block asks for the version | Owner |
+| 2026-10-19 | Body map entry (#45) merged with its 7 decisions as built ("Same as last time" copies intensities, no intensity until picked, calendar-day window for "Still there?", "0 none · 10 worst imaginable", no entry-level note). 0.5.0 released. Quick-log tile and timeline label renamed from "Body map" to **"Pain" / "Smerter"** (the sheet keeps "Where do you feel it?"); ships with `feature/bodymap-zoom` | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -135,7 +136,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.4.0 on the Pi; M4 branch 2 in review (#45), then 0.5.0 (owner); next session: `feature/bodymap-zoom` (→ 0.6.0). Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
+_Last updated: 2026-10-19, 0.5.0 released (body map); next: `feature/bodymap-zoom` (→ 0.6.0), which already carries the "Pain" label. Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -191,13 +192,13 @@ _Last updated: 2026-10-19, 0.4.0 on the Pi; M4 branch 2 in review (#45), then 0.
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
 - **M4 (body map):** `feature/release-tooling` merged (#43: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block that
-  asks for the version); `feature/bodymap-regions` merged (#44, belly as four quarters); `feature/bodymap-entry` in review (#45, → 0.5.0), `feature/bodymap-zoom` (→ 0.6.0).
+  asks for the version); `feature/bodymap-regions` merged (#44, belly as four quarters); `feature/bodymap-entry` merged (#45), 0.5.0 released, `feature/bodymap-zoom` (→ 0.6.0).
   0.4.0 (fluids) released and on the Pi.
 - **`feature/bodymap-regions` (M4 branch 1, merged #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
   (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
 - **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
   with an older copy of the block. Copy it fresh from the doc.
-- **`feature/bodymap-entry` (M4 branch 2, in review):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
+- **`feature/bodymap-entry` (M4 branch 2, merged #45, in 0.5.0):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
   (`cat.pain` now reads "Body map" / "Kropskort"); `BodyMapSheet.svelte` ("Where do you feel it?": map, Find, pinned point panel with
   intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
   time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
