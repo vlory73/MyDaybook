@@ -527,6 +527,31 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'styleguide', scheme, true);
 		});
 
+		test(`bodymap outlines ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await page.goto('/styleguide');
+			const toggle = page.getByRole('radiogroup', { name: 'View' });
+			const top = () =>
+				toggle.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 16));
+			await top();
+			await page.locator('svg[role=group]').getByRole('button', { name: 'Your right knee' }).click();
+			await snap(page, 'bodymap-front', scheme);
+			await page.getByRole('radio', { name: 'Back' }).click();
+			await page.locator('svg[role=group]').getByRole('button', { name: 'Your left calf' }).click();
+			await top();
+			await snap(page, 'bodymap-back', scheme);
+		});
+
+		test(`bodymap find ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await page.goto('/styleguide');
+			const search = page.getByLabel('Find a body part');
+			await search.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 80));
+			await snap(page, 'bodymap-find', scheme);
+			await search.fill('knee');
+			await snap(page, 'bodymap-find-filtered', scheme);
+		});
+
 		test(`login, recover and unlock ${scheme}`, async ({ page }) => {
 			await prepare(page, scheme);
 			const user = await signUpViaApi(page, 'shot');

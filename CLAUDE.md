@@ -190,9 +190,13 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), th
 - **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
-- **M4 (body map) started:** `feature/release-tooling` (this branch: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block
-  that asks for the version), then `feature/bodymap-regions` (in progress), `feature/bodymap-entry` (→ 0.5.0), `feature/bodymap-zoom`.
-  0.4.0 (fluids) is being released by the owner.
+- **M4 (body map):** `feature/release-tooling` merged (#43: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block that
+  asks for the version); `feature/bodymap-regions` in review (#44); then `feature/bodymap-entry` (→ 0.5.0), `feature/bodymap-zoom` (→ 0.6.0).
+  0.4.0 (fluids) released and on the Pi.
+- **`feature/bodymap-regions` (M4 branch 1, in review #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
+  (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
+- **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
+  with an older copy of the block. Copy it fresh from the doc.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

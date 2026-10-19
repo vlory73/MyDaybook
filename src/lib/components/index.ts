@@ -1,3 +1,4 @@
+export { default as BodyMap } from './BodyMap.svelte';
 export { default as BowelSheet } from './BowelSheet.svelte';
 export { default as Button } from './Button.svelte';
 export { default as Card } from './Card.svelte';
@@ -32,6 +33,7 @@ export { default as RemindersCard } from './RemindersCard.svelte';
 export { default as ScalePicker } from './ScalePicker.svelte';
 export { default as Segmented } from './Segmented.svelte';
 export { default as SelectField } from './SelectField.svelte';
+export { default as RegionFinder } from './RegionFinder.svelte';
 export { default as Sheet } from './Sheet.svelte';
 export { default as SleepSheet } from './SleepSheet.svelte';
 export { default as Spinner } from './Spinner.svelte';
