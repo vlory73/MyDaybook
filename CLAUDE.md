@@ -57,6 +57,8 @@ Other key documents:
    - M5: charts, heat map, export, PDF
    - M6: dependent profiles and handover
    - M7: Danish i18n, hardening, image publishing, self-hosting docs
+   - After v1: M8 offline-first (owner must-have, 2026-10-19): unlock offline, encrypted outbox for entries made offline, clear
+     "not synced yet" state; sign-in, reminders and admin stay online. Builds on the ciphertext cache in IndexedDB
 2. From M2 onwards, each milestone is split into one or more `feature/*` branches, each with its own PR into develop. Each PR needs:
    - CI green
    - e2e tests run in the sandbox
@@ -111,6 +113,9 @@ Other key documents:
 | 2026-10-18 | Backups: the NAS is off during the night, so everything must be done by 01:00. App dump moves to 23:30 (new default `BACKUP_TIME`), NAS copy to 00:00; both adjustable. Replaces the 04:00 / 04:30 of D13 | Owner; confirmed by the HA session |
 | 2026-10-19 | Meds rows leave out the form when it is "Other" (#34). Reminders design approved: the device uploads only times + time zone (no medicine link), empty VAPID pushes via Apple/Google/Mozilla, in-house VAPID (no `web-push`, MPL-2.0), endpoint allowlist, fully neutral text "You have a reminder." | Owner |
 | 2026-10-19 | Reminders (#35) merged with its open decisions as built: no reminders for "every N days", start date not checked, 10 subscriptions per account, orphaned subscriptions dropped on 404/410, `PUSH_SCHEDULER=off`. Pi agreement extended: `VAPID_SUBJECT` in `.env`, outbound HTTPS to Apple/FCM/Mozilla/Windows push hosts (done by the HA session) | Owner, HA session |
+| 2026-10-19 | No GitHub milestones. Issues: how to use them is decided later (users are family only for now); when feedback grows, revisit labels, an issue template that keeps health details out, and moving the backlog into issues | Owner |
+| 2026-10-19 | Fluid intake added before M4 (`feature/fluids`, 0.4.0): Drink tile, default drinks + own drinks, editable presets (drinks with a usual size; sizes in cl), quantity stepper (2 × 15 cl = 30 cl), typed amount, "Same again", plain daily total. Stored in ml (per entry: drink, size name, size ml, count, total), shown in cl. No goals, nudges, hydration warnings, caffeine or alcohol-unit calculations (D19) | Owner |
+| 2026-10-19 | Offline-first is a must-have right after v1 (M8); the spec already keeps it out of v1 | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -124,7 +129,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.3.0 released and on the Pi; iPhone check next._
+_Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in progress; iPhone check of reminders pending (owner)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -174,8 +179,9 @@ _Last updated: 2026-10-19, 0.3.0 released and on the Pi; iPhone check next._
   The six open decisions in #35 were accepted with the merge. **Pi prepared** by the HA session: `VAPID_SUBJECT` in `.env` (3 VAPID
   lines), outbound HTTPS to all four push hosts works. **0.3.0 released** by the owner and deployed on the Pi by the HA session
   (healthy). The upgrade block in docs/RELEASING.md only matched 0.1.0, so it silently kept 0.2.0; it now takes `V=<version>`,
-  matches any version and stops when the tag did not change (`feature/upgrade-docs-any-version`). **Next:** the iPhone check
-  (Home Screen app, iOS 16.4+); after that M3 is done and M4 (body map) is next.
+  matches any version and stops when the tag did not change (#39). **Pending:** the owner's iPhone check (Home Screen app,
+  iOS 16.4+); after that M3 is done.
+- **`feature/fluids` (in progress, before M4):** fluid intake as agreed in the decisions log; then 0.4.0, then M4 (body map).
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
