@@ -5,7 +5,7 @@
 	import Sheet from './Sheet.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { asNeededMedications, dueSlots } from '$lib/meds/due';
-	import { openMedication } from '$lib/records/editor.svelte';
+	import { openAdhocDose, openMedication } from '$lib/records/editor.svelte';
 	import { allRecords } from '$lib/records/store.svelte';
 	import { todayKey } from '$lib/records/time';
 
@@ -18,10 +18,24 @@
 	);
 </script>
 
+{#snippet another()}
+	<div class="another">
+		<Button
+			variant="soft"
+			block
+			onclick={() => {
+				open = false;
+				openAdhocDose();
+			}}><Icon name="plus" size={20} />{t('adhoc.open')}</Button
+		>
+	</div>
+{/snippet}
+
 <Sheet bind:open title={t('cat.meds')}>
 	{#if any}
 		<!-- The sheet steps aside after an action, so the Undo toast is not hidden behind it. -->
 		<DueDoses {day} title={t('dose.card.today')} asNeeded ondone={() => (open = false)} />
+		{@render another()}
 	{:else}
 		<p class="muted none">{t('dose.none')}</p>
 		<Button
@@ -32,10 +46,14 @@
 				openMedication();
 			}}><Icon name="plus" size={20} />{t('meds.add')}</Button
 		>
+		{@render another()}
 	{/if}
 </Sheet>
 
 <style>
+	.another {
+		margin-top: var(--sp-3);
+	}
 	.none {
 		margin-bottom: var(--sp-4);
 	}
