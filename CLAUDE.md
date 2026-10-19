@@ -129,7 +129,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in progress; iPhone check of reminders pending (owner)._
+_Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), then 0.4.0 and M4; iPhone check of reminders pending (owner)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -181,7 +181,6 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in progress; iPhone
   (healthy). The upgrade block in docs/RELEASING.md only matched 0.1.0, so it silently kept 0.2.0; it now takes `V=<version>`,
   matches any version and stops when the tag did not change (#39). **Pending:** the owner's iPhone check (Home Screen app,
   iOS 16.4+); after that M3 is done.
-- **`feature/fluids` (in progress, before M4):** fluid intake as agreed in the decisions log; then 0.4.0, then M4 (body map).
 - **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
