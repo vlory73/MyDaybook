@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 (2026-10-19)
+
+### Features
+
+- **meds:** edit logged doses and set the time of a taken dose (#29)
+- **meds:** sachet (powder) as a medication form (#28)
+- **meds:** log a medicine that is not in the list yet (#27)
+
+### Documentation
+
+- release guide with a "Prepare release" button and a manual route (#30)
+- container commands use `cli`, record the 0.1.0 deployment (#26)
+
 ## 0.1.0 (2026-10-18)
 
 ### Features
