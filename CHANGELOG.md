@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 (2026-10-19)
+
+### Features
+
+- **fluids:** drink logging with editable presets, quantity and a plain day total (#40)
+
+### Documentation
+
+- **release:** upgrade block works from any version and stops if the tag did not change (#39)
+
 ## 0.3.0 (2026-10-19)
 
 ### Features
