@@ -52,7 +52,7 @@ export function sqliteHandle(): Database.Database {
 	return ensure().sqlite;
 }
 
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 /**
  * Runs `fn` in an IMMEDIATE transaction: the write lock is taken up front. A deferred transaction that reads and

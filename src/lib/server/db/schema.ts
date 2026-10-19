@@ -146,6 +146,12 @@ export const handovers = sqliteTable(
 	(t) => [index('handovers_dependent_idx').on(t.dependentId)]
 );
 
+/**
+ * Web Push subscriptions (D7, payload-less). `schedule` is the only thing the server learns about reminders: a time zone
+ * and a list of { time, days } slots, deliberately not linked to any medication (THREAT_MODEL). `keys` (p256dh, auth)
+ * are stored but unused, because pushes carry no payload. `lastFired` is a JSON list of "YYYY-MM-DDTHH:MM" slot keys
+ * (local date and time) that were already sent in the current catch-up window.
+ */
 export const pushSubscriptions = sqliteTable(
 	'push_subscriptions',
 	{
@@ -153,26 +159,15 @@ export const pushSubscriptions = sqliteTable(
 		userId: userId(),
 		endpoint: text('endpoint').notNull(),
 		keys: text('keys').notNull(), // JSON { p256dh, auth }
-		createdAt: integer('created_at').notNull()
+		schedule: text('schedule').notNull().default('{"tz":"UTC","slots":[]}'), // JSON { tz, slots: [{ time, days }] }
+		lastFired: text('last_fired').notNull().default('[]'), // JSON string[]
+		createdAt: integer('created_at').notNull(),
+		updatedAt: integer('updated_at').notNull().default(0)
 	},
 	(t) => [
 		uniqueIndex('push_subscriptions_endpoint_idx').on(t.endpoint),
 		index('push_subscriptions_user_idx').on(t.userId)
 	]
-);
-
-// Deliberately not linked to any medication (threat model).
-export const reminderSlots = sqliteTable(
-	'reminder_slots',
-	{
-		id: text('id').primaryKey(),
-		userId: userId(),
-		localTime: text('local_time').notNull(), // HH:MM
-		weekdayMask: integer('weekday_mask').notNull(), // bit 0 = Monday ... bit 6 = Sunday
-		timeZone: text('time_zone').notNull(), // IANA
-		enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true)
-	},
-	(t) => [index('reminder_slots_user_idx').on(t.userId)]
 );
 
 export const securityEvents = sqliteTable(
