@@ -81,7 +81,6 @@ test('All taken with one Undo, skipped, taken late, as-needed, quick-log tile; s
 	const day = await localDay(page);
 	await doseRow(page, beta).click();
 	const lateSheet = page.getByRole('dialog', { name: beta });
-	await expect(lateSheet.getByLabel('When did you take it?')).toBeHidden();
 	await lateSheet.getByRole('radio', { name: 'Taken late' }).click();
 	await expect(lateSheet.getByLabel('When did you take it?')).toHaveValue(
 		new RegExp(`^${day}T\\d\\d:\\d\\d$`)

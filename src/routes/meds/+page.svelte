@@ -3,7 +3,7 @@
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { scheduleSummary } from '$lib/meds/schedule';
-	import { openMedication } from '$lib/records/editor.svelte';
+	import { openAdhocDose, openMedication } from '$lib/records/editor.svelte';
 	import { todayKey } from '$lib/records/time';
 	import { allRecords, store } from '$lib/records/store.svelte';
 	import type { MedicationPayload } from '$lib/records/types';
@@ -37,13 +37,19 @@
 
 {#snippet row(item: Med)}
 	<li>
-		<button type="button" class="med" onclick={() => openMedication(item.id)}>
+		<button
+			type="button"
+			class="med"
+			aria-label={t('meds.edit.aria', { name: item.med.name })}
+			onclick={() => openMedication(item.id)}
+		>
 			<CategoryBadge category="meds" size={40} />
 			<span class="text">
 				<b>{item.med.name}</b>
 				<span class="muted">{detail(item.med)}</span>
 				<span class="muted">{scheduleSummary(item.med, t, i18n.locale)}</span>
 			</span>
+			<span class="edit" aria-hidden="true">{t('meds.edit')}</span>
 			<Icon name="chevron-right" size={18} />
 		</button>
 	</li>
@@ -58,6 +64,9 @@
 <div class="add">
 	<Button variant={meds.length === 0 ? 'primary' : 'soft'} block onclick={() => openMedication()}
 		><Icon name="plus" size={20} />{t('meds.add')}</Button
+	>
+	<Button variant="soft" block onclick={() => openAdhocDose()}
+		><Icon name="plus" size={20} />{t('adhoc.open')}</Button
 	>
 </div>
 
@@ -100,11 +109,20 @@
 		gap: 2px;
 		overflow-wrap: anywhere;
 	}
+	.edit {
+		flex: none;
+		color: var(--primary-press);
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-semibold);
+	}
 	.text .muted {
 		font-size: var(--fs-footnote);
 	}
 	.add {
 		margin-top: var(--sp-4);
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-3);
 	}
 	.archived {
 		margin-top: var(--sp-5);

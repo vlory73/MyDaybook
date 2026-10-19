@@ -398,7 +398,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `gut` ★ | time, symptoms (1–2 of `nausea` / `heartburn`, each with intensity 1–5), context flags (vomited, after a meal, lying down, at night; `vomited` only with nausea), note. Records only: a flag never triggers a message or alert (MDR), as for bowel | 2 taps + Save |
 | `pain` | points (region, side, space, u, v, intensity, quality, note) | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
-| `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm |
+| `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm. A medicine not in the list can be logged from the Medicine sheet ("Log another medicine"); it is saved as a "when needed" medication (archived when "Keep in my medicines" is off), so every dose still links to a medication. The time of a taken dose can be set or corrected in the dose sheet; an as-needed dose can be moved to another medicine |
 | `note` | free text, tags | |
 | `settings`, `tag` | client settings, tag definitions | |
 

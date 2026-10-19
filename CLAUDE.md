@@ -105,6 +105,8 @@ Other key documents:
 | 2026-10-18 | TOTP: using the recovery key bypasses and switches off two-step sign-in; no backup codes in v1; optional `E2E_PORT` test setting kept | Owner, PR #12 |
 | 2026-10-18 | M3 approved: medication, doses, reminders (Web Push opt-in, needs an installed PWA on iOS 16.4+; iPhone check after 0.1.0), plus nausea/heartburn logging moved from the backlog into M3 | Owner |
 | 2026-10-18 | Medication: weekdays not preselected, amount may be empty, times follow the phone's 12/24-hour setting (not forced). Nausea/heartburn gets its own stomach icon (CC0, drawn in-house) | Owner, PRs #15/#16 |
+| 2026-10-19 | "Log another medicine" (ad-hoc dose) built before reminders; "Keep in my medicines" on by default; suggestions from the person's own medicines only. Built-in medicine name list goes to the backlog | Owner |
+| 2026-10-19 | Tester feedback: visible Edit on Meds rows; logged doses editable (time for Taken as well as Taken late; an as-needed dose can move to another medicine); "Sachet (powder)" form added | Owner |
 | 2026-10-18 | Doses: "All taken" only for slots with 2+ open doses; doses of archived/changed medications stay on the timeline only; duplicate times on one medication to be refused in the set-up sheet (follow-up). Order changed: Pi setup (Docker image, GHCR publishing, compose, nightly backup) and 0.1.0 before reminders | Owner, PR #19 |
 | 2026-10-18 | Backups: the NAS is off during the night, so everything must be done by 01:00. App dump moves to 23:30 (new default `BACKUP_TIME`), NAS copy to 00:00; both adjustable. Replaces the 04:00 / 04:30 of D13 | Owner; confirmed by the HA session |
 
@@ -114,10 +116,13 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 - **Per-user storage quota** (deferred 2026-10-18, "much later"): e.g. `STORAGE_QUOTA_MB`, refusing uploads over it with a
   friendly message. `users.storage_bytes` already tracks usage. Raise it again only much later (not at the next milestone).
+- **Built-in medicine name list** (requested 2026-10-19): name suggestions beyond the person's own history, bundled in the app
+  (no runtime lookups). First check the licence (CC0/CC-BY only; e.g. the Danish Medicines Agency's product data) and the size
+  (over 1 MB needs approval); names only, never strengths, doses or interactions, and typed text always stays free.
 
 ## Current status
 
-_Last updated: 2026-10-18, M3 (feature/doses)._
+_Last updated: 2026-10-19, end of session (next: 0.2.0 by the owner, then feature/reminders)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -131,12 +136,12 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   helper (`src/lib/meds/schedule.ts`, for doses); screenshots in `docs/screenshots/medication/`.
   `feature/doses` merged (#19): `dose` record, due doses computed on the device (`src/lib/meds/due.ts`), "All taken" per slot with one Undo,
   Today / Meds / quick-log "Medicine" cards, timeline entries; screenshots in `docs/screenshots/doses/`.
-  `feature/backup` built: nightly backup job, `cli.mjs backup`, verified dumps, blob mirror (`scripts/backup-core.mjs`).
+  `feature/backup` merged (#21): nightly backup job, `cli backup`, verified dumps, blob mirror (`scripts/backup-core.mjs`).
   `feature/log-gut` merged (#15): nausea / heartburn quick-log tile and sheet (`gut` record); screenshots in
   `docs/screenshots/log-gut/`.
-- **feature/docker built:** `Dockerfile` (pinned node:24-bookworm-slim, non-root, read-only root), `scripts/docker-entrypoint.sh`,
+- **feature/docker merged (#22):** `Dockerfile` (pinned node:24-bookworm-slim, non-root, read-only root), `scripts/docker-entrypoint.sh`,
   `gen-secrets`, `cli` command, root `compose.yaml`, `.env.example`, `TRUSTED_PROXY` support (`src/lib/server/auth/proxy.ts`).
-- **feature/image-publish built:** CI builds and starts the image on amd64 and arm64 for every PR, publishes `:edge` on merges
+- **feature/image-publish merged (#23):** CI builds and starts the image on amd64 and arm64 for every PR, publishes `:edge` on merges
   into develop, and `release.yml` publishes `:X.Y.Z` + `:latest` with the changelog (`scripts/changelog.mjs`) on a release.
   Owner step after the first publish: make the GHCR package public (CONTRIBUTING "Releases and images").
 - **M1 contents:** SvelteKit app shell (client-side rendering, adapter-node), design tokens + 12 core components, typed i18n
@@ -146,7 +151,17 @@ _Last updated: 2026-10-18, M3 (feature/doses)._
   SECURITY. Screenshots in `docs/screenshots/m1/`.
 - **Decisions D1–D23 all approved.** The owner is setting up branch protection (rulesets for `develop`, `main` and `v*` tags,
   see "Branch protection" in CONTRIBUTING.md).
-- **Promised to the owner:** say when 0.1.0 is published (and report any change to the Pi agreement); ask about the first admin
-  invite (Q1) at 0.1.0, and about a staging copy on the Pi (Q4) only if it becomes relevant. Raise the backlog items when
-  planning the next milestone.
-- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`. The image-publishing workflow and the `cli backup` command are separate branches.
+- **0.1.0 released** (2026-10-18): release PR #24 into main, owner's GitHub release, image `ghcr.io/vlory73/mydaybook:0.1.0`
+  (amd64 + arm64, public), main merged back into develop (#25). Deployed on the Pi by the HA session (healthy, proxy trusted,
+  NAS copy at 00:00 tested with a restore). In the container the command is `cli …` (see docs/HOME_DEPLOYMENT.md).
+- **`feature/dose-edit` merged (#29):** Edit label on Meds rows, date and time for Taken, medicine picker for as-needed doses
+  (`src/lib/meds/doseTime.ts`); screenshots in `docs/screenshots/dose-edit/`. `feature/med-form-sachet` merged (#28): sachet form.
+- **`feature/dose-adhoc` merged (#27):** "Log another medicine" in the Medicine sheet and on Meds (`AdhocDoseSheet.svelte`,
+  `src/lib/meds/adhoc.ts`); screenshots in `docs/screenshots/dose-adhoc/`.
+- **Release guide:** `docs/RELEASING.md` (owner's step-by-step for releases and Pi upgrades). The owner plans to release 0.2.0
+  on their own with it.
+- **Open decision (from #27):** medicines from "Log another medicine" show "Other" as their form on Meds; keep, or hide it?
+- **Next:** `feature/reminders` (last M3 part), checked on the owner's iPhone against the Pi.
+- **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
+  relevant. The storage quota stays in the backlog ("much later").
+- **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

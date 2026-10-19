@@ -117,6 +117,7 @@ export const MED_FORMS = [
 	'cream',
 	'patch',
 	'injection',
+	'sachet',
 	'other'
 ] as const;
 /** Suggested units; `unit` itself is free text (up to 40 characters), so "other" is simply what the person typed. */
