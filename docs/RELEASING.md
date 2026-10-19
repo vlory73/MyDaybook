@@ -178,23 +178,32 @@ Send it something like:
 
 ```text
 APP UPDATE: mydaybook 0.2.0 is released (ghcr.io/vlory73/mydaybook:0.2.0, amd64 + arm64).
-In ~/mydaybook: take a backup first (docker compose exec app cli backup), change the image tag in compose.yaml to 0.2.0,
-docker compose pull && docker compose up -d, then check http://127.0.0.1:8090/healthz and docker compose logs --tail 50 app.
+In ~/mydaybook: take a backup first (docker compose exec app cli backup), change the image tag in compose.yaml to 0.2.0
+(whatever version runs now) and check with grep that it changed, then docker compose pull && docker compose up -d, then check http://127.0.0.1:8090/healthz and docker compose logs --tail 50 app.
 Compare compose.yaml and .env.example with the repo at tag v0.2.0 and report any difference before changing them.
 ```
 
 ### Option B: do it yourself on the Pi
 
+Set `V` to the new version and paste the whole block. It works whatever version the Pi runs now, and it stops with an error
+instead of carrying on when a step fails (for example when the tag in `compose.yaml` did not change).
+
 ```sh
-cd ~/mydaybook
-docker compose exec app cli backup                 # a fresh, verified backup before upgrading; prints the file name
-sed -i 's|mydaybook:0\.1\.0|mydaybook:0.2.0|' compose.yaml
-grep image: compose.yaml                           # should show :0.2.0
+cd ~/mydaybook && V=0.3.0 sh -eu <<'UPGRADE'
+docker compose exec -T app cli backup             # a fresh, verified backup first; prints the file name
+sed -i -E "s|(ghcr\.io/vlory73/mydaybook:)[0-9]+\.[0-9]+\.[0-9]+|\1$V|" compose.yaml
+grep -q "ghcr.io/vlory73/mydaybook:$V\$" compose.yaml || { echo "STOP: compose.yaml does not pin $V"; exit 1; }
+grep image: compose.yaml
 docker compose pull
 docker compose up -d
-curl -s http://127.0.0.1:8090/healthz              # {"status":"ok"}
-docker compose logs --tail 50 app                  # look for errors; "migrate" lines are normal after an update
+sleep 5
+curl -fsS http://127.0.0.1:8090/healthz; echo      # {"status":"ok"}
+docker compose logs --tail 50 app | grep -E 'migrat|push_schedule|error' || true
+UPGRADE
 ```
+
+The last line shows the migration and reminder lines; `"push_schedule","enabled":true` means reminders are running (0.3.0 and
+later). Any `error` line is worth a look.
 
 Then open the app on your phone. The installed app picks up the new version on its next start; if it still looks old, close it
 completely and open it again.
@@ -243,7 +252,7 @@ session should no longer run `docker compose` in `~/mydaybook`.
 **C2. Every upgrade after the move:**
 
 1. Backup: Containers → `mydaybook-app-1` → **Console** → `cli backup`.
-2. **Stacks → mydaybook → Editor**: change `ghcr.io/vlory73/mydaybook:0.1.0` to `:0.2.0`.
+2. **Stacks → mydaybook → Editor**: change the version after `ghcr.io/vlory73/mydaybook:` (for example `0.2.0`) to the new one.
 3. Click **Update the stack**, with **Re-pull image and redeploy** switched on.
 4. Check the container's **Logs** and `/healthz`, then open the app.
 
