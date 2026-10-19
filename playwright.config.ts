@@ -31,6 +31,12 @@ export default defineConfig({
 			DATA_DIR: 'test-results/e2e-data',
 			// Plain http on 127.0.0.1: the session cookie is `sid` without Secure (ARCHITECTURE §3.2).
 			COOKIE_SECURE: 'false',
+			// Reminders (D7): a synthetic key pair so the feature is on, and no scheduler, so tests never call a push service.
+			VAPID_PUBLIC_KEY:
+				'BMeg_PsVjfOosJOG529LOXKd0LWZFTqK11kwK_i4bMfqBtDg6jLfz3Sj1Kx6416WFfHjCIVfH8sQL14LAkGfKKA',
+			VAPID_PRIVATE_KEY: '3vafNk2m7XwfPBcyZ_fhLMKc_oBBZm5g-wpZCK0XgaY',
+			VAPID_SUBJECT: 'mailto:e2e@example.invalid',
+			PUSH_SCHEDULER: 'off',
 			// Synthetic test value, not a secret.
 			SESSION_SECRET: 'e2e-synthetic-session-secret-not-for-production',
 			// Per-user-name burst is small enough for a quick rate-limit test; the IP bucket is loose because every

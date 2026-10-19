@@ -68,3 +68,22 @@ peer, `172.30.90.1`, is trusted. The NAS copy of `~/mydaybook/backup/` runs at 0
 
 **Our follow-ups:** report any change to the above to the Home Assistant session, and ask the owner about a staging copy
 (question 4) only if it becomes relevant.
+
+## Reminders (0.3.0): change to the agreement
+
+Reminders (Web Push) add one setting and one outbound connection. Both are optional: without them the app runs as before and the
+Me screen says reminders are not set up.
+
+- **New setting:** `VAPID_SUBJECT=mailto:you@example.org` (or an `https:` URL) in `~/mydaybook/.env`, next to `VAPID_PUBLIC_KEY` and
+  `VAPID_PRIVATE_KEY`, which `gen-secrets` already wrote on the first deploy (check with `grep -c VAPID_ .env`, expect 3 with the
+  subject; never print the values). A new install gets all three lines from `gen-secrets` plus `VAPID_SUBJECT` from `.env.example`.
+  Apply with `docker compose up -d`. `compose.yaml` needs no change, because it passes the whole `.env` on.
+- **Outbound HTTPS from the container** to the push services of the phones' makers: `*.push.apple.com` (iPhone), `fcm.googleapis.com`
+  (Android and Chrome), `updates.push.services.mozilla.com` (Firefox) and `*.notify.windows.com`. The app refuses any other
+  host. The request has no body, so nothing about the diary leaves the Pi.
+- **Time zone:** each device uploads its own IANA time zone, so the Pi's `TZ` does not matter for reminders.
+- **iPhone:** reminders need the app on the Home Screen and iOS 16.4 or newer; the permission prompt appears when the person
+  turns the switch on under Me.
+- **Database:** the upgrade runs one migration (`push_subscriptions` gets the schedule columns; the unused `reminder_slots` table
+  is dropped). The usual pre-migration backup is made first. Nightly backups include subscriptions; a restore keeps them working.
+- **`PUSH_SCHEDULER=off`** switches the minute tick off while keeping the API (tests only).

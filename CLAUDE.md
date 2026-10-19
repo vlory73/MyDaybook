@@ -122,7 +122,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, after 0.2.0 (next: feature/reminders)._
+_Last updated: 2026-10-19, `feature/reminders` ready for review (after 0.2.0)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -165,7 +165,11 @@ _Last updated: 2026-10-19, after 0.2.0 (next: feature/reminders)._
   in `/boot/firmware/cmdline.txt` + reboot, via the HA session, not done yet). The owner keeps docker compose; Portainer is only
   a fallback.
 - **Open decision (from #27):** medicines from "Log another medicine" show "Other" as their form on Meds; keep, or hide it?
-- **Next:** `feature/reminders` (last M3 part), checked on the owner's iPhone against the Pi.
+- **`feature/reminders` (last M3 part, in review):** opt-in per device. The device uploads only `{ tz, slots: [{ time, days }] }`
+  (`src/lib/push/schedule.ts`), the server keeps it in `push_subscriptions` and a one-minute tick (`src/lib/server/push/`) sends empty
+  VAPID-signed pushes (own ES256 code, `node:crypto`, endpoint allowlist); the service worker shows a fixed neutral text. Needs
+  `VAPID_SUBJECT` in the Pi's `.env` (docs/HOME_DEPLOYMENT.md); screenshots in `docs/screenshots/reminders/`.
+  **Still to do:** check on the owner's iPhone against the Pi (Home Screen app, iOS 16.4+).
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
