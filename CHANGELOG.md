@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 (2026-10-19)
+
+### Features
+
+- **bodymap:** entry sheet, "Same as last time" and the "Still there?" card (M4 branch 2) (#45)
+- **bodymap:** region catalogue, BodyMap and Find components, pain validator (M4 branch 1) (#44)
+
 ## 0.4.0 (2026-10-19)
 
 ### Features
