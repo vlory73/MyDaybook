@@ -269,7 +269,7 @@ const isAttachmentRef = (x: unknown): x is AttachmentRef =>
 	isInt(x.h, 1, 20_000) &&
 	x.mime === 'image/jpeg';
 
-const isAttachments = (x: unknown): x is AttachmentRef[] =>
+export const isAttachments = (x: unknown): x is AttachmentRef[] =>
 	x === undefined || (Array.isArray(x) && x.length <= MAX_ATTACHMENTS && x.every(isAttachmentRef));
 
 const isExposures = (x: unknown): x is Exposure[] =>

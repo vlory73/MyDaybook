@@ -1,12 +1,14 @@
 <!-- i18n-ignore-file: developer-only showcase, not shown to users (gated by STYLEGUIDE=1). -->
 <script lang="ts">
 	import {
+		BodyMap,
 		Button,
 		Card,
 		CategoryBadge,
 		Chip,
 		EmptyState,
 		Icon,
+		RegionFinder,
 		ScalePicker,
 		Segmented,
 		Sheet,
@@ -16,6 +18,8 @@
 		categories,
 		type Category
 	} from '$lib/components';
+	import { i18n } from '$lib/i18n/index.svelte';
+	import { regionName, type BodyPlace, type View } from '$lib/bodymap/catalogue';
 
 	let period = $state<'week' | 'month' | 'year'>('week');
 	let mood = $state(4);
@@ -25,6 +29,22 @@
 	let sheetOpen = $state(false);
 	let qualities = $state<Record<string, boolean>>({ Aching: true });
 	const cats = Object.keys(categories) as Category[];
+
+	let mapView = $state<View>('front');
+	let tapped = $state<BodyPlace | null>(null);
+	let picked = $state('');
+	// Synthetic points, only to show the dots.
+	const demoPoints: {
+		region: 'knee' | 'shoulder';
+		side: 'left' | 'right';
+		space: '2d-front-v1';
+		u: number;
+		v: number;
+		intensity: number;
+	}[] = [
+		{ region: 'knee', side: 'right', space: '2d-front-v1', u: 0.5, v: 0.5, intensity: 6 },
+		{ region: 'shoulder', side: 'left', space: '2d-front-v1', u: 0.6, v: 0.4, intensity: 2 }
+	];
 
 	let cryptoResult = $state('running…');
 	$effect(() => {
@@ -109,6 +129,26 @@
 
 <Card title="Empty state">
 	<EmptyState icon="sunrise" title="A fresh page" body="Nothing logged yet today." />
+</Card>
+
+<Card title="Body map">
+	<BodyMap bind:view={mapView} points={demoPoints} selected={tapped} ontap={(place) => (tapped = place)} />
+	<p class="muted" data-testid="bodymap-tap">
+		{#if tapped}{regionName(i18n.locale, tapped.region, tapped.side)} · {tapped.space} · u {tapped.u.toFixed(
+				2
+			)}, v {tapped.v.toFixed(2)}{:else}Nothing chosen{/if}
+	</p>
+</Card>
+
+<Card title="Find a body part">
+	<RegionFinder
+		view={mapView}
+		onpick={(place, name) => {
+			tapped = place;
+			picked = `${name} · ${place.space} · u ${place.u}, v ${place.v}`;
+		}}
+	/>
+	<p class="muted" data-testid="bodymap-pick">{picked || 'Nothing chosen'}</p>
 </Card>
 
 <Card title="Crypto self-test">
