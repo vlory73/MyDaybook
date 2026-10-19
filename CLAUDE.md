@@ -197,6 +197,11 @@ _Last updated: 2026-10-19, 0.3.0 on the Pi; `feature/fluids` in review (#40), th
   (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
 - **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
   with an older copy of the block. Copy it fresh from the doc.
+- **`feature/bodymap-entry` (M4 branch 2, in review):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
+  (`cat.pain` now reads "Body map" / "Kropskort"); `BodyMapSheet.svelte` ("Where do you feel it?": map, Find, pinned point panel with
+  intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
+  time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
+  `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

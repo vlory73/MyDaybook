@@ -1,13 +1,13 @@
 import type { DoseSlot } from './types';
 
-export type LogKind = 'feeling' | 'sleep' | 'measurement' | 'bowel' | 'gut' | 'food' | 'drink';
+export type LogKind = 'feeling' | 'sleep' | 'measurement' | 'bowel' | 'gut' | 'food' | 'drink' | 'pain';
 
 /** Which entry sheet is open. The layout renders the sheets; any screen can open one. */
 export const editor = $state<{
 	/** The note sheet: `{ id }` to edit, `{ id: null }` for a new note. */
 	note: { id: string | null } | null;
-	/** The other entry sheets: `id` to edit, null for a new entry; `typeId` preselects a measurement type. */
-	log: { kind: LogKind; id: string | null; typeId?: string } | null;
+	/** The other entry sheets: `id` to edit, null for a new entry; `typeId` preselects a measurement type; `same` starts a body map entry from the last one. */
+	log: { kind: LogKind; id: string | null; typeId?: string; same?: boolean } | null;
 	/** The medication set-up sheet: `{ id }` to edit, `{ id: null }` for a new medication. */
 	med: { id: string | null } | null;
 	/**
@@ -23,8 +23,11 @@ export const editor = $state<{
 export const openNote = (id: string | null = null) => {
 	editor.note = { id };
 };
-export const openLog = (kind: LogKind, options: { id?: string | null; typeId?: string } = {}) => {
-	editor.log = { kind, id: options.id ?? null, typeId: options.typeId };
+export const openLog = (
+	kind: LogKind,
+	options: { id?: string | null; typeId?: string; same?: boolean } = {}
+) => {
+	editor.log = { kind, id: options.id ?? null, typeId: options.typeId, same: options.same };
 };
 export const openMedication = (id: string | null = null) => {
 	editor.med = { id };
