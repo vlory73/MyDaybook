@@ -84,8 +84,10 @@ test('log another medicine: keep on and off, existing name, Undo, reload, cipher
 
 	// Reload and unlock: everything is still there.
 	await page.reload();
+	await expect(page.getByRole('heading', { name: 'Your diary is locked' })).toBeVisible();
 	await unlockWith(page, user.passphrase);
-	await expect(timeline(page).getByText(`${kept} · Taken`)).toHaveCount(2);
+	// After unlock the records are synced and decrypted first; WebKit on CI can take longer than the default 5 s.
+	await expect(timeline(page).getByText(`${kept} · Taken`)).toHaveCount(2, { timeout: 15_000 });
 	await expect(timeline(page).getByText(`${dropped} · Taken`)).toBeVisible();
 	await expect(timeline(page).getByText(`${undone} · Taken`)).toBeHidden();
 
