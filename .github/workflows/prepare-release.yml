@@ -1,0 +1,71 @@
+name: Prepare release
+
+# The owner starts this from the Actions tab (docs/RELEASING.md, route A). It creates release/vX.Y.Z from develop with the
+# version bump, the image tags and the changelog, and pushes it. The owner then opens the PR into main from the link in the
+# run summary: a PR opened by this workflow's token would not start CI, so a person opens it.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, X.Y.Z (for example 0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Check the version
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::'$VERSION' is not X.Y.Z"; exit 1; }
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          # Full history and tags: the changelog lists the commits since the last vX.Y.Z tag.
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Create release/v${{ inputs.version }}
+        run: |
+          branch="release/v$VERSION"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "::error::$branch already exists. Delete it on GitHub first if you want to start over."
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists: that version has been released."
+            exit 1
+          fi
+          git switch -c "$branch"
+          node scripts/release-prep.mjs "$VERSION"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m "chore(release): $VERSION"
+          git push -u origin "$branch"
+      - name: Summary with the next step
+        run: |
+          url="https://github.com/${GITHUB_REPOSITORY}/compare/main...release/v${VERSION}?expand=1&title=Release%20${VERSION}"
+          {
+            echo "## release/v${VERSION} is ready"
+            echo
+            echo "**Next step:** [open the pull request into main](${url}), wait for CI, then merge it with a merge commit."
+            echo
+            echo "### Changelog section"
+            echo
+            node scripts/changelog.mjs --extract "$VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"

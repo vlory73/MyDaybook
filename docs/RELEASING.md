@@ -4,7 +4,7 @@ How a new version gets from `develop` to the Raspberry Pi. It follows the gitflo
 [CONTRIBUTING.md](../CONTRIBUTING.md). Versions follow SemVer and stay on `0.x` until the public release: new features bump
 the minor version (0.1.0 → 0.2.0); fixes only bump the patch version (0.2.0 → 0.2.1).
 
-**The short version:** release branch → PR into `main` (merge commit) → GitHub release `vX.Y.Z` → automatic image → PR
+**The short version:** release branch (a button on GitHub, or one command) → PR into `main` (merge commit) → GitHub release `vX.Y.Z` → automatic image → PR
 `main` back into `develop` → change the tag on the Pi.
 
 ---
@@ -35,15 +35,41 @@ These were done once and don't need repeating. They're listed so a fresh start i
 
 ## Part 2: Every release
 
-The example uses **0.2.0**; replace it with the version you're releasing.
+The example uses **0.2.0**; replace it with the version you're releasing. Before you start, every feature PR for this release
+must be merged into `develop`, with CI green.
 
-### What you need
+Steps 1 to 4 prepare the release branch. There are two routes; pick either one each time. Both produce the same branch,
+and steps 5 to 8 are the same for both.
 
-- A computer with **git** and **Node 24** (`node --version`).
-- A local clone of the repository (`git clone https://github.com/vlory73/MyDaybook.git`).
-- Every feature PR for this release merged into `develop`, with CI green.
+- **Route A, in the browser:** the "Prepare release" button on GitHub does steps 1 to 3 for you. Nothing to install.
+- **Route B, on your computer:** you run the same preparation yourself. Needs git and Node 22.12 or newer.
 
-### Step 1: Create the release branch
+### Route A: in the browser
+
+**Step 1. Run "Prepare release".** On GitHub: **Actions** → **Prepare release** (left column) → **Run workflow**. Leave
+"Use workflow from" on `develop`, type the version (`0.2.0`, without a `v`) and click **Run workflow**.
+
+**Step 2. Wait for the green tick** (about a minute), then open the run. Its summary shows the new changelog section and a
+link: **open the pull request into main**.
+
+- If the run is red, open it to read why. Common reasons: the version is not X.Y.Z, it is not higher than the current one,
+  or `release/v0.2.0` already exists (delete that branch under **Branches** and run again).
+
+**Step 3. Review the changelog** (optional). The section is generated from the commit titles since the last release. To
+reword it, open the branch `release/v0.2.0`, open `CHANGELOG.md`, click the pencil icon, edit and **Commit changes**
+directly to `release/v0.2.0`. Keep the heading line `## 0.2.0 (date)` exactly as it is.
+
+**Step 4. Open the PR.** Click the link from step 2. It opens a pull request with **base: `main`** and
+**compare: `release/v0.2.0`**, titled `Release 0.2.0`. Click **Create pull request** and wait for CI to go green.
+
+Continue with step 5 below.
+
+### Route B: on your computer
+
+You need **git**, **Node 22.12 or newer** (`node --version`) and a clone of the repository
+(`git clone https://github.com/vlory73/MyDaybook.git`).
+
+**Step 1. Create the release branch.**
 
 ```sh
 cd MyDaybook
@@ -51,37 +77,37 @@ git fetch origin --tags
 git switch -c release/v0.2.0 origin/develop
 ```
 
-### Step 2: Bump the version
+**Step 2. Prepare it with one command.**
 
 ```sh
-npm version 0.2.0 --no-git-tag-version      # updates package.json and package-lock.json, makes no tag
+node scripts/release-prep.mjs 0.2.0
 ```
 
-Then change the pinned image tag from the old version to `0.2.0` in these three places, by hand:
+It does three things and commits nothing:
 
-| File | Line to change |
-| --- | --- |
-| `compose.yaml` | `image: ghcr.io/vlory73/mydaybook:0.2.0` |
-| `README.md` | `docker run --rm ghcr.io/vlory73/mydaybook:0.2.0 gen-secrets >> .env` |
-| `.env.example` | `#   docker run --rm ghcr.io/vlory73/mydaybook:0.2.0 gen-secrets >> .env` |
+- sets the version in `package.json` and `package-lock.json`;
+- moves the pinned image tag (`ghcr.io/vlory73/mydaybook:0.1.0` → `0.2.0`) in `compose.yaml`, `README.md` and
+  `.env.example`;
+- adds a `## 0.2.0 (date)` section to the top of `CHANGELOG.md`, built from the commits since the last tag (`v0.1.0`).
 
-Check that you found them all (only `CHANGELOG.md` and the docs history should still mention the old version):
+It stops with a message if the version is not higher than the current one, or if a file no longer names the old tag.
 
-```sh
-git grep -n "mydaybook:0\.1\.0"
-```
+<details>
+<summary>Without the script (fully by hand)</summary>
 
-### Step 3: Write the changelog
+1. In `package.json`, change `"version"` to `"0.2.0"`. Then run `npm install --package-lock-only` to update
+   `package-lock.json` (or change the two `"version"` lines at the top of `package-lock.json` by hand).
+2. Change `mydaybook:0.1.0` to `mydaybook:0.2.0` in `compose.yaml`, `README.md` and `.env.example`. Check with
+   `git grep -n "mydaybook:0\.1\.0"`: only the docs history may still name the old version.
+3. Run `node scripts/changelog.mjs 0.2.0`, or write the section yourself at the top of `CHANGELOG.md`, under `# Changelog`:
+   `## 0.2.0 (YYYY-MM-DD)`, then `### Features` / `### Fixes` lists.
 
-```sh
-node scripts/changelog.mjs 0.2.0
-```
+</details>
 
-This adds a `## 0.2.0 (date)` section to the top of `CHANGELOG.md`. It is built from the commits since the last tag
-(`v0.1.0`), grouped into Features, Fixes, Documentation and so on. Open `CHANGELOG.md` and read the new section. You may reword
-lines or delete noise, but keep the heading line exactly as it is: the release workflow looks it up by version.
+**Step 3. Review the changelog.** Open `CHANGELOG.md` and read the new section. You may reword lines or delete noise, but
+keep the heading line exactly as it is: the release workflow looks it up by version.
 
-### Step 4: Commit, push and open the PR into main
+**Step 4. Commit, push and open the PR into main.**
 
 ```sh
 git add -A
@@ -89,11 +115,13 @@ git commit -m "chore(release): 0.2.0"
 git push -u origin release/v0.2.0
 ```
 
-On GitHub, open a pull request with **base: `main`** and **compare: `release/v0.2.0`**. The title is
-`Release 0.2.0`; the description can be the changelog section.
+On GitHub, open a pull request with **base: `main`** and **compare: `release/v0.2.0`**, titled `Release 0.2.0`. Wait for CI
+to go green.
 
-Wait for CI to go green. If it goes red, fix it on the release branch (only release fixes belong there; features wait for the
-next version), push, and wait again.
+### Both routes: if CI is red on the release PR
+
+Fix it on the release branch (only release fixes belong there; features wait for the next version), push, and wait again.
+Or ask a Claude session to look at the failing check.
 
 ### Step 5: Merge with a merge commit
 
@@ -187,11 +215,10 @@ them with your copies on the Pi (`.env` holds your secrets, so add new settings 
 ## Quick checklist
 
 - [ ] Every feature PR merged into `develop`, CI green
-- [ ] `release/vX.Y.Z` from `origin/develop`
-- [ ] `npm version X.Y.Z --no-git-tag-version`
-- [ ] Image tag updated in `compose.yaml`, `README.md`, `.env.example`
-- [ ] `node scripts/changelog.mjs X.Y.Z`, section reviewed
-- [ ] Commit `chore(release): X.Y.Z`, push, PR into `main`, CI green
+- [ ] `release/vX.Y.Z` prepared: **Actions → Prepare release** (route A) or `node scripts/release-prep.mjs X.Y.Z` + commit +
+      push (route B)
+- [ ] Changelog section reviewed
+- [ ] PR `release/vX.Y.Z` → `main` opened, CI green
 - [ ] Merged with a merge commit
 - [ ] GitHub release with tag `vX.Y.Z` on `main` published
 - [ ] Release workflow green, image has amd64 + arm64

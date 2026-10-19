@@ -37,9 +37,10 @@ Step-by-step instructions for the owner, including deploying to the Pi: [docs/RE
 - **Every merge into develop** publishes `ghcr.io/vlory73/mydaybook:edge` (and `:edge-<sha>`) for amd64 and arm64, after the
   checks pass. Pull requests build and start the image on both architectures without publishing it.
 - **A release:**
-  1. On `release/vX.Y.Z` (from develop): set `"version"` in `package.json`, then run `node scripts/changelog.mjs X.Y.Z`, which
-     adds that version's section to `CHANGELOG.md` from the Conventional Commits since the last tag. Review it, commit, open a
-     PR into main and merge it with a merge commit.
+  1. Prepare `release/vX.Y.Z` from develop: either **Actions → Prepare release** (pushes the branch), or by hand with
+     `node scripts/release-prep.mjs X.Y.Z` (version in `package.json` and the lock file, pinned image tags, and the
+     `CHANGELOG.md` section from the Conventional Commits since the last tag), then commit and push. Review the changelog,
+     open a PR into main and merge it with a merge commit.
   2. The owner publishes a GitHub release on main with the tag `vX.Y.Z`.
   3. The `Release` workflow checks that the tag matches `package.json` and is on main, publishes `:X.Y.Z` and `:latest` for
      amd64 and arm64, starts the arm64 image as a smoke test, and puts the changelog section into the release notes (anything
