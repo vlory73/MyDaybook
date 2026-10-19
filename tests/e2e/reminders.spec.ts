@@ -104,15 +104,21 @@ test('an iPhone tab that is not on the Home Screen is told how to install', asyn
 	await expect(card(page).getByRole('switch')).toHaveCount(0);
 });
 
-test('when the server has no VAPID keys the card says reminders are not set up', async ({ page }) => {
-	await stubPush(page, endpointOf());
-	await page.route('**/api/push/key', (route) =>
-		route.fulfill({ status: 503, json: { error: 'push_not_configured' } })
-	);
-	await signUpAndSignIn(page, '/me');
-	await expect(card(page)).toHaveAttribute('data-status', 'server-off');
-	await expect(card(page).getByText('Reminders are not set up on this server.')).toBeVisible();
-	await expect(card(page).getByRole('switch')).toHaveCount(0);
+test.describe('without the service worker', () => {
+	// WebKit does not pass requests from a service-worker-controlled page through page.route; the push stub fakes the
+	// registration, so the real worker is not needed here.
+	test.use({ serviceWorkers: 'block' });
+
+	test('when the server has no VAPID keys the card says reminders are not set up', async ({ page }) => {
+		await stubPush(page, endpointOf());
+		await page.route('**/api/push/key', (route) =>
+			route.fulfill({ status: 503, json: { error: 'push_not_configured' } })
+		);
+		await signUpAndSignIn(page, '/me');
+		await expect(card(page)).toHaveAttribute('data-status', 'server-off');
+		await expect(card(page).getByText('Reminders are not set up on this server.')).toBeVisible();
+		await expect(card(page).getByRole('switch')).toHaveCount(0);
+	});
 });
 
 test('the key is served, and the worker is left a neutral sentence in the chosen language', async ({
