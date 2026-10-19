@@ -20,10 +20,11 @@
 	const active = $derived(meds.filter((m) => !m.med.archived));
 	const archived = $derived(meds.filter((m) => m.med.archived));
 
-	/** "20 µg · Tablet", exactly what was entered. */
+	/** "20 µg · Tablet", exactly what was entered; the form "Other" says nothing, so it is left out. */
 	function detail(m: MedicationPayload): string {
 		const strength = m.strength !== undefined ? `${m.strength}${m.unit ? ` ${m.unit}` : ''}` : '';
-		return [strength, t(`meds.form.${m.form}` as MessageKey)].filter(Boolean).join(' · ');
+		const form = m.form === 'other' ? '' : t(`meds.form.${m.form}` as MessageKey);
+		return [strength, form].filter(Boolean).join(' · ');
 	}
 </script>
 

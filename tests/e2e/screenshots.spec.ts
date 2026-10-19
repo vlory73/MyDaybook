@@ -451,7 +451,10 @@ for (const scheme of ['light', 'dark'] as const) {
 		});
 
 		test(`log another medicine ${scheme}`, async ({ page }) => {
-			test.skip(folder !== 'dose-adhoc', 'dose-adhoc screenshots only');
+			test.skip(
+				!['dose-adhoc', 'meds-hide-other'].includes(folder!),
+				'dose-adhoc and meds-hide-other screenshots only'
+			);
 			test.setTimeout(120_000);
 			await prepare(page, scheme);
 			await signUpAndSignIn(page, '/meds');
