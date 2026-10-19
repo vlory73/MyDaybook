@@ -23,7 +23,8 @@ describe('medication validator', () => {
 			valid,
 			merge({ schedule: { kind: 'weekdays', days: [1, 3, 5] } }),
 			merge({ schedule: { kind: 'every_n_days', n: 3, from: '2026-10-01' }, end: '2026-12-31', note: 'x' }),
-			merge({ schedule: { kind: 'as_needed' }, times: [], strength: undefined, unit: undefined })
+			merge({ schedule: { kind: 'as_needed' }, times: [], strength: undefined, unit: undefined }),
+			merge({ form: 'sachet' })
 		];
 		for (const p of ok) expect(parsePayload(p), JSON.stringify(p)).not.toBeNull();
 	});

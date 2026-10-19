@@ -47,6 +47,7 @@ export const en = {
 	'meds.form.cream': 'Cream',
 	'meds.form.patch': 'Patch',
 	'meds.form.injection': 'Injection',
+	'meds.form.sachet': 'Sachet (powder)',
 	'meds.form.other': 'Other',
 	'meds.sheet.new': 'New medication',
 	'meds.sheet.edit': 'Medication',

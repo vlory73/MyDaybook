@@ -306,9 +306,10 @@ for (const scheme of ['light', 'dark'] as const) {
 			await save();
 
 			await add('Magnesium');
+			await sheet.getByRole('button', { name: 'Sachet (powder)', exact: true }).click();
 			await sheet.getByRole('radio', { name: 'Every few days' }).click();
 			await sheet.getByRole('button', { name: 'One day more' }).click();
-			await sheet.getByLabel('Amount 1', { exact: true }).fill('2 tablets');
+			await sheet.getByLabel('Amount 1', { exact: true }).fill('1 sachet');
 			await save();
 
 			await add('Throat spray');
@@ -318,7 +319,8 @@ for (const scheme of ['light', 'dark'] as const) {
 
 			await add('Old antihistamine');
 			await save();
-			await page.getByText('Old antihistamine').click();
+			// The list row, not the same name in the Today card above it.
+			await page.getByRole('list', { name: 'Medication' }).getByText('Old antihistamine').click();
 			await page.waitForTimeout(400);
 			await sheet.getByRole('button', { name: 'Archive', exact: true }).click();
 			await page.getByRole('status').getByText('Medication archived').waitFor();

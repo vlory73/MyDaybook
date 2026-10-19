@@ -50,6 +50,7 @@ export const da: Record<MessageKey, string> = {
 	'meds.form.cream': 'Creme',
 	'meds.form.patch': 'Plaster',
 	'meds.form.injection': 'Injektion',
+	'meds.form.sachet': 'Brev (pulver)',
 	'meds.form.other': 'Andet',
 	'meds.sheet.new': 'Ny medicin',
 	'meds.sheet.edit': 'Medicin',
