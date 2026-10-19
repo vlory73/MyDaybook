@@ -40,6 +40,8 @@
 	--note-ink: #665630;
 	--gut-tint: #e6ead6;
 	--gut-ink: #4f5e26;
+	--drink-tint: #d9ecee;
+	--drink-ink: #1f5f66;
 
 	/* Sequential ramp for intensity & heat map: peach to plum (no alarm red/green) */
 	--heat-0: #f4ede4;
@@ -138,6 +140,8 @@
 		--note-ink: #e4d4a7;
 		--gut-tint: #2b3120;
 		--gut-ink: #c9d89a;
+		--drink-tint: #1b3436;
+		--drink-ink: #a6d8dc;
 		--heat-0: #2a2530;
 		--heat-1: #4a3428;
 		--heat-2: #7a4a34;
@@ -183,6 +187,8 @@
 	--note-ink: #e4d4a7;
 	--gut-tint: #2b3120;
 	--gut-ink: #c9d89a;
+	--drink-tint: #1b3436;
+	--drink-ink: #a6d8dc;
 	--heat-0: #2a2530;
 	--heat-1: #4a3428;
 	--heat-2: #7a4a34;

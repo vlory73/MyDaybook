@@ -1,4 +1,4 @@
-// Generated from static/icons.svg (Lucide, ISC; mood faces and stomach CC0). Keep in sync when adding icons.
+// Generated from static/icons.svg (Lucide, ISC; mood faces, stomach and glass CC0). Keep in sync when adding icons.
 export const iconNames = [
 	'activity',
 	'alarm-clock',
@@ -32,6 +32,7 @@ export const iconNames = [
 	'face-5',
 	'file-down',
 	'fish',
+	'glass',
 	'footprints',
 	'hand',
 	'heart-pulse',

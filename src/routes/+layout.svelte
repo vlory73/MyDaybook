@@ -27,6 +27,7 @@
 		CategoryBadge,
 		AdhocDoseSheet,
 		DoseSheet,
+		DrinkSheet,
 		EntryDetailSheet,
 		FeelingSheet,
 		Hero,
@@ -147,6 +148,7 @@
 		quickLogOpen = false;
 		if (key === 'note') openNote();
 		else if (key === 'food') openLog('food');
+		else if (key === 'drink') openLog('drink');
 		else if (key === 'feel') openLog('feeling');
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
@@ -254,6 +256,7 @@
 	<AdhocDoseSheet />
 	<BowelSheet />
 	<GutSheet />
+	<DrinkSheet />
 	<MealSheet />
 	<EntryDetailSheet />
 	<PhotoViewer />
@@ -334,6 +337,10 @@
 	.tint-gut {
 		background: var(--gut-tint);
 		color: var(--gut-ink);
+	}
+	.tint-drink {
+		background: var(--drink-tint);
+		color: var(--drink-ink);
 	}
 	.tint-measure {
 		background: var(--measure-tint);

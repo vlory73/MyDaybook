@@ -212,6 +212,47 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'today-gut', scheme);
 		});
 
+		test(`fluids sheet, preset editor and today ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'fluids', 'fluids screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const sheet = page.getByRole('dialog');
+			const open = async () => {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: 'Drink', exact: true }).click();
+				await page.waitForTimeout(400);
+			};
+			const save = async () => {
+				await sheet.getByRole('button', { name: 'Save', exact: true }).click();
+				await page.getByRole('status').getByText('Saved', { exact: true }).waitFor();
+				await page.waitForTimeout(300);
+			};
+			await open();
+			await save();
+			await open();
+			await sheet.getByRole('button', { name: 'Coffee', exact: true }).click();
+			await save();
+			await open();
+			await sheet.getByRole('button', { name: 'Wine', exact: true }).click();
+			await sheet.getByRole('button', { name: 'One more' }).click();
+			await snap(page, 'sheet-drink', scheme);
+			await save();
+			await page.locator('#main').getByText('Drinks today: 75 cl').waitFor();
+			await snap(page, 'today-drinks', scheme);
+
+			await open();
+			await sheet.getByRole('button', { name: 'Own amount' }).click();
+			await sheet.getByLabel('Amount in cl', { exact: true }).fill('12');
+			await snap(page, 'sheet-drink-amount', scheme);
+			await sheet.getByRole('button', { name: 'Edit', exact: true }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'presets-drinks', scheme);
+			const editor = page.getByRole('dialog', { name: 'Drinks and sizes' });
+			await editor.getByRole('heading', { name: 'Sizes', exact: true }).scrollIntoViewIfNeeded();
+			await page.waitForTimeout(200);
+			await snap(page, 'presets-sizes', scheme);
+		});
+
 		test(`photos meal sheet, timeline and viewer ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'photos', 'photos screenshots only');
 			await prepare(page, scheme);

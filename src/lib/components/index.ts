@@ -5,6 +5,8 @@ export { default as CategoryBadge } from './CategoryBadge.svelte';
 export { default as Chip } from './Chip.svelte';
 export { default as AdhocDoseSheet } from './AdhocDoseSheet.svelte';
 export { default as DoseSheet } from './DoseSheet.svelte';
+export { default as DrinkPresetsSheet } from './DrinkPresetsSheet.svelte';
+export { default as DrinkSheet } from './DrinkSheet.svelte';
 export { default as DueDoses } from './DueDoses.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as EntryDetailSheet } from './EntryDetailSheet.svelte';
