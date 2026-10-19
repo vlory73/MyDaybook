@@ -11,6 +11,7 @@
 import { browser } from '$app/environment';
 import { ApiError, apiGet, apiPost, setUnauthenticatedHandler } from '$lib/api';
 import type { Identity, SessionResponse, WireBundle } from '$lib/api';
+import { removeThisDevice } from '$lib/push/device';
 import { initCrypto } from '$lib/crypto/sodium';
 import { fromB64 } from '$lib/crypto/encoding';
 import { unlockWithPassphrase, wipe } from '$lib/crypto/keys';
@@ -212,6 +213,10 @@ export function lock(): void {
 
 /** Ends the server session, wipes everything held in memory. */
 export async function signOut(flash: FlashMessage | null = 'signedOut'): Promise<void> {
+	// While the session still exists: this device's reminders are removed from the server (best effort, a few seconds at most).
+	await Promise.race([removeThisDevice(), new Promise((resolve) => setTimeout(resolve, 3000))]).catch(
+		() => undefined
+	);
 	try {
 		await apiPost('/api/auth/logout');
 	} catch {
@@ -223,6 +228,7 @@ export async function signOut(flash: FlashMessage | null = 'signedOut'): Promise
 
 /** After the account was deleted on the server: forget everything and leave a goodbye message. */
 export function afterDeletion(): void {
+	void removeThisDevice(false).catch(() => undefined); // the server rows went with the account
 	dropEverything();
 	session.flash = 'deleted';
 }

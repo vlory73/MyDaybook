@@ -109,6 +109,7 @@ Other key documents:
 | 2026-10-19 | Tester feedback: visible Edit on Meds rows; logged doses editable (time for Taken as well as Taken late; an as-needed dose can move to another medicine); "Sachet (powder)" form added | Owner |
 | 2026-10-18 | Doses: "All taken" only for slots with 2+ open doses; doses of archived/changed medications stay on the timeline only; duplicate times on one medication to be refused in the set-up sheet (follow-up). Order changed: Pi setup (Docker image, GHCR publishing, compose, nightly backup) and 0.1.0 before reminders | Owner, PR #19 |
 | 2026-10-18 | Backups: the NAS is off during the night, so everything must be done by 01:00. App dump moves to 23:30 (new default `BACKUP_TIME`), NAS copy to 00:00; both adjustable. Replaces the 04:00 / 04:30 of D13 | Owner; confirmed by the HA session |
+| 2026-10-19 | Meds rows leave out the form when it is "Other" (#34). Reminders design approved: the device uploads only times + time zone (no medicine link), empty VAPID pushes via Apple/Google/Mozilla, in-house VAPID (no `web-push`, MPL-2.0), endpoint allowlist, fully neutral text "You have a reminder." | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -122,7 +123,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, after 0.2.0 (next: feature/reminders)._
+_Last updated: 2026-10-19, `feature/reminders` ready for review (after 0.2.0)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -164,8 +165,13 @@ _Last updated: 2026-10-19, after 0.2.0 (next: feature/reminders)._
   the Pi kernel has no memory-limit support, so `mem_limit` is ignored (harmless; fix = `cgroup_enable=memory cgroup_memory=1`
   in `/boot/firmware/cmdline.txt` + reboot, via the HA session, not done yet). The owner keeps docker compose; Portainer is only
   a fallback.
-- **Open decision (from #27):** medicines from "Log another medicine" show "Other" as their form on Meds; keep, or hide it?
-- **Next:** `feature/reminders` (last M3 part), checked on the owner's iPhone against the Pi.
+- **`feature/meds-hide-other` (#34, in review):** the "Other" form is no longer shown on Meds rows (owner decision from #27).
+- **`feature/reminders` (last M3 part, in review):** opt-in per device. The device uploads only `{ tz, slots: [{ time, days }] }`
+  (`src/lib/push/schedule.ts`), the server keeps it in `push_subscriptions` and a one-minute tick (`src/lib/server/push/`) sends empty
+  VAPID-signed pushes (own ES256 code, `node:crypto`, endpoint allowlist); the service worker shows a fixed neutral text. Needs
+  `VAPID_SUBJECT` in the Pi's `.env` (docs/HOME_DEPLOYMENT.md); screenshots in `docs/screenshots/reminders/`.
+  PR #35 lists six open decisions. **Still to do:** tell the HA session about `VAPID_SUBJECT` and outbound HTTPS to the push hosts,
+  release 0.3.0, then check on the owner's iPhone against the Pi (Home Screen app, iOS 16.4+).
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

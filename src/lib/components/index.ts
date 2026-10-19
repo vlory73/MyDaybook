@@ -26,6 +26,7 @@ export { default as PhotoViewer } from './PhotoViewer.svelte';
 export { default as PassphraseFields } from './PassphraseFields.svelte';
 export { default as RecoveryConfirm } from './RecoveryConfirm.svelte';
 export { default as RecoveryKey } from './RecoveryKey.svelte';
+export { default as RemindersCard } from './RemindersCard.svelte';
 export { default as ScalePicker } from './ScalePicker.svelte';
 export { default as Segmented } from './Segmented.svelte';
 export { default as SelectField } from './SelectField.svelte';

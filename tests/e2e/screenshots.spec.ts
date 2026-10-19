@@ -1,5 +1,6 @@
 import { test, type Page } from '@playwright/test';
 import { previousStepCode } from './totp-code';
+import { addMedWithReminder, endpointOf, stubPush } from './push-stub';
 import {
 	ORIGIN,
 	createInvite,
@@ -604,6 +605,41 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.getByRole('button', { name: 'Confirm' }).click();
 			await page.getByRole('heading', { name: 'Before you start' }).waitFor();
 			await snap(page, 'join-consent', scheme, true);
+		});
+
+		test(`reminders ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'reminders', 'reminders screenshots only');
+			test.setTimeout(90_000);
+			await prepare(page, scheme);
+			await stubPush(page, endpointOf());
+			await signUpAndSignIn(page, '/meds');
+			await addMedWithReminder(page, 'Synthol', '08:00');
+			await addMedWithReminder(page, 'Evening tablet', '20:00', ['Mon', 'Wed', 'Fri']);
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			const card = page.getByTestId('reminders-card');
+			await card.waitFor();
+			await page.getByText('Saved', { exact: true }).waitFor({ state: 'hidden', timeout: 15_000 });
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-reminders-off', scheme);
+			await card.getByRole('switch', { name: 'Remind me on this device' }).click();
+			await page.getByTestId('reminders-count').waitFor();
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-reminders-on', scheme);
+			await page.getByRole('radio', { name: 'Dansk' }).click();
+			await page.getByText('Påmindelser på denne enhed').waitFor();
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-reminders-on-da', scheme);
+		});
+
+		test(`reminders on an iPhone tab ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'reminders', 'reminders screenshots only');
+			await prepare(page, scheme);
+			await stubPush(page, endpointOf(), { ios: true });
+			await signUpAndSignIn(page, '/me');
+			const card = page.getByTestId('reminders-card');
+			await card.getByText(/Add to Home Screen/).waitFor();
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-reminders-ios', scheme);
 		});
 	});
 }

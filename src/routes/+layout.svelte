@@ -12,9 +12,13 @@
 	import { applyTheme, theme } from '$lib/theme.svelte';
 	import { closeEditors, openLog, openNote } from '$lib/records/editor.svelte';
 	import { againOptions, againPayload, lastUsedMeasureType, WEIGHT_ID, type Again } from '$lib/records/log';
+	import { buildReminderSchedule, scheduleKey } from '$lib/push/schedule';
+	import { saveNotificationText } from '$lib/push/locale';
+	import { refreshReminders, reminders, syncReminderSchedule, timeZone } from '$lib/push/reminders.svelte';
 	import { quickSave } from '$lib/records/quick';
 	import { watchedItems } from '$lib/records/watch';
-	import { allRecords, startRecords, syncIfStale } from '$lib/records/store.svelte';
+	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
+	import { todayKey } from '$lib/records/time';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
 		BowelSheet,
@@ -50,6 +54,7 @@
 
 	$effect(() => {
 		document.documentElement.lang = i18n.locale;
+		void saveNotificationText(t('push.body')); // the service worker shows this sentence, in the chosen language
 	});
 	$effect(() => {
 		applyTheme(theme.current);
@@ -110,6 +115,27 @@
 		};
 		document.addEventListener('visibilitychange', onVisible);
 		return () => document.removeEventListener('visibilitychange', onVisible);
+	});
+
+	// ---- Reminders (D7): the schedule of fire times is computed here and uploaded only when it changed ----
+	const reminderKey = $derived(
+		store.status === 'ready'
+			? scheduleKey(
+					buildReminderSchedule(
+						allRecords().flatMap((r) => (r.payload.type === 'medication' ? [r.payload] : [])),
+						timeZone(),
+						todayKey()
+					)
+				)
+			: null
+	);
+	$effect(() => {
+		if (session.status === 'unlocked') void refreshReminders();
+	});
+	$effect(() => {
+		if (reminderKey !== null && reminders.status !== 'checking') {
+			void syncReminderSchedule(JSON.parse(reminderKey));
+		}
 	});
 
 	const timeFormat = $derived(

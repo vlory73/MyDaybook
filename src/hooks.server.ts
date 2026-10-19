@@ -4,6 +4,7 @@ import { dataDir, migrationsFolder, sqliteHandle } from '$lib/server/db';
 import { migrateWithBackup } from '$lib/server/db/migrate';
 import { scheduleNightlyBackup } from '$lib/server/db/backup';
 import { logLine } from '$lib/server/db/log';
+import { startPushScheduler } from '$lib/server/push/scheduler';
 import { startHousekeeping } from '$lib/server/auth/events';
 import { checkApiRequest, isApiPath } from '$lib/server/auth/guard';
 import { errorResponse } from '$lib/server/auth/http';
@@ -37,6 +38,7 @@ export const init: ServerInit = async () => {
 		await migrateWithBackup(sqlite, dataDir(), migrationsFolder());
 		sessionSecret(); // warns once if SESSION_SECRET is missing
 		startHousekeeping();
+		startPushScheduler();
 		scheduleNightlyBackup(() => ({ sqlite, dataDir: dataDir() }));
 	} catch (err) {
 		logLine({ event: 'startup_failed', reason: err instanceof Error ? err.message : String(err) });
