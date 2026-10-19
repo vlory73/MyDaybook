@@ -31,3 +31,4 @@ scripts/check-*.mjs
 scripts/license-policy.mjs
 scripts/render-icons.mjs
 scripts/changelog.mjs
+scripts/release-prep.mjs
