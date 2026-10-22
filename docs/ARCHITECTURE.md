@@ -307,6 +307,24 @@ does not reveal the record type (most records fall into the first two buckets). 
     "intensity": 6, "qualities": ["aching", "throbbing"], "note": "after running" } ] }
 ```
 
+*Headache details (optional, entry level).* A `pain` entry may carry one `headache` object; entries without it stay valid.
+All fields are optional and unknown keys are refused:
+
+```json
+{ "headache": { "started": "2026-10-18T22:00:00+02:00", "stopped": "2026-10-19T02:00:00+02:00",
+  "before": ["vision", "speech"], "worseWithActivity": true, "light": true, "sound": false,
+  "trigger": "skipped lunch" } }
+```
+
+`started` and `stopped` are full local date-times rounded to the hour (minutes and seconds `00`, offset kept like every
+`at`), so a stop on the next day needs no extra field; `stopped` is not before `started`. `"stillGoing": true` replaces
+`stopped`. `before` lists changes noticed just before it started (`vision`, `feeling`, `speech`, in that order, no
+duplicates). `trigger` is 1 to 200 characters. `{}` only marks the entry as a headache (ticked without a point on the
+head). The quality list gained `constant` after `throbbing`. Nausea is not stored here: the report converts the day's
+nausea entries (`gut`) with the helpers in `src/lib/records/headache.ts`, which also derive the day's severity zone (average
+of the head-point intensities, rounded, then 1-3 mild, 4-6 moderate, 7-10 severe), the side of the head and
+pulsating / constant. Nothing is rated or advised.
+
 **Body map, ready for 3D later without migration:** `region` + `side` come from a stable, view-independent
 catalogue (`src/lib/bodymap/catalogue.ts`; side `left|right|midline`, the person's own sides, so the front view mirrors
 them). Coordinates are region-local `(u, v)` in a **named, versioned coordinate space**. A future 3D view adds a
@@ -424,7 +442,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `gut` ★ | time, symptoms (1–2 of `nausea` / `heartburn`, each with intensity 1–5), context flags (vomited, after a meal, lying down, at night; `vomited` only with nausea), note. Records only: a flag never triggers a message or alert (MDR), as for bowel | 2 taps + Save |
 | `drink` ★ | time, drink (`def:<id>` for a built-in, else the name), size name (snapshot), size in ml, count 1–10, total in ml, note. Stored in whole ml, shown in cl. Later preset edits never change an entry. Descriptive only: a plain daily sum, no goals, nudges, warnings or caffeine / alcohol calculations (D19) | Drink tile: water in 2 taps; "Same again" repeats the last drink |
 | `drink_presets` ★ | ONE record per person: drinks (built-in overrides, hidden flag, own drinks, order, usual size) and sizes (built-in overrides, hidden flag, own sizes). No record = the built-in defaults (names from i18n) | |
-| `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, aching, tingling, numb, itchy; note ≤ 500). The UI calls it "Pain" / "Smerter"; the map says "Where do you feel it?" | §5 |
+| `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, constant, aching, tingling, numb, itchy; note ≤ 500); optional `headache` details (§5). The UI calls it "Pain" / "Smerter"; the map says "Where do you feel it?" | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
 | `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm. A medicine not in the list can be logged from the Medicine sheet ("Log another medicine"); it is saved as a "when needed" medication (archived when "Keep in my medicines" is off), so every dose still links to a medication. The time of a taken dose can be set or corrected in the dose sheet; an as-needed dose can be moved to another medicine |
 | `note` | free text, tags | |

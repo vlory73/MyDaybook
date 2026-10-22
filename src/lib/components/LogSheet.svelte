@@ -6,7 +6,7 @@
 	import Sheet from './Sheet.svelte';
 	import { showToast } from './toast.svelte';
 	import { t } from '$lib/i18n/index.svelte';
-	import { closeEditors, editor, type LogKind } from '$lib/records/editor.svelte';
+	import { closeEditors, editor, leaveSheet, type LogKind } from '$lib/records/editor.svelte';
 	import { remove, save, store } from '$lib/records/store.svelte';
 	import { formatAt, toLocalInput } from '$lib/records/time';
 	import type { PhotoDrafts } from '$lib/photos/drafts.svelte';
@@ -66,7 +66,7 @@
 		if (!current) return;
 		untrack(() => {
 			const existing = current.id ? (store.items[current.id]?.payload ?? null) : null;
-			time = toLocalInput(formatAt(new Date()));
+			time = current.at && !current.id ? toLocalInput(current.at) : toLocalInput(formatAt(new Date()));
 			const same = existing && existing.type === kind ? existing : null;
 			kept = same?.attachments;
 			photos?.reset(kept);
@@ -92,7 +92,7 @@
 			}
 			await save(p, id ?? undefined);
 			void photos?.settle();
-			closeEditors();
+			leaveSheet();
 			showToast(t('entry.saved'));
 		} catch {
 			// A failed upload is reported by the photo picker itself.
@@ -123,7 +123,7 @@
 	}
 </script>
 
-<Sheet bind:open={() => target !== null, (v) => !v && closeEditors()} {title}>
+<Sheet bind:open={() => target !== null, (v) => !v && target !== null && leaveSheet()} {title}>
 	<div class="form">
 		{#if showTime}
 			<label class="time-chip">

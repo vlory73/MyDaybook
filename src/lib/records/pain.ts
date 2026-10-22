@@ -3,6 +3,7 @@
  * `pain`; the app says "Pain" and "Where do you feel it?".
  */
 import { isRegionId, isPlace, type RegionId, type Side, type Space } from '$lib/bodymap/catalogue';
+import { isHeadacheDetails, type HeadacheDetails } from './headache';
 import { isAt, isAttachments, type AttachmentRef } from './types';
 
 export const PAIN_QUALITIES = [
@@ -10,6 +11,7 @@ export const PAIN_QUALITIES = [
 	'dull',
 	'burning',
 	'throbbing',
+	'constant',
 	'aching',
 	'tingling',
 	'numb',
@@ -41,6 +43,8 @@ export type PainPayload = {
 	at: string;
 	points: PainPoint[];
 	note?: string;
+	/** Optional headache details for the whole entry (ARCHITECTURE §5). */
+	headache?: HeadacheDetails;
 	attachments?: AttachmentRef[];
 };
 
@@ -79,6 +83,7 @@ export function isPainPayload(o: unknown): o is PainPayload {
 		o.points.length <= MAX_PAIN_POINTS &&
 		o.points.every(isPainPoint) &&
 		(o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_PAIN_NOTE)) &&
+		(o.headache === undefined || isHeadacheDetails(o.headache)) &&
 		isAttachments(o.attachments)
 	);
 }
