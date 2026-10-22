@@ -169,6 +169,9 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 | 2026-10-22 | #48 feedback: one recognisable footprint (five toes) for both foot faces, with Top/Sole only relabelling; count badges on the close-up buttons; belly width choices show only the half holding the tapped quarter. Open: the sole is drawn as a footprint (big toe on the same side as the top view); a code switch `SOLE_TOES_UP` would flip it | Owner |
 | 2026-10-22 | Project memory lives in this repo (CLAUDE.md), ahead of the move to a Team account; owner preferences and lessons recorded above | Owner |
 | 2026-10-22 | M3 done: reminders confirmed on the owner's iPhone against the Pi; the Pi upgrade block that asks for the version confirmed working | Owner |
+| 2026-10-22 | #48 merged: M4 complete (0.6.0 to be released by the owner) | Owner |
+| 2026-10-22 | M5 plan approved. Branches in order: `feature/headache-details` → `feature/trends` → `feature/heatmap` (→ 0.7.0) → `feature/pain-episodes` → `feature/export` → `feature/doctor-pdf` (→ 0.8.0, M5 done). Charts: hand-built SVG, no library. Trends period: 7/30/90 days + custom. Doses: plain counts per day (taken/skipped/late), no percentages. Heat map: colour = how often a region was logged, number = average intensity, plain legend, no thresholds; wider areas count towards each of their parts; body thumbnail on timeline entries. Episodes: entries made via "Same as last time"/"Log today" join the previous episode, "It's gone" ends it, link/unlink by hand. Export: one .zip (JSON + CSV + photos) with fflate (MIT, ~30 KB). PDF: browser print first (D15), pdf-lib only if the installed iPhone app fails (needs approval). Food/symptom side-by-side view (descriptive) in `feature/trends` | Owner |
+| 2026-10-22 | Headache diary (from the doctor's form "Diagnostisk hovedpinedagbog", 13 questions, one column per day): optional "Headache details" in the Pain sheet when a point is on the head or "This is a headache" is ticked: started/stopped (nearest hour), changes just before (vision, feeling, speech), worse with activity, light sensitivity, sound sensitivity, possible trigger; new quality "Constant" (Konstant) next to "Throbbing". Daily severity is derived, not asked: average of the day's head intensities → 1–3 mild, 4–6 moderate, 7–10 severe (footnote on the report), with zone labels under the 0–10 scale. Nausea is converted from nausea logging (1–2 mild, 3 moderate, 4–5 severe, none if not logged) with a "Log nausea" shortcut from the headache section and back. Medicines come from logged doses. CPR: a blank line on the report, never stored. The doctor PDF gets a "Headache diary" report in the form's layout (7 days per page) with a report language choice (Dansk/English) independent of the app language; own heading, not a copy of the printed form | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -184,7 +187,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/bodymap-zoom` (CI green; merging it completes M4 → 0.6.0). M3 done: reminders confirmed on the owner's iPhone. The upgrade block that asks for the version works. Open: the owner tests the footprint sole and gathers family feedback (keep, or flip with `SOLE_TOES_UP`). Next: plan M5 (charts, heat map, export, PDF; include pain episodes and the body thumbnail idea from the backlog)._
+_Last updated: 2026-10-22. M4 complete (#48); 0.6.0 to be released by the owner. M5 plan approved (decisions log). In progress: `feature/headache-details` (first M5 branch). Open: footprint sole feedback from the family._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -249,11 +252,12 @@ _Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/
   intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
   time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
   `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
-- **`feature/bodymap-zoom` (M4 branch 3, in review, → 0.6.0):** close-ups for head, hands and feet (`2d-head-v1`, `2d-hand-v1`, `2d-foot-v1`, 9 / 8 / 11 new regions with
+- **`feature/bodymap-zoom` (M4 branch 3, merged #48, → 0.6.0):** close-ups for head, hands and feet (`2d-head-v1`, `2d-hand-v1`, `2d-foot-v1`, 9 / 8 / 11 new regions with
   `parent` set; one hand or foot at a time with a Right / Left and Palm / Back or Top / Sole toggle; Head / Hands / Feet buttons and "Back to the body" in `BodyMapSheet.svelte`;
   Find lists them and opens the close-up), and wider areas (`belly`, `back`, and `upper_belly` / `lower_belly` on the midline; "This quarter · Upper belly · Lower belly · Whole belly"
   and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
   (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Foot: one footprint silhouette with five toes for both faces; count badges on the close-up buttons; belly width choices show only the half that holds the quarter. Screenshots in `docs/screenshots/bodymap-zoom/`.
+- **M5 (charts, heat map, export, PDF + headache diary):** plan and order in the decisions log. `feature/headache-details` in progress.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
