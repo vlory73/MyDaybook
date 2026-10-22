@@ -7,7 +7,18 @@ export const editor = $state<{
 	/** The note sheet: `{ id }` to edit, `{ id: null }` for a new note. */
 	note: { id: string | null } | null;
 	/** The other entry sheets: `id` to edit, null for a new entry; `typeId` preselects a measurement type; `same` starts a body map entry from the last one. */
-	log: { kind: LogKind; id: string | null; typeId?: string; same?: boolean } | null;
+	log: {
+		kind: LogKind;
+		id: string | null;
+		typeId?: string;
+		same?: boolean;
+		/** A new entry starts at this time ("Log nausea" from the Pain sheet) instead of now. */
+		at?: string;
+		/** The Pain sheet comes back from the nausea sheet: refill it from `backToPain.draft`. */
+		resume?: boolean;
+	} | null;
+	/** Set while the nausea sheet is open from the Pain sheet: closing or saving it returns there with the draft. */
+	backToPain: { id: string | null; draft: unknown } | null;
 	/** The medication set-up sheet: `{ id }` to edit, `{ id: null }` for a new medication. */
 	med: { id: string | null } | null;
 	/**
@@ -18,16 +29,23 @@ export const editor = $state<{
 	adhoc: boolean;
 	/** Read-only detail of an entry whose sheet does not exist yet. */
 	detail: string | null;
-}>({ note: null, log: null, med: null, dose: null, adhoc: false, detail: null });
+}>({ note: null, log: null, med: null, dose: null, adhoc: false, detail: null, backToPain: null });
 
 export const openNote = (id: string | null = null) => {
 	editor.note = { id };
 };
 export const openLog = (
 	kind: LogKind,
-	options: { id?: string | null; typeId?: string; same?: boolean } = {}
+	options: { id?: string | null; typeId?: string; same?: boolean; at?: string; resume?: boolean } = {}
 ) => {
-	editor.log = { kind, id: options.id ?? null, typeId: options.typeId, same: options.same };
+	editor.log = {
+		kind,
+		id: options.id ?? null,
+		typeId: options.typeId,
+		same: options.same,
+		at: options.at,
+		resume: options.resume
+	};
 };
 export const openMedication = (id: string | null = null) => {
 	editor.med = { id };
@@ -41,7 +59,22 @@ export const openAdhocDose = () => {
 export const openDetail = (id: string) => {
 	editor.detail = id;
 };
+/** From the Pain sheet: opens a new nausea entry at `at`; leaving it returns to the Pain sheet with `draft`. */
+export const openNauseaFromPain = (back: { id: string | null; draft: unknown }, at: string) => {
+	editor.backToPain = back;
+	openLog('gut', { at });
+};
+/** Closes the sheet that is open; after the nausea shortcut it goes back to the Pain sheet instead. */
+export const leaveSheet = () => {
+	const back = editor.backToPain;
+	closeEditors();
+	if (back) {
+		editor.backToPain = back;
+		openLog('pain', { id: back.id, resume: true });
+	}
+};
 export const closeEditors = () => {
+	editor.backToPain = null;
 	editor.note = null;
 	editor.log = null;
 	editor.med = null;

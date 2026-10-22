@@ -307,13 +307,86 @@ does not reveal the record type (most records fall into the first two buckets). 
     "intensity": 6, "qualities": ["aching", "throbbing"], "note": "after running" } ] }
 ```
 
+*Headache details (optional, entry level).* A `pain` entry may carry one `headache` object; entries without it stay valid.
+All fields are optional and unknown keys are refused:
+
+```json
+{ "headache": { "started": "2026-10-18T22:00:00+02:00", "stopped": "2026-10-19T02:00:00+02:00",
+  "before": ["vision", "speech"], "worseWithActivity": true, "light": true, "sound": false,
+  "trigger": "skipped lunch" } }
+```
+
+`started` and `stopped` are full local date-times rounded to the hour (minutes and seconds `00`, offset kept like every
+`at`), so a stop on the next day needs no extra field; `stopped` is not before `started`. `"stillGoing": true` replaces
+`stopped`. `before` lists changes noticed just before it started (`vision`, `feeling`, `speech`, in that order, no
+duplicates). `trigger` is 1 to 200 characters. `{}` only marks the entry as a headache (ticked without a point on the
+head). The quality list gained `constant` after `throbbing`. Nausea is not stored here: the report converts the day's
+nausea entries (`gut`) with the helpers in `src/lib/records/headache.ts`, which also derive the day's severity zone (average
+of the head-point intensities, rounded, then 1-3 mild, 4-6 moderate, 7-10 severe), the side of the head and
+pulsating / constant. Nothing is rated or advised.
+
 **Body map, ready for 3D later without migration:** `region` + `side` come from a stable, view-independent
-catalogue (`src/lib/bodymap/catalogue.ts`: 26 regions such as `knee`, `lower_back`, `back_of_head`; side `left|right|midline`,
-the person's own sides, so the front view mirrors them). The catalogue maps each region to its shape in each view and has a
-`parent` field for finer zoom-view regions later. No FMA anatomy IDs (decided). Coordinates are region-local `(u, v)` in a **named,
-versioned coordinate space** (`2d-front-v1`, `2d-back-v1`, `2d-head-v1`, …). A future 3D view adds a `3d-mesh-v1` space
-(for example, barycentric coordinates on a mesh face). Old 2D points still render on the 3D model at their region's
-anchor plus a projected (u, v). Nothing is rewritten. There is no separate children's outline (decided); the same regions and spaces serve every profile.
+catalogue (`src/lib/bodymap/catalogue.ts`; side `left|right|midline`, the person's own sides, so the front view mirrors
+them). Coordinates are region-local `(u, v)` in a **named, versioned coordinate space**. A future 3D view adds a
+`3d-mesh-v1` space (for example, barycentric coordinates on a mesh face). Old 2D points still render on the 3D model at
+their region's anchor plus a projected (u, v). Nothing is rewritten. No FMA anatomy IDs (decided). There is no separate
+children's outline (decided); the same regions and spaces serve every profile.
+
+*Coordinate spaces.* Each drawing has its own space and viewBox; `u` and `v` are 0..1 within the region's own box.
+
+| Space | Drawing | viewBox | Regions |
+| --- | --- | --- | --- |
+| `2d-front-v1` | main front view, mirrors the person | 200 x 440 | head, neck, arm parts, chest, belly quarters, hip and groin, leg parts, foot |
+| `2d-back-v1` | main back view, does not mirror | 200 x 440 | back of head and neck, the three back parts, buttock, leg parts, heel |
+| `2d-head-front-v2` | head close-up, front: faces the person (mirrors like the front view) | 200 x 240 | per side: `forehead`, `temple`, `around_eye`, `behind_eye` (drawn inside `around_eye`), `cheek` (cheek and sinus), `jaw` (jaw, in front of the ear); wider areas `head_front_side`, `head_side`, `whole_head`, `head_band` |
+| `2d-head-back-v2` | head close-up, back (does not mirror) | 200 x 240 | `top_of_head` (one zone, midline), per side `rear_head` and `rear_neck`; wider areas `head_back_side`, `head_side`, `whole_head`, `head_band` |
+| `2d-hand-v1` | one hand, palm or back, thumb on the side that face shows | 200 x 290 | thumb, index, middle, ring and little finger, palm, base of palm, back of hand |
+| `2d-foot-v1` | one foot, one footprint silhouette for both faces (big toe on the viewer's left for the right foot, on the right for the left foot) | 200 x 300 | five toes (`big_toe`, `second_toe`, `third_toe`, `fourth_toe`, `little_toe`), then top: `top_of_foot` (ball and midfoot, one shared box), `inner_ankle`, `outer_ankle`; sole: `sole` (ball), `arch`, `heel` |
+
+In the hand and foot close-ups one drawing serves both sides and both faces: it is mirrored when needed, and the stored `u`
+is always measured in the unmirrored drawing, so a point keeps its place when the hand or foot is turned over. The side of
+the point is the hand's or foot's own (`left` / `right`); the face (palm, back, top, sole) follows from the region (fingers
+and toes appear on both faces). The hand and foot regions are all paired. The `heel` region is drawn in both the back view
+and the sole of the foot close-up.
+
+*Parent regions.* A region has an optional `parent`. A close-up region's parent is the main-view region it refines
+(`head`, `hand` or `foot`); those main-view regions stay valid choices, so a person can still mark the whole hand. The
+belly quarters have the parent `belly` and the three back parts the parent `back`.
+
+*Wider areas (diffuse pain).* `belly` and `back` are midline regions meaning the whole belly and the whole back, and
+`upper_belly` / `lower_belly` are also valid on the `midline` side, meaning the whole upper or lower belly. Existing points
+on `upper_belly` / `lower_belly` with `left` / `right` stay valid and keep their names. A wider-area point is stored at the
+centre (`u = v = 0.5`) of the area's bounding box; it is drawn as a dot at that centre with the whole area softly
+highlighted. The entry sheet offers the choice for a point on a belly quarter ("This quarter", "Upper belly", "Lower
+belly", "Whole belly") or a back part ("This part", "Whole back") and remembers the original quarter in the draft only, so
+"This quarter" puts the point back where it was; nothing else is stored. The chest is not widened (decided).
+
+*Head zones.* The head close-up has two drawings with a Front / Back toggle (the sheet's `headFace`); `2d-head-front-v2` and
+`2d-head-back-v2` replace the first head close-up (`2d-head-v1`, with nose, mouth, chin and ear zones), which was never
+released, so those IDs are rejected and there is no compatibility layer. The zones follow how headache diaries describe
+location (side and broad areas), not face landmarks. They are drawn as soft rounded outlines (SVG paths with a 3 unit gap, the
+shape's `d`, with the bounding box as `x, y, w, h`), described for the left half of the screen and mirrored. There is no
+separate nose, mouth, chin or ear zone: ears, the neck and the faint face features (brows, closed eyes, a nose line and a
+neutral, straight mouth, `scene.decor`) are drawn for recognition only and are never tappable. The main-view `head` and
+`back_of_head` stay as they are. Every region of the head close-up has the parent `head`, which is what
+`isHeadPoint` (`src/lib/records/headache.ts`) tests; the neck zones count as head points.
+
+*Wider head areas.* After a tap on a head zone the sheet offers "This spot", "Front of this side" (front drawing) or "Back of
+this side" (back drawing), "This side", "Whole head" and "Band around the head" (the top of the head has no side, so it
+offers only "This spot", "Whole head" and the band). The wider areas are regions, stored at the centre (`u = v = 0.5`) of the
+bounding box of the zones they cover, with the zones softly highlighted (a wider area's shape has `cover`, the shapes to
+draw):
+
+| Region | Sides | Drawn in | Covers |
+| --- | --- | --- | --- |
+| `head_front_side` | right, left | front | forehead, temple, around the eye and behind the eye of that side |
+| `head_back_side` | right, left | back | back of the head and neck of that side |
+| `head_side` | right, left | both | every zone of that side, front or back (back: plus the near half of the top of the head) |
+| `whole_head` | midline | both | every zone of the drawing |
+| `head_band` | midline | both | one band: across forehead and temples (front), across the back of the head (back) |
+
+`headacheSides` reads a sided zone or area as that side; the top of the head, the whole head and the band count as both
+sides, and mixed points as both. Nothing here names a headache type (not a medical device).
 
 ### 5.1 Sync and client storage
 
@@ -397,7 +470,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `gut` ★ | time, symptoms (1–2 of `nausea` / `heartburn`, each with intensity 1–5), context flags (vomited, after a meal, lying down, at night; `vomited` only with nausea), note. Records only: a flag never triggers a message or alert (MDR), as for bowel | 2 taps + Save |
 | `drink` ★ | time, drink (`def:<id>` for a built-in, else the name), size name (snapshot), size in ml, count 1–10, total in ml, note. Stored in whole ml, shown in cl. Later preset edits never change an entry. Descriptive only: a plain daily sum, no goals, nudges, warnings or caffeine / alcohol calculations (D19) | Drink tile: water in 2 taps; "Same again" repeats the last drink |
 | `drink_presets` ★ | ONE record per person: drinks (built-in overrides, hidden flag, own drinks, order, usual size) and sizes (built-in overrides, hidden flag, own sizes). No record = the built-in defaults (names from i18n) | |
-| `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, aching, tingling, numb, itchy; note ≤ 500). The UI calls it "Body map" | §5 |
+| `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, constant, aching, tingling, numb, itchy; note ≤ 500); optional `headache` details (§5). The UI calls it "Pain" / "Smerter"; the map says "Where do you feel it?" | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
 | `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm. A medicine not in the list can be logged from the Medicine sheet ("Log another medicine"); it is saved as a "when needed" medication (archived when "Keep in my medicines" is off), so every dose still links to a medication. The time of a taken dose can be set or corrected in the dose sheet; an as-needed dose can be moved to another medicine |
 | `note` | free text, tags | |

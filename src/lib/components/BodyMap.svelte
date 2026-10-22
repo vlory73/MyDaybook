@@ -1,21 +1,19 @@
 <script lang="ts">
 	import { t, i18n } from '$lib/i18n/index.svelte';
 	import {
-		VIEWBOX,
-		edgeSides,
-		findShape,
 		regionName,
-		shapesOf,
+		sceneOf,
+		sceneShape,
 		sideKey,
-		spaceOf,
+		isViewIndependent,
 		toLocal,
 		toView,
-		viewOf,
 		type BodyPlace,
 		type RegionId,
 		type Shape,
 		type Side,
-		type View
+		type View,
+		type ZoomState
 	} from '$lib/bodymap/catalogue';
 	import { heatStep } from '$lib/records/pain';
 	import Segmented from './Segmented.svelte';
@@ -33,6 +31,7 @@
 
 	let {
 		view = $bindable('front'),
+		zoom = null,
 		points = [],
 		selected = null,
 		showToggle = true,
@@ -40,6 +39,8 @@
 		ontap
 	}: {
 		view?: View;
+		/** A close-up (head, one hand or one foot) instead of the main view. */
+		zoom?: ZoomState | null;
 		points?: Dot[];
 		selected?: { region: RegionId; side: Side } | null;
 		showToggle?: boolean;
@@ -51,15 +52,40 @@
 
 	let svg: SVGSVGElement | undefined = $state();
 
-	const shapes = $derived(shapesOf(view));
-	const edges = $derived(edgeSides(view));
-	const dots = $derived(
+	const scene = $derived(sceneOf(view, zoom));
+	const shapes = $derived(scene.shapes);
+	const edges = $derived(scene.edges);
+	const body = $derived(scene.decor.filter((d) => d.kind === 'body'));
+	const features = $derived(scene.decor.filter((d) => d.kind === 'feature'));
+	/** A point is drawn on its own view; the wider head areas (band, whole head, this side) on either head drawing. */
+	const onScene = (p: Dot) =>
+		p.space === scene.space || (scene.edges !== null && zoom?.zoom === 'head' && isViewIndependent(p.region));
+	const placed = $derived(
 		points.flatMap((p) => {
-			if (viewOf(p.space) !== view) return [];
-			const shape = findShape(view, p.region, p.side);
-			if (!shape) return [];
-			return [{ ...toView(shape, p.u, p.v), intensity: p.intensity }];
+			if (!onScene(p)) return [];
+			const shape = sceneShape(scene, p.region, p.side);
+			return shape ? [{ shape, p }] : [];
 		})
+	);
+	const dots = $derived(
+		placed.map(({ shape, p }) => ({ ...toView(shape, p.u, p.v), intensity: p.intensity }))
+	);
+	/** Wider areas in use (whole belly, whole back, ...): softly highlighted, the dot sits at their centre. */
+	const wides = $derived(
+		scene.wide.filter((w) => points.some((p) => onScene(p) && p.region === w.region && p.side === w.side))
+	);
+	const label = $derived(
+		zoom
+			? t(
+					zoom.zoom === 'head'
+						? zoom.face === 'back'
+							? 'bodymap.svg.head_back'
+							: 'bodymap.svg.head'
+						: zoom.zoom === 'hand'
+							? 'bodymap.svg.hand'
+							: 'bodymap.svg.foot'
+				)
+			: t(view === 'front' ? 'bodymap.svg.front' : 'bodymap.svg.back')
 	);
 
 	const transform = (s: Shape) => (s.rot ? `rotate(${s.rot} ${s.px} ${s.py})` : undefined);
@@ -67,7 +93,7 @@
 	const isSelected = (s: Shape) => selected?.region === s.region && selected.side === s.side;
 
 	function report(s: Shape, u: number, v: number) {
-		ontap?.({ region: s.region, side: s.side, space: spaceOf(view), u, v });
+		ontap?.({ region: s.region, side: s.side, space: s.space, u, v });
 	}
 
 	function onclick(event: MouseEvent, s: Shape) {
@@ -92,7 +118,7 @@
 </script>
 
 <div class="bodymap">
-	{#if showToggle}
+	{#if showToggle && !zoom}
 		<Segmented
 			label={t('bodymap.view')}
 			bind:value={view}
@@ -103,34 +129,86 @@
 		/>
 	{/if}
 	<div class="stage" style:--figure="{width}px">
-		<span class="edge left">{t(sideKey(edges.screenLeft))}</span>
-		<span class="edge right">{t(sideKey(edges.screenRight))}</span>
+		{#if edges}
+			<span class="edge left">{t(sideKey(edges.screenLeft))}</span>
+			<span class="edge right">{t(sideKey(edges.screenRight))}</span>
+		{/if}
 		<svg
 			bind:this={svg}
 			class="body"
-			viewBox="0 0 {VIEWBOX.w} {VIEWBOX.h}"
+			viewBox="0 0 {scene.viewBox.w} {scene.viewBox.h}"
+			style:aspect-ratio="{scene.viewBox.w} / {scene.viewBox.h}"
 			role="group"
-			aria-label={t(view === 'front' ? 'bodymap.svg.front' : 'bodymap.svg.back')}
+			aria-label={label}
 		>
-			{#each shapes as s (s.view + s.key)}
-				<rect
-					class="rg"
-					class:sel={isSelected(s)}
-					x={s.x}
-					y={s.y}
-					width={s.w}
-					height={s.h}
-					rx={s.rx}
-					ry={s.ry}
-					transform={transform(s)}
-					role="button"
-					tabindex="0"
-					aria-label={nameOf(s)}
-					data-region={s.region}
-					data-side={s.side}
-					onclick={(e) => onclick(e, s)}
-					onkeydown={(e) => onkeydown(e, s)}
-				/>
+			{#each body as d, i (i)}
+				<path class="decor" d={d.d} aria-hidden="true" />
+			{/each}
+			{#each shapes as s (s.space + s.key)}
+				{#if s.d}
+					<path
+						class="rg"
+						class:sel={isSelected(s)}
+						d={s.d}
+						role="button"
+						tabindex="0"
+						aria-label={nameOf(s)}
+						data-region={s.region}
+						data-side={s.side}
+						onclick={(e) => onclick(e, s)}
+						onkeydown={(e) => onkeydown(e, s)}
+					/>
+				{:else}
+					<rect
+						class="rg"
+						class:sel={isSelected(s)}
+						x={s.x}
+						y={s.y}
+						width={s.w}
+						height={s.h}
+						rx={s.rx}
+						ry={s.ry}
+						transform={transform(s)}
+						role="button"
+						tabindex="0"
+						aria-label={nameOf(s)}
+						data-region={s.region}
+						data-side={s.side}
+						onclick={(e) => onclick(e, s)}
+						onkeydown={(e) => onkeydown(e, s)}
+					/>
+				{/if}
+			{/each}
+			{#each features as d, i (i)}
+				<path class="feature" d={d.d} aria-hidden="true" />
+			{/each}
+			{#each wides as w (w.key)}
+				{#each w.cover ?? [w] as c (c.key)}
+					{#if c.d}
+						<path
+							class="wide"
+							class:sel={isSelected(w)}
+							d={c.d}
+							aria-hidden="true"
+							data-region={w.region}
+							data-side={w.side}
+						/>
+					{:else}
+						<rect
+							class="wide"
+							class:sel={isSelected(w)}
+							x={c.x}
+							y={c.y}
+							width={c.w}
+							height={c.h}
+							rx={c.rx}
+							ry={c.ry}
+							aria-hidden="true"
+							data-region={w.region}
+							data-side={w.side}
+						/>
+					{/if}
+				{/each}
 			{/each}
 			{#each dots as d, i (i)}
 				<g class="dot" aria-hidden="true">
@@ -184,7 +262,6 @@
 	.body {
 		width: min(100%, var(--figure, 252px));
 		height: auto;
-		aspect-ratio: 200 / 440;
 		overflow: visible;
 		-webkit-tap-highlight-color: transparent;
 	}
@@ -210,6 +287,35 @@
 	.rg:focus-visible {
 		stroke: var(--focus);
 		stroke-width: 2.6;
+	}
+	/* Ears and neck of the head close-up, and its faint, neutral face features: for recognition only. */
+	.decor {
+		fill: var(--surface-2);
+		stroke: var(--line);
+		stroke-width: 1.2;
+		pointer-events: none;
+	}
+	.feature {
+		fill: none;
+		stroke: var(--text-3);
+		stroke-opacity: 0.4;
+		stroke-width: 1.5;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		pointer-events: none;
+	}
+	.wide {
+		fill: var(--primary-soft);
+		fill-opacity: 0.7;
+		stroke: var(--primary);
+		stroke-width: 1.4;
+		stroke-dasharray: 4 3;
+		pointer-events: none;
+	}
+	.wide.sel {
+		fill-opacity: 0.95;
+		stroke-width: 2;
+		stroke-dasharray: none;
 	}
 	.halo {
 		fill: var(--surface);
