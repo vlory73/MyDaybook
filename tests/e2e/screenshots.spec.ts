@@ -296,6 +296,65 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'sheet-same', scheme);
 		});
 
+		test(`body map close-ups and wider areas ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'bodymap-zoom', 'bodymap-zoom screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			const intensity = (n: number) =>
+				sheet
+					.getByRole('radiogroup', { name: /^Intensity/ })
+					.getByRole('radio', { name: String(n), exact: true })
+					.click();
+			const region = (name: string) =>
+				sheet.locator('svg[role=group]').getByRole('button', { name, exact: true }).click();
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'main-with-closeups', scheme);
+			const back = () => sheet.getByRole('button', { name: 'Back to the body' }).click();
+			// The close-ups as they open, before any point is chosen.
+			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'head', scheme);
+			await back();
+			await sheet.getByRole('button', { name: 'Hands, close-up' }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'hand', scheme);
+			await sheet.getByRole('radio', { name: 'Back', exact: true }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'hand-back', scheme);
+			await back();
+			await sheet.getByRole('button', { name: 'Feet, close-up' }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'foot-top', scheme);
+			await sheet.getByRole('radio', { name: 'Sole', exact: true }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'foot-sole', scheme);
+			await back();
+			// With points.
+			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
+			await region('Your left temple');
+			await intensity(4);
+			await page.waitForTimeout(300);
+			await snap(page, 'head-point', scheme);
+			await back();
+			await sheet.getByRole('button', { name: 'Hands, close-up' }).click();
+			await region('Your right index finger');
+			await intensity(6);
+			await page.waitForTimeout(300);
+			await snap(page, 'hand-point', scheme);
+			await back();
+			await region('Your left upper belly');
+			await intensity(5);
+			await sheet
+				.getByRole('group', { name: 'How wide an area' })
+				.getByRole('button', { name: 'Whole belly', exact: true })
+				.click();
+			await page.waitForTimeout(400);
+			await snap(page, 'belly-whole', scheme);
+		});
+
 		test(`photos meal sheet, timeline and viewer ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'photos', 'photos screenshots only');
 			await prepare(page, scheme);

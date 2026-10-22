@@ -121,6 +121,7 @@ Other key documents:
 | 2026-10-19 | No children's body outline (spec deviation): the 2D outline is not anatomically accurate anyway, and the same region IDs would let one be added later without converting data. Revisit only if testers ask | Owner |
 | 2026-10-19 | `release.yml` gets a manual "Run workflow" (tag input) to rebuild an existing release's images; the Pi upgrade block asks for the version | Owner |
 | 2026-10-19 | Body map entry (#45) merged with its 7 decisions as built ("Same as last time" copies intensities, no intensity until picked, calendar-day window for "Still there?", "0 none · 10 worst imaginable", no entry-level note). 0.5.0 released. Quick-log tile and timeline label renamed from "Body map" to **"Pain" / "Smerter"** (the sheet keeps "Where do you feel it?"); ships with `feature/bodymap-zoom` | Owner |
+| 2026-10-20 | Body map close-ups for head, hands and feet, and wider areas for diffuse pain (whole belly, upper and lower belly, whole back) approved after 0.5.0 feedback. Chest is not widened | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -136,7 +137,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.5.0 released (body map); next: `feature/bodymap-zoom` (→ 0.6.0), which already carries the "Pain" label. Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
+_Last updated: 2026-10-22, 0.5.0 released (body map); `feature/bodymap-zoom` (→ 0.6.0) built, in review; it also carries the "Pain" label. Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -203,6 +204,11 @@ _Last updated: 2026-10-19, 0.5.0 released (body map); next: `feature/bodymap-zoo
   intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
   time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
   `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
+- **`feature/bodymap-zoom` (M4 branch 3, in review, → 0.6.0):** close-ups for head, hands and feet (`2d-head-v1`, `2d-hand-v1`, `2d-foot-v1`, 9 / 8 / 8 new regions with
+  `parent` set; one hand or foot at a time with a Right / Left and Palm / Back or Top / Sole toggle; Head / Hands / Feet buttons and "Back to the body" in `BodyMapSheet.svelte`;
+  Find lists them and opens the close-up), and wider areas (`belly`, `back`, and `upper_belly` / `lower_belly` on the midline; "This quarter · Upper belly · Lower belly · Whole belly"
+  and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
+  (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Screenshots in `docs/screenshots/bodymap-zoom/`.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
