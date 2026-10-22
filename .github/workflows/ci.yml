@@ -55,7 +55,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      # The image has no compiler; better-sqlite3 ships prebuilt binaries, so its source build is skipped.
+      - run: npm ci --ignore-scripts
       - name: Playwright
         run: npm run test:e2e
         env:
