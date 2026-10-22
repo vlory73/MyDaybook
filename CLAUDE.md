@@ -115,6 +115,9 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
   - The owner runs `docs/RELEASING.md` (Actions → Prepare release → release PR → GitHub release; main back into develop).
   - Feature work continues on develop while a release branch is open.
   - The Pi is then upgraded via the HA session or the copy-paste block (Option B).
+- **Merging:** the owner merges on GitHub and should use **Squash and merge** for feature PRs (GitHub remembers the last method; #48 went in as a merge commit by mistake, which is harmless and must not be "fixed" by rewriting develop). The owner may update a PR branch on GitHub; pull before pushing to it.
+- **Design changes:** for anything visual and uncertain, show a quick static mockup (or the sub-agent's screenshots) before the PR, and look at every screenshot yourself before sharing; the owner spots usability issues (e.g. the unrecognisable foot, the band missing on the front view).
+- **Medical sources:** the owner sometimes shares reference material (a doctor's form, infographics). Use it for vocabulary and data fields, never for diagnostic labels; check licences before reusing any image (never trace stock images).
 - **Small follow-ups:** they may ride on the next feature branch instead of their own PR, when the owner says so (e.g. the "Pain" rename went with `feature/bodymap-zoom`).
 - **Issues and milestones:** no GitHub milestones. Issues are not used yet (only family users); see the decisions log.
 - **Preferred style:** write all user-facing text and docs in plain, international English, and avoid jargon in messages to the owner.
@@ -190,7 +193,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-22. M4 complete (#48); 0.6.0 to be released by the owner. M5 plan approved (decisions log). `feature/headache-details` (#49) merged. In review: `feature/head-zones` (headache-friendly head close-up). Open: footprint sole feedback from the family._
+_Last updated: 2026-10-22, end of session. Released: 0.5.0 (on the Pi). On develop, not released: M4 close-ups (#48), headache details (#49), headache-friendly head zones (#50, merging now). **Next session:** (1) remind the owner that 0.6.0 is unreleased (it can bundle everything on develop); (2) start `feature/trends` (M5 branch 2; scope and decisions in the M5 rows of the decisions log, incl. the food/symptom side-by-side view). Open: family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -260,15 +263,15 @@ _Last updated: 2026-10-22. M4 complete (#48); 0.6.0 to be released by the owner.
   Find lists them and opens the close-up), and wider areas (`belly`, `back`, and `upper_belly` / `lower_belly` on the midline; "This quarter · Upper belly · Lower belly · Whole belly"
   and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
   (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Foot: one footprint silhouette with five toes for both faces; count badges on the close-up buttons; belly width choices show only the half that holds the quarter. Screenshots in `docs/screenshots/bodymap-zoom/`.
-- **M5 (charts, heat map, export, PDF + headache diary):** plan and order in the decisions log. `feature/headache-details` merged (#49).
-- **`feature/head-zones` (in review, after #49):** the head close-up is now two drawings with a Front / Back toggle (`2d-head-front-v2`, `2d-head-back-v2`,
+- **M5 (charts, heat map, export, PDF + headache diary):** plan and order in the decisions log. Done: `feature/headache-details` (#49), `feature/head-zones` (#50, an owner-requested insert). Next: `feature/trends` → `feature/heatmap` (→ 0.7.0) → `feature/pain-episodes` → `feature/export` → `feature/doctor-pdf` (Headache diary report in DA/EN; the source form's 13 questions are mapped in the "Headache diary" decisions-log row) (→ 0.8.0).
+- **`feature/head-zones` (merged #50):** the head close-up is now two drawings with a Front / Back toggle (`2d-head-front-v2`, `2d-head-back-v2`,
   200 x 240; ARCHITECTURE §5), replacing the unreleased `2d-head-v1` outright. Zones are soft rounded paths (`Shape.d`) with gaps: front `forehead`, `temple`,
   `around_eye`, `behind_eye` (inside `around_eye`), `cheek`, `jaw`, all paired; back `top_of_head` (midline), `rear_head`, `rear_neck` (paired). Wider areas
   `head_front_side`, `head_back_side`, `head_side` (paired), `whole_head`, `head_band` (midline), offered after a tap ("This spot · Front or Back of this side · This side ·
   Whole head · Band around the head"; `wideOptions` / `widen` take the space; `Shape.cover` draws the highlight). Faint untappable features (`scene.decor`: brows,
   closed eyes, nose line, neutral straight mouth) and ears / neck. `isHeadPoint` / `headacheSides` cover the new regions. Screenshots in `docs/screenshots/head-zones/`
   (taken at 375 x 1150 so the whole head shows above the panel). Nose, mouth, chin and ear zones are gone.
-- **`feature/headache-details` (M5 branch 1, in review):** quality "Constant" after "Throbbing"; optional entry-level `headache` object on `pain`
+- **`feature/headache-details` (M5 branch 1, merged #49):** quality "Constant" after "Throbbing"; optional entry-level `headache` object on `pain`
   (hour-rounded `started` / `stopped` date-times, `stillGoing`, `before`, `worseWithActivity`, `light`, `sound`, `trigger`; ARCHITECTURE §5);
   collapsible "Headache details" section in the Pain sheet (shown with a head point or "This is a headache"), "Log nausea" round trip
   (`openNauseaFromPain` / `leaveSheet` in `editor.svelte.ts`; the draft is parked in memory) with "Nausea: none / mild / moderate / severe";
