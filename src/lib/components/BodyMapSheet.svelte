@@ -9,7 +9,23 @@
 	import Segmented from './Segmented.svelte';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
-	import { regionName, viewOf, type BodyPlace, type View } from '$lib/bodymap/catalogue';
+	import {
+		FACES,
+		activeWide,
+		regionName,
+		spaceOf,
+		viewOf,
+		wideOptions,
+		widen,
+		zoomFor,
+		type Anchor,
+		type BodyPlace,
+		type Face,
+		type View,
+		type WideOption,
+		type Zoom,
+		type ZoomState
+	} from '$lib/bodymap/catalogue';
 	import { editor } from '$lib/records/editor.svelte';
 	import {
 		MAX_PAIN_POINTS,
@@ -31,10 +47,26 @@
 	 * from 0 to 10 and optionally how it feels. The panel for the chosen point is pinned to the bottom of the sheet
 	 * and the map scrolls so that the chosen region stays above it. Records only: nothing here rates or advises.
 	 */
-	type Draft = Omit<PainPoint, 'intensity' | 'note'> & { intensity?: number; note: string };
+	type Draft = Omit<PainPoint, 'intensity' | 'note'> & {
+		intensity?: number;
+		note: string;
+		/** The belly quarter or back part this point was widened from, so "This quarter" can put it back (not saved). */
+		origin?: Anchor;
+	};
 
 	let time = $state('');
 	let view = $state<View>('front');
+	/** The close-up that is open, if any: the head, or one hand or foot with its face. */
+	let zoomKind = $state<Zoom | null>(null);
+	let zoomSide = $state<'left' | 'right'>('right');
+	let zoomFace = $state<Face>('palm');
+	const zoom = $derived<ZoomState | null>(
+		zoomKind === null
+			? null
+			: zoomKind === 'head'
+				? { zoom: 'head' }
+				: { zoom: zoomKind, side: zoomSide, face: zoomFace }
+	);
 	let points = $state<Draft[]>([]);
 	let sel = $state<number | null>(null);
 	/** "+ Point" was pressed: the next tap adds a point even where one already is. */
@@ -49,6 +81,8 @@
 	const complete = $derived(points.length > 0 && points.every((p) => p.intensity !== undefined));
 	const valid = $derived(complete && fromLocalInput(time) !== null);
 	const full = $derived(points.length >= MAX_PAIN_POINTS);
+	const wides = $derived(current ? wideOptions(current, current.origin) : []);
+	const wideNow = $derived(current ? activeWide(current, wides) : undefined);
 	const offerSame = $derived(isNew && points.length === 0 && last !== undefined && !finding);
 
 	function draftOf(p: PainPoint): Draft {
@@ -65,6 +99,8 @@
 		else points = [];
 		sel = points.length > 0 ? 0 : null;
 		view = points[0] ? viewOf(points[0].space) : 'front';
+		zoomKind = null;
+		if (points[0]) show(points[0]);
 		if (points.length > 0) void reveal(false);
 	}
 
@@ -72,7 +108,50 @@
 		if (!last) return;
 		points = copyPoints(last.payload).map(draftOf);
 		sel = 0;
-		view = viewOf(points[0]!.space);
+		show(points[0]!);
+		void reveal(false);
+	}
+
+	/** Shows the view, or close-up, that a point is in. */
+	function show(at: { region: string; side: BodyPlace['side']; space: BodyPlace['space'] }) {
+		const next = zoomFor(at, zoom);
+		if (next) {
+			zoomKind = next.zoom;
+			if (next.zoom !== 'head') {
+				zoomSide = next.side;
+				zoomFace = next.face;
+			}
+		} else {
+			zoomKind = null;
+			view = viewOf(at.space);
+		}
+	}
+
+	function openZoom(kind: Zoom) {
+		zoomKind = kind;
+		if (kind !== 'head') {
+			zoomFace = FACES[kind][0];
+			zoomSide = 'right';
+		}
+		finding = false;
+	}
+
+	function closeZoom() {
+		zoomKind = null;
+	}
+
+	function setWider(option: WideOption) {
+		if (!current) return;
+		const next = widen(
+			{ region: current.region, side: current.side, u: current.u, v: current.v },
+			option,
+			current.origin
+		);
+		current.region = next.place.region;
+		current.side = next.place.side;
+		current.u = next.place.u;
+		current.v = next.place.v;
+		current.origin = next.origin;
 		void reveal(false);
 	}
 
@@ -82,7 +161,7 @@
 		await tick();
 		if (focus)
 			panel?.querySelector<HTMLElement>('[role=radio][tabindex="0"]')?.focus({ preventScroll: true });
-		const region = document.querySelector<SVGElement>('.rg.sel');
+		const region = document.querySelector<SVGElement>('.rg.sel, .wide.sel');
 		const dialog = region?.closest('dialog');
 		if (!region || !dialog || !panel) return;
 		const r = region.getBoundingClientRect();
@@ -112,7 +191,7 @@
 
 	function pickFound(at: BodyPlace) {
 		finding = false;
-		view = viewOf(at.space);
+		show(at);
 		place(at);
 	}
 
@@ -127,8 +206,7 @@
 	function step(by: 1 | -1) {
 		if (sel === null || points.length < 2) return;
 		sel = (sel + by + points.length) % points.length;
-		const v = viewOf(points[sel]!.space);
-		if (v !== view) view = v;
+		show(points[sel]!);
 		void reveal(false);
 	}
 
@@ -201,6 +279,14 @@
 		return p;
 	}
 
+	const zoomButtons = ['head', 'hand', 'foot'] as const;
+	/** How many points of this entry are in a close-up's space (shown as a badge on its button). */
+	const zoomCount = (z: Zoom) => points.filter((p) => p.space === spaceOf(z)).length;
+	const zoomLabel = (z: Zoom) => {
+		const label = t(`bodymap.zoom.${z}.aria` as MessageKey);
+		const n = zoomCount(z);
+		return n > 0 ? tn('bodymap.zoom.points', n, { label }) : label;
+	};
 	const ramp = Array.from({ length: 11 }, (_, i) => i);
 	const lastSummary = $derived(last ? painSummary(i18n.locale, last.payload.points) : '');
 	const saveLabel = $derived(points.length > 0 ? tn('bodymap.save', points.length) : undefined);
@@ -227,26 +313,61 @@
 		</button>
 	{/if}
 	<div class="toolbar">
-		<Segmented
-			label={t('bodymap.view')}
-			bind:value={view}
-			options={[
-				{ value: 'front', label: t('bodymap.front') },
-				{ value: 'back', label: t('bodymap.back') }
-			]}
-		/>
+		{#if zoom}
+			<button type="button" class="back" onclick={closeZoom}>
+				<Icon name="chevron-left" size={18} />{t('bodymap.zoom.back')}
+			</button>
+		{:else}
+			<Segmented
+				label={t('bodymap.view')}
+				bind:value={view}
+				options={[
+					{ value: 'front', label: t('bodymap.front') },
+					{ value: 'back', label: t('bodymap.back') }
+				]}
+			/>
+		{/if}
 		<button type="button" class="find" aria-expanded={finding} onclick={toggleFind}>
 			<Icon name={finding ? 'x' : 'search'} size={18} />
 			{finding ? t('bodymap.find.back') : t('bodymap.find')}
 		</button>
 	</div>
+	{#if !finding && !zoom}
+		<div class="zooms" role="group" aria-label={t('bodymap.zoom.label')}>
+			{#each zoomButtons as z (z)}
+				<button type="button" class="zoom" data-zoom={z} aria-label={zoomLabel(z)} onclick={() => openZoom(z)}
+					>{t(`bodymap.zoom.${z}` as MessageKey)}{#if zoomCount(z) > 0}<span class="badge" aria-hidden="true"
+							>{zoomCount(z)}</span
+						>{/if}</button
+				>
+			{/each}
+		</div>
+	{/if}
+	{#if !finding && (zoomKind === 'hand' || zoomKind === 'foot')}
+		<div class="toggles">
+			<Segmented
+				label={t(`bodymap.${zoomKind}.side` as MessageKey)}
+				bind:value={zoomSide}
+				options={[
+					{ value: 'right', label: t(`bodymap.${zoomKind}.right` as MessageKey) },
+					{ value: 'left', label: t(`bodymap.${zoomKind}.left` as MessageKey) }
+				]}
+			/>
+			<Segmented
+				label={t(`bodymap.${zoomKind}.face` as MessageKey)}
+				bind:value={zoomFace}
+				options={FACES[zoomKind].map((f) => ({ value: f, label: t(`bodymap.face.${f}` as MessageKey) }))}
+			/>
+		</div>
+	{/if}
 	{#if finding}
 		<RegionFinder {view} onpick={(at) => pickFound(at)} />
 	{:else}
 		<BodyMap
 			bind:view
+			{zoom}
 			showToggle={false}
-			width={210}
+			width={zoom ? (zoom.zoom === 'head' ? 230 : 190) : 210}
 			{points}
 			selected={current ? { region: current.region, side: current.side } : null}
 			ontap={place}
@@ -286,6 +407,13 @@
 					</button>
 				{/if}
 			</div>
+			{#if wides.length > 1}
+				<div class="chips wide" role="group" aria-label={t('bodymap.wide.group')}>
+					{#each wides as o (o.id)}
+						<Chip selected={wideNow === o.id} onclick={() => setWider(o)}>{t(o.key)}</Chip>
+					{/each}
+				</div>
+			{/if}
 			<p class="label">
 				{t('bodymap.intensity.title')}<span class="hint">{t('bodymap.intensity.hint')}</span>
 			</p>
@@ -366,6 +494,59 @@
 		align-items: stretch;
 	}
 	.toolbar :global(.segmented) {
+		flex: 1;
+	}
+	.back {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		flex: 1;
+		min-height: 44px;
+		padding: 0 var(--sp-3);
+		border-radius: var(--r-full);
+		background: var(--surface-2);
+		font-weight: var(--fw-semibold);
+		font-size: var(--fs-callout);
+	}
+	.zooms {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+	}
+	.zoom {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+		white-space: nowrap;
+		min-height: 40px;
+		padding: 0 var(--sp-4);
+		border-radius: var(--r-full);
+		background: var(--surface-2);
+		font-weight: var(--fw-semibold);
+		font-size: var(--fs-callout);
+	}
+	.badge {
+		display: inline-grid;
+		place-items: center;
+		min-width: 20px;
+		height: 20px;
+		margin-left: 6px;
+		padding: 0 6px;
+		border-radius: var(--r-full);
+		background: var(--primary);
+		color: var(--on-primary, #fff);
+		font-size: var(--fs-caption);
+		font-weight: var(--fw-bold);
+	}
+	.zoom:active {
+		background: var(--surface-3);
+	}
+	.toggles {
+		display: flex;
+		gap: var(--sp-2);
+	}
+	.toggles :global(.segmented) {
 		flex: 1;
 	}
 	.find {

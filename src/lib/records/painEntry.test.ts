@@ -205,3 +205,33 @@ describe('dismissal storage', () => {
 		expect(() => writeDismissed(broken, 'a')).not.toThrow();
 	});
 });
+
+describe('summary of close-ups and wider areas', () => {
+	const at = (region: PainPoint['region'], side: PainPoint['side'], space: PainPoint['space'], n: number) =>
+		point({ region, side, space, intensity: n, u: 0.5, v: 0.5 });
+
+	it('names wider areas and close-up parts in both languages', () => {
+		const points = [
+			at('belly', 'midline', '2d-front-v1', 5),
+			at('upper_belly', 'midline', '2d-front-v1', 4),
+			at('back', 'midline', '2d-back-v1', 3)
+		];
+		expect(painSummary('en', points)).toBe('Whole belly 5 · Upper belly 4 · Whole back 3');
+		expect(painSummary('da', points)).toBe('Hele maven 5 · Øvre mave 4 · Hele ryggen 3');
+		const zoomed = [
+			at('temple', 'left', '2d-head-v1', 2),
+			at('thumb', 'right', '2d-hand-v1', 7),
+			at('sole', 'left', '2d-foot-v1', 1)
+		];
+		expect(painSummary('en', zoomed)).toBe(
+			'Your left temple 2 · Your right thumb 7 · Sole of your left foot 1'
+		);
+		expect(painSummary('da', zoomed.slice(0, 2))).toBe('Din venstre tinding 2 · Din højre tommelfinger 7');
+	});
+
+	it('copies close-up and wider points for "Same as last time"', () => {
+		const prev = pain([at('belly', 'midline', '2d-front-v1', 5), at('thumb', 'left', '2d-hand-v1', 3)]);
+		expect(copyPoints(prev)).toEqual(prev.points);
+		expect(parsePayload(prev)).not.toBeNull();
+	});
+});

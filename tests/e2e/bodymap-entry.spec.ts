@@ -20,7 +20,7 @@ const saveButton = (page: Page, label: string | RegExp = /^Save/) =>
 
 async function openSheet(page: Page) {
 	await page.getByRole('button', { name: 'Log something' }).click();
-	await page.getByRole('button', { name: 'Body map', exact: true }).click();
+	await page.getByRole('button', { name: 'Pain', exact: true }).click();
 	await expect(sheet(page)).toBeVisible();
 }
 
@@ -97,7 +97,7 @@ test('logs two points with intensities and qualities, on the front and the back'
 	await expect(
 		timeline(page).getByText('Your right knee 6 · Your right calf 3', { exact: true })
 	).toBeVisible();
-	await expect(timeline(page).getByText('Body map', { exact: true })).toBeVisible();
+	await expect(timeline(page).getByText('Pain', { exact: true })).toBeVisible();
 	// Records only: nothing reacts to the numbers.
 	await expect(page.getByRole('alert')).toHaveCount(0);
 });
@@ -316,7 +316,7 @@ test('the body map entry screen and the card are in Danish', async ({ page }) =>
 	await page.getByRole('radio', { name: 'Dansk' }).click();
 	await page.getByRole('link', { name: 'I dag' }).click();
 	await page.getByRole('button', { name: 'Registrér noget' }).click();
-	await page.getByRole('button', { name: 'Kropskort', exact: true }).click();
+	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
 	const dialog = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
 	await expect(dialog).toBeVisible();
 	await expect(dialog.getByText('Din højre', { exact: true })).toBeVisible();

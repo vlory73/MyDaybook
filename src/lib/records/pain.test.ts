@@ -74,15 +74,49 @@ describe('pain validator', () => {
 	});
 
 	it('knows the region, side and space', () => {
-		expect(isPainPoint(point({ region: 'nose' }))).toBe(false);
+		expect(isPainPoint(point({ region: 'nosee' as never }))).toBe(false);
 		expect(isPainPoint(point({ side: 'middle' }))).toBe(false);
 		expect(isPainPoint(point({ side: 'midline' }))).toBe(false); // the knee is paired
-		expect(isPainPoint(point({ region: 'upper_belly', side: 'midline' }))).toBe(false); // the belly is paired
+		expect(isPainPoint(point({ region: 'thigh', side: 'midline' }))).toBe(false); // the thigh is paired
 		expect(isPainPoint(point({ region: 'lower_belly', side: 'left' }))).toBe(true);
 		expect(isPainPoint(point({ region: 'lower_back', side: 'left', space: '2d-back-v1' }))).toBe(false);
 		expect(isPainPoint(point({ region: 'lower_back', side: 'midline', space: '2d-back-v1' }))).toBe(true);
 		expect(isPainPoint(point({ space: '3d-mesh-v1' }))).toBe(false);
 		expect(isPainPoint(point({ region: 'calf', space: '2d-front-v1' }))).toBe(false); // the front view has no calf
+	});
+
+	it('accepts the close-up spaces for their own regions only', () => {
+		const head = { space: '2d-head-v1' } as const;
+		expect(isPainPoint(point({ region: 'temple', side: 'left', ...head }))).toBe(true);
+		expect(isPainPoint(point({ region: 'nose', side: 'midline', ...head }))).toBe(true);
+		expect(isPainPoint(point({ region: 'nose', side: 'left', ...head }))).toBe(false);
+		expect(isPainPoint(point({ region: 'temple', side: 'left' }))).toBe(false); // not on the front view
+		expect(isPainPoint(point({ region: 'knee', side: 'left', ...head }))).toBe(false);
+		const hand = { space: '2d-hand-v1' } as const;
+		expect(isPainPoint(point({ region: 'thumb', side: 'right', ...hand }))).toBe(true);
+		expect(isPainPoint(point({ region: 'back_of_hand', side: 'left', ...hand }))).toBe(true);
+		expect(isPainPoint(point({ region: 'thumb', side: 'midline', ...hand }))).toBe(false);
+		const foot = { space: '2d-foot-v1' } as const;
+		expect(isPainPoint(point({ region: 'sole', side: 'right', ...foot }))).toBe(true);
+		expect(isPainPoint(point({ region: 'heel', side: 'left', ...foot }))).toBe(true);
+		expect(isPainPoint(point({ region: 'heel', side: 'left', space: '2d-back-v1' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'sole', side: 'right', ...hand }))).toBe(false);
+		// The main-view hand and foot stay valid choices.
+		expect(isPainPoint(point({ region: 'hand', side: 'right' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'foot', side: 'left' }))).toBe(true);
+	});
+
+	it('accepts wider areas, and old belly points on a side', () => {
+		expect(isPainPoint(point({ region: 'belly', side: 'midline', u: 0.5, v: 0.5 }))).toBe(true);
+		expect(isPainPoint(point({ region: 'belly', side: 'left' }))).toBe(false);
+		expect(isPainPoint(point({ region: 'upper_belly', side: 'midline' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'lower_belly', side: 'midline' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'upper_belly', side: 'left' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'lower_belly', side: 'right' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'belly', side: 'midline', space: '2d-back-v1' }))).toBe(false);
+		expect(isPainPoint(point({ region: 'back', side: 'midline', space: '2d-back-v1' }))).toBe(true);
+		expect(isPainPoint(point({ region: 'back', side: 'midline', space: '2d-front-v1' }))).toBe(false);
+		expect(isPainPoint(point({ region: 'back', side: 'left', space: '2d-back-v1' }))).toBe(false);
 	});
 
 	it('limits notes and needs a real time', () => {

@@ -86,6 +86,50 @@ Other key documents:
 - Phone-width screenshots: 375 × 812 CSS px at 2× device scale, light and dark.
 - Never commit `.env`, databases, backups or real photos.
 
+## Working with the owner (recorded 2026-10-22, before the move to a Team account)
+
+These are the owner's standing preferences, learned over M2–M4. Follow them in every session.
+
+- **Who's involved:**
+  - **The owner**, a product manager (communication and B2B messaging, not a developer). They review PRs on a phone, decide, merge, prepare releases and update branches on GitHub themselves.
+  - **The "HA session"**, a separate Claude session that manages the home Raspberry Pi (Home Assistant, Caddy, Docker, the NAS). The owner relays messages between it and this project. Write HA prompts as a ready-to-paste block. Never act on the Pi from here, and report any change to the Pi agreement.
+- **Tokens and tone:**
+  - The owner is token-conscious, so keep messages short and plain, with no narration of options that won't be pursued.
+  - Delegate well-scoped implementation to Sonnet sub-agents (or cheaper). The main session designs, reviews, opens PRs and talks to the owner.
+- **Check-ins:**
+  - Don't schedule check-ins or reminders unless asked.
+  - Watching a PR you opened (CI and review events) is fine and expected: fix red CI, report green CI once.
+- **Stopping:** stop at natural stopping points (a release, or a merged milestone branch), and update "Current status" before stopping.
+- **Decisions:**
+  - Present a plan and its open decisions before building anything sizeable, and give a recommendation for each.
+  - The owner answers in chat (e.g. "1 ok, 3 change…"). **Merging a PR without comments means its open decisions are accepted as built**; log them in the decisions log on the next branch.
+  - When the owner gives context mid-discussion ("we're still discussing"), don't change anything until they conclude.
+- **PR format** (owner-approved, used since #11):
+  - title in Conventional Commits
+  - "Summary" with five numbered points
+  - "Tests (local)" with counts
+  - "Screenshots" with paths
+  - "Open decisions for the owner" as a numbered list, plain language, most important first
+  End with the Claude Code footer.
+- **Releases:**
+  - The owner runs `docs/RELEASING.md` (Actions → Prepare release → release PR → GitHub release; main back into develop).
+  - Feature work continues on develop while a release branch is open.
+  - The Pi is then upgraded via the HA session or the copy-paste block (Option B).
+- **Small follow-ups:** they may ride on the next feature branch instead of their own PR, when the owner says so (e.g. the "Pain" rename went with `feature/bodymap-zoom`).
+- **Issues and milestones:** no GitHub milestones. Issues are not used yet (only family users); see the decisions log.
+- **Preferred style:** write all user-facing text and docs in plain, international English, and avoid jargon in messages to the owner.
+
+## Lessons learned (CI, tests and tooling)
+
+- **WebKit runs only in CI** (not installed locally), so design tests that pass there:
+  - Don't use `page.route` for requests from a page the service worker controls. WebKit bypasses it; use `test.use({ serviceWorkers: 'block' })` and stub what's needed (see `tests/e2e/reminders.spec.ts`).
+  - After `page.reload()`, wait for the "Your diary is locked" heading before unlocking, and give the first timeline assertion 15 s (see `tests/e2e/dose-adhoc.spec.ts`).
+- **Flaky-looking failures:** root-cause first. If the same code passed CI before and the failing test isn't touched by the PR, make the test robust within the PR instead of re-running.
+- **GitHub incidents:** during GitHub Actions incidents, runs may sit queued for minutes (Prepare release once took 9 min). Check githubstatus.com. If a release's `published` event was missed, rebuild with Actions → Release → Run workflow (tag input).
+- **Sub-agents** work best in their own git worktree (`isolation: worktree`), with a precise brief (scope, decisions, tests, screenshots, the full local check) and an instruction not to push. The main session reviews the screenshots, merges develop, runs the full local check, pushes and opens the PR.
+- **Merge conflicts in CLAUDE.md** are common, because every branch updates "Current status". Resolve them by combining both sides.
+- **Pi upgrades:** `sed` reports success even when it changes nothing. The upgrade block therefore checks that the tag changed and stops otherwise (#39, #43).
+
 ## Decisions log
 
 | Date | Decision | Source |
@@ -120,6 +164,11 @@ Other key documents:
 | 2026-10-19 | M4 plan approved: segmented outline (refined mockup), ~30 main regions + ~10–15 per zoom view, intensity 0–10 on a plain warm-to-plum scale (0 allowed, no thresholds), text summary on Today (body thumbnail idea kept for M5), no FMA IDs. Qualities: sharp, dull, burning, throbbing, aching, tingling, numb, itchy (0–3 per point, multi-select), no "other" (the note covers it). "Same as last time" and a dismissible "Still there?" card on Today for pain logged in the last 2 days. Branches: release-tooling → bodymap-regions → bodymap-entry (→ 0.5.0) → bodymap-zoom (→ 0.6.0) | Owner |
 | 2026-10-19 | No children's body outline (spec deviation): the 2D outline is not anatomically accurate anyway, and the same region IDs would let one be added later without converting data. Revisit only if testers ask | Owner |
 | 2026-10-19 | `release.yml` gets a manual "Run workflow" (tag input) to rebuild an existing release's images; the Pi upgrade block asks for the version | Owner |
+| 2026-10-19 | Body map entry (#45) merged with its 7 decisions as built ("Same as last time" copies intensities, no intensity until picked, calendar-day window for "Still there?", "0 none · 10 worst imaginable", no entry-level note). 0.5.0 released. Quick-log tile and timeline label renamed from "Body map" to **"Pain" / "Smerter"** (the sheet keeps "Where do you feel it?"); ships with `feature/bodymap-zoom` | Owner |
+| 2026-10-20 | Body map close-ups for head, hands and feet, and wider areas for diffuse pain (whole belly, upper and lower belly, whole back) approved after 0.5.0 feedback. Chest is not widened | Owner |
+| 2026-10-22 | #48 feedback: one recognisable footprint (five toes) for both foot faces, with Top/Sole only relabelling; count badges on the close-up buttons; belly width choices show only the half holding the tapped quarter. Open: the sole is drawn as a footprint (big toe on the same side as the top view); a code switch `SOLE_TOES_UP` would flip it | Owner |
+| 2026-10-22 | Project memory lives in this repo (CLAUDE.md), ahead of the move to a Team account; owner preferences and lessons recorded above | Owner |
+| 2026-10-22 | M3 done: reminders confirmed on the owner's iPhone against the Pi; the Pi upgrade block that asks for the version confirmed working | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -135,7 +184,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-19, 0.4.0 on the Pi; M4 branch 2 in review (#45), then 0.5.0 (owner); next session: `feature/bodymap-zoom` (→ 0.6.0). Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
+_Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/bodymap-zoom` (CI green; merging it completes M4 → 0.6.0). M3 done: reminders confirmed on the owner's iPhone. The upgrade block that asks for the version works. Open: the owner tests the footprint sole and gathers family feedback (keep, or flip with `SOLE_TOES_UP`). Next: plan M5 (charts, heat map, export, PDF; include pain episodes and the body thumbnail idea from the backlog)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -185,23 +234,26 @@ _Last updated: 2026-10-19, 0.4.0 on the Pi; M4 branch 2 in review (#45), then 0.
   The six open decisions in #35 were accepted with the merge. **Pi prepared** by the HA session: `VAPID_SUBJECT` in `.env` (3 VAPID
   lines), outbound HTTPS to all four push hosts works. **0.3.0 released** by the owner and deployed on the Pi by the HA session
   (healthy). The upgrade block in docs/RELEASING.md only matched 0.1.0, so it silently kept 0.2.0; it now takes `V=<version>`,
-  matches any version and stops when the tag did not change (#39). **Pending:** the owner's iPhone check (Home Screen app,
-  iOS 16.4+); after that M3 is done.
-- **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
+  matches any version and stops when the tag did not change (#39). **Done:** confirmed on the owner's iPhone (2026-10-22); M3 is complete.
+- **`feature/fluids` merged (#40), released in 0.4.0:** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
 - **M4 (body map):** `feature/release-tooling` merged (#43: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block that
-  asks for the version); `feature/bodymap-regions` merged (#44, belly as four quarters); `feature/bodymap-entry` in review (#45, → 0.5.0), `feature/bodymap-zoom` (→ 0.6.0).
+  asks for the version); `feature/bodymap-regions` merged (#44, belly as four quarters); `feature/bodymap-entry` merged (#45), 0.5.0 released, `feature/bodymap-zoom` (→ 0.6.0).
   0.4.0 (fluids) released and on the Pi.
 - **`feature/bodymap-regions` (M4 branch 1, merged #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
   (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
-- **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
-  with an older copy of the block. Copy it fresh from the doc.
-- **`feature/bodymap-entry` (M4 branch 2, in review):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
+- **Upgrade block** (docs/RELEASING.md Option B, asks for the version): confirmed working by the owner (2026-10-22).
+- **`feature/bodymap-entry` (M4 branch 2, merged #45, in 0.5.0):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
   (`cat.pain` now reads "Body map" / "Kropskort"); `BodyMapSheet.svelte` ("Where do you feel it?": map, Find, pinned point panel with
   intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
   time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
   `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
+- **`feature/bodymap-zoom` (M4 branch 3, in review, → 0.6.0):** close-ups for head, hands and feet (`2d-head-v1`, `2d-hand-v1`, `2d-foot-v1`, 9 / 8 / 11 new regions with
+  `parent` set; one hand or foot at a time with a Right / Left and Palm / Back or Top / Sole toggle; Head / Hands / Feet buttons and "Back to the body" in `BodyMapSheet.svelte`;
+  Find lists them and opens the close-up), and wider areas (`belly`, `back`, and `upper_belly` / `lower_belly` on the midline; "This quarter · Upper belly · Lower belly · Whole belly"
+  and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
+  (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Foot: one footprint silhouette with five toes for both faces; count badges on the close-up buttons; belly width choices show only the half that holds the quarter. Screenshots in `docs/screenshots/bodymap-zoom/`.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

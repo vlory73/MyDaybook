@@ -1,21 +1,18 @@
 <script lang="ts">
 	import { t, i18n } from '$lib/i18n/index.svelte';
 	import {
-		VIEWBOX,
-		edgeSides,
-		findShape,
 		regionName,
-		shapesOf,
+		sceneOf,
+		sceneShape,
 		sideKey,
-		spaceOf,
 		toLocal,
 		toView,
-		viewOf,
 		type BodyPlace,
 		type RegionId,
 		type Shape,
 		type Side,
-		type View
+		type View,
+		type ZoomState
 	} from '$lib/bodymap/catalogue';
 	import { heatStep } from '$lib/records/pain';
 	import Segmented from './Segmented.svelte';
@@ -33,6 +30,7 @@
 
 	let {
 		view = $bindable('front'),
+		zoom = null,
 		points = [],
 		selected = null,
 		showToggle = true,
@@ -40,6 +38,8 @@
 		ontap
 	}: {
 		view?: View;
+		/** A close-up (head, one hand or one foot) instead of the main view. */
+		zoom?: ZoomState | null;
 		points?: Dot[];
 		selected?: { region: RegionId; side: Side } | null;
 		showToggle?: boolean;
@@ -51,15 +51,35 @@
 
 	let svg: SVGSVGElement | undefined = $state();
 
-	const shapes = $derived(shapesOf(view));
-	const edges = $derived(edgeSides(view));
-	const dots = $derived(
+	const scene = $derived(sceneOf(view, zoom));
+	const shapes = $derived(scene.shapes);
+	const edges = $derived(scene.edges);
+	const placed = $derived(
 		points.flatMap((p) => {
-			if (viewOf(p.space) !== view) return [];
-			const shape = findShape(view, p.region, p.side);
-			if (!shape) return [];
-			return [{ ...toView(shape, p.u, p.v), intensity: p.intensity }];
+			if (p.space !== scene.space) return [];
+			const shape = sceneShape(scene, p.region, p.side);
+			return shape ? [{ shape, p }] : [];
 		})
+	);
+	const dots = $derived(
+		placed.map(({ shape, p }) => ({ ...toView(shape, p.u, p.v), intensity: p.intensity }))
+	);
+	/** Wider areas in use (whole belly, whole back, ...): softly highlighted, the dot sits at their centre. */
+	const wides = $derived(
+		scene.wide.filter((w) =>
+			points.some((p) => p.space === scene.space && p.region === w.region && p.side === w.side)
+		)
+	);
+	const label = $derived(
+		zoom
+			? t(
+					zoom.zoom === 'head'
+						? 'bodymap.svg.head'
+						: zoom.zoom === 'hand'
+							? 'bodymap.svg.hand'
+							: 'bodymap.svg.foot'
+				)
+			: t(view === 'front' ? 'bodymap.svg.front' : 'bodymap.svg.back')
 	);
 
 	const transform = (s: Shape) => (s.rot ? `rotate(${s.rot} ${s.px} ${s.py})` : undefined);
@@ -67,7 +87,7 @@
 	const isSelected = (s: Shape) => selected?.region === s.region && selected.side === s.side;
 
 	function report(s: Shape, u: number, v: number) {
-		ontap?.({ region: s.region, side: s.side, space: spaceOf(view), u, v });
+		ontap?.({ region: s.region, side: s.side, space: s.space, u, v });
 	}
 
 	function onclick(event: MouseEvent, s: Shape) {
@@ -92,7 +112,7 @@
 </script>
 
 <div class="bodymap">
-	{#if showToggle}
+	{#if showToggle && !zoom}
 		<Segmented
 			label={t('bodymap.view')}
 			bind:value={view}
@@ -103,16 +123,31 @@
 		/>
 	{/if}
 	<div class="stage" style:--figure="{width}px">
-		<span class="edge left">{t(sideKey(edges.screenLeft))}</span>
-		<span class="edge right">{t(sideKey(edges.screenRight))}</span>
+		{#if edges}
+			<span class="edge left">{t(sideKey(edges.screenLeft))}</span>
+			<span class="edge right">{t(sideKey(edges.screenRight))}</span>
+		{/if}
 		<svg
 			bind:this={svg}
 			class="body"
-			viewBox="0 0 {VIEWBOX.w} {VIEWBOX.h}"
+			viewBox="0 0 {scene.viewBox.w} {scene.viewBox.h}"
+			style:aspect-ratio="{scene.viewBox.w} / {scene.viewBox.h}"
 			role="group"
-			aria-label={t(view === 'front' ? 'bodymap.svg.front' : 'bodymap.svg.back')}
+			aria-label={label}
 		>
-			{#each shapes as s (s.view + s.key)}
+			{#if scene.backdrop}
+				<rect
+					class="backdrop"
+					x={scene.backdrop.x}
+					y={scene.backdrop.y}
+					width={scene.backdrop.w}
+					height={scene.backdrop.h}
+					rx={scene.backdrop.rx}
+					ry={scene.backdrop.ry}
+					aria-hidden="true"
+				/>
+			{/if}
+			{#each shapes as s (s.space + s.key)}
 				<rect
 					class="rg"
 					class:sel={isSelected(s)}
@@ -130,6 +165,21 @@
 					data-side={s.side}
 					onclick={(e) => onclick(e, s)}
 					onkeydown={(e) => onkeydown(e, s)}
+				/>
+			{/each}
+			{#each wides as w (w.key)}
+				<rect
+					class="wide"
+					class:sel={isSelected(w)}
+					x={w.x}
+					y={w.y}
+					width={w.w}
+					height={w.h}
+					rx={w.rx}
+					ry={w.ry}
+					aria-hidden="true"
+					data-region={w.region}
+					data-side={w.side}
 				/>
 			{/each}
 			{#each dots as d, i (i)}
@@ -184,7 +234,6 @@
 	.body {
 		width: min(100%, var(--figure, 252px));
 		height: auto;
-		aspect-ratio: 200 / 440;
 		overflow: visible;
 		-webkit-tap-highlight-color: transparent;
 	}
@@ -210,6 +259,25 @@
 	.rg:focus-visible {
 		stroke: var(--focus);
 		stroke-width: 2.6;
+	}
+	.backdrop {
+		fill: var(--surface);
+		stroke: var(--line);
+		stroke-width: 1.2;
+		pointer-events: none;
+	}
+	.wide {
+		fill: var(--primary-soft);
+		fill-opacity: 0.7;
+		stroke: var(--primary);
+		stroke-width: 1.4;
+		stroke-dasharray: 4 3;
+		pointer-events: none;
+	}
+	.wide.sel {
+		fill-opacity: 0.95;
+		stroke-width: 2;
+		stroke-dasharray: none;
 	}
 	.halo {
 		fill: var(--surface);
