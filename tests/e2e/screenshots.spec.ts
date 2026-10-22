@@ -13,7 +13,7 @@ import {
 	seedRecords,
 	unlockWith
 } from './helpers';
-import { at, heartRateType, month, watchRecord, watchRecord2 } from './trends-data';
+import { at, heartRateType, heatSet, month, watchRecord, watchRecord2 } from './trends-data';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
 // Opt-in: SCREENSHOTS=<folder name> npx playwright test screenshots --project=phone-chromium
@@ -928,6 +928,86 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.getByRole('link', { name: 'Udvikling', exact: true }).click();
 			await page.getByRole('heading', { name: 'Efter måltider med…' }).waitFor();
 			await snap(page, 'trends-da-full', scheme, true);
+		});
+
+		test(`heatmap ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'heatmap', 'heatmap screenshots only');
+			await prepare(page, scheme);
+			const pt = (region: string, side: string, space: string, intensity: number) => ({
+				region,
+				side,
+				space,
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: []
+			});
+			const account = await signUpApiAccount(page.request);
+			await seedRecords(page.request, account, [
+				...heatSet(),
+				{
+					v: 1,
+					type: 'pain',
+					at: at(0, 6),
+					points: [pt('lower_back', 'midline', '2d-back-v1', 5), pt('knee', 'right', '2d-front-v1', 4)]
+				},
+				{ v: 1, type: 'pain', at: at(0, 7), points: [pt('knee', 'left', '2d-front-v1', 3)] },
+				{
+					v: 1,
+					type: 'pain',
+					at: at(0, 8),
+					points: [pt('temple', 'right', '2d-head-front-v2', 6), pt('belly', 'midline', '2d-front-v1', 4)]
+				}
+			]);
+			await page.goto('/trends');
+			await unlockWith(page, account.passphrase);
+			const card = page
+				.locator('section.card')
+				.filter({ has: page.getByRole('heading', { name: 'Where it hurt', exact: true }) });
+			await card.waitFor({ timeout: 20_000 });
+			const shot = async (name: string) => {
+				await page.waitForTimeout(250);
+				await card.screenshot({ path: `docs/screenshots/${folder}/${name}-${scheme}.png` });
+			};
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'card-front-full', scheme, true);
+			await shot('card-front');
+			await card.getByRole('radio', { name: 'Back', exact: true }).click();
+			await shot('card-back');
+			await card.getByRole('radio', { name: 'Front', exact: true }).click();
+			await card.getByRole('button', { name: /^Show all/ }).click();
+			await shot('card-front-all');
+			await card.getByRole('button', { name: 'Show fewer places' }).click();
+			const figure = card.getByTestId('heat-figure').locator('svg.body');
+			await figure.getByRole('button', { name: 'Look closer: Head' }).click();
+			await shot('card-head');
+			await card.getByRole('button', { name: 'Back to the body' }).click();
+			await figure.getByRole('button', { name: 'Look closer: Your right hand' }).click();
+			await shot('card-hand');
+			await card.getByRole('button', { name: 'Back to the body' }).click();
+
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			await page.locator('.thumb').first().waitFor({ timeout: 20_000 });
+			await snap(page, 'today-thumbs', scheme, true);
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			for (const [region, n] of [
+				['Your right knee', 1],
+				['Your left knee', 2],
+				['Your right shin', 3]
+			] as const) {
+				await sheet.locator('svg[role=group]').getByRole('button', { name: region, exact: true }).click();
+				await sheet
+					.getByRole('radiogroup', { name: /^Intensity/ })
+					.getByRole('radio', { name: String(n), exact: true })
+					.click();
+				if (n < 3) await sheet.getByRole('button', { name: 'Add a point' }).click();
+			}
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet', scheme);
 		});
 
 		test(`trends empty ${scheme}`, async ({ page }) => {

@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { AfterMeals, Card, EmptyState, Icon, Segmented, TrendChart, type Scale } from '$lib/components';
+	import {
+		AfterMeals,
+		Card,
+		HeatMapCard,
+		EmptyState,
+		Icon,
+		Segmented,
+		TrendChart,
+		type Scale
+	} from '$lib/components';
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { formatDuration } from '$lib/records/format';
 	import { allRecords, store } from '$lib/records/store.svelte';
@@ -511,6 +520,8 @@
 				<p class="hint">{t('trends.pain.gaps')}</p>
 			</Card>
 		{/if}
+
+		<HeatMapCard {days} />
 
 		<AfterMeals {days} />
 	</div>

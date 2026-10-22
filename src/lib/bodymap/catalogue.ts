@@ -991,6 +991,52 @@ export function widen(
 	};
 }
 
+// ---- Parts of a wider area ----
+
+export type Part = { region: RegionId; side: Side };
+
+/** The narrow places (belly quarters, back parts, head zones) a place counts towards: itself, or the parts of a wider area. */
+export function partsOf(region: RegionId, side: Side): Part[] {
+	const own: Part[] = [{ region, side }];
+	if (region === 'belly')
+		return (['upper_belly', 'lower_belly'] as const).flatMap((r) => [
+			{ region: r, side: 'right' as const },
+			{ region: r, side: 'left' as const }
+		]);
+	if ((region === 'upper_belly' || region === 'lower_belly') && side === 'midline')
+		return [
+			{ region, side: 'right' },
+			{ region, side: 'left' }
+		];
+	if (region === 'back')
+		return (['upper_back', 'mid_back', 'lower_back'] as const).map((r) => ({ region: r, side: 'midline' }));
+	if (!HEAD_WIDE.includes(region)) return own;
+	const faces = (['front', 'back'] as const).map((face) => zoomScene({ zoom: 'head', face }));
+	const area = (scene: Scene) => scene.wide.find((w) => w.region === region && w.side === side);
+	const uniq = (shapes: readonly Shape[]): Part[] => {
+		const seen = new Set<string>();
+		const out: Part[] = [];
+		for (const s of shapes) {
+			const key = `${s.region}:${s.side}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			out.push({ region: s.region, side: s.side });
+		}
+		return out;
+	};
+	if (region === 'whole_head') return uniq(faces.flatMap((f) => f.shapes));
+	if (region === 'head_band')
+		// The band is a strip across the head: every zone whose box overlaps it (up and down).
+		return uniq(
+			faces.flatMap((f) => {
+				const band = area(f);
+				return band ? f.shapes.filter((z) => z.y < band.y + band.h && z.y + z.h > band.y) : [];
+			})
+		);
+	// Front or back of a side, or a whole side (both drawings, with the top of the head): what the highlights cover.
+	return uniq(faces.flatMap((f) => area(f)?.cover ?? []));
+}
+
 // ---- Places and the Find list ----
 
 /** Where on the body: what a tap, or choosing from the Find list, reports. */
