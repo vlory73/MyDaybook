@@ -490,6 +490,8 @@ that worries you") lives on the About page, never as a reaction to an entry.
 
 **Trends (M5):** `src/lib/trends/` holds pure, unit-tested aggregation on the device: `range.ts` (7/30/90 days or a custom range of at most 366 days, DST-safe day keys), `series.ts` (per-day series aligned with the day list, `null` = no data so charts leave a gap, never a zero), `afterMeals.ts` (the side-by-side meal view, windows 6/24/48 h by real elapsed time) and `paths.ts` (runs and SVG path text). Charts are hand-built SVG (`TrendChart.svelte` frame + layers in the page); no chart library, no thresholds or reference ranges.
 
+**Heat map (M5):** `src/lib/trends/heatmap.ts` counts DAYS per place (distinct local days with a point there, not entries) and averages the intensities of those points; a wider area counts towards each of its parts (`partsOf` in the catalogue) and a close-up point also towards the whole head, hand or foot of the main body (`roll`). The five legend steps come from the period's maximum (1 · 2–3 · 4–6 · 7–9 · 10+ up to 11 days, scaled above, fewer steps below 10). `HeatMapCard.svelte` reuses `BodyMap` in a read-only `heat` mode (`--heat-1..5`, per-step `--on-heat-N` number colours, numbers only on shapes that fit); `PainThumb.svelte` draws the small combined front/back body on Today.
+
 ## 6. Medication reminders (Web Push)
 
 Opt-in per device (Me → "Reminders on this device"); the medication toggle only says which medicines are included.

@@ -244,3 +244,38 @@ function formatAtMinus(daysAgo: number, hh: number, minutes: number): string {
 	const [y, m, d] = day.split('-').map(Number) as [number, number, number];
 	return formatAt(new Date(new Date(y, m - 1, d, hh, 0).getTime() - minutes * 60_000));
 }
+
+/**
+ * Synthetic pain entries for the heat map: lower back on 11 days (the most), the right temple on 7, the right knee on 6,
+ * a wide "whole belly" on 2 days, a few hands and feet. Many places, so the list has a "Show all".
+ */
+export function heatSet(): object[] {
+	const p = (region: string, side: string, space: string, intensity: number) => ({
+		region,
+		side,
+		space,
+		u: 0.5,
+		v: 0.5,
+		intensity,
+		qualities: []
+	});
+	const F = '2d-front-v1';
+	const B = '2d-back-v1';
+	const HF = '2d-head-front-v2';
+	const HB = '2d-head-back-v2';
+	const out: object[] = [];
+	const rec = (ago: number, hh: number, ...points: object[]) =>
+		out.push({ v: 1, type: 'pain', at: at(ago, hh), points });
+	for (let ago = 1; ago <= 11; ago++) rec(ago, 10, p('lower_back', 'midline', B, 4 + (ago % 3)));
+	for (const ago of [2, 4, 6, 8, 10, 12, 14]) rec(ago, 15, p('temple', 'right', HF, 6));
+	for (const ago of [3, 5, 7, 9, 13, 16]) rec(ago, 17, p('knee', 'right', F, 5));
+	rec(3, 20, p('belly', 'midline', F, 4));
+	rec(5, 20, p('belly', 'midline', F, 3));
+	rec(6, 12, p('mid_back', 'midline', B, 4), p('upper_back', 'midline', B, 4));
+	rec(7, 12, p('shoulder', 'right', F, 4), p('shoulder', 'left', F, 3));
+	rec(8, 12, p('forehead', 'right', HF, 5), p('rear_head', 'left', HB, 4));
+	rec(9, 12, p('thumb', 'left', '2d-hand-v1', 3), p('palm', 'right', '2d-hand-v1', 5));
+	rec(10, 12, p('big_toe', 'right', '2d-foot-v1', 3), p('knee', 'left', F, 3));
+	rec(11, 12, p('neck', 'midline', F, 2), p('hip_groin', 'right', F, 3));
+	return out;
+}
