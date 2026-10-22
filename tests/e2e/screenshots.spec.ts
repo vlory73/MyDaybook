@@ -10,8 +10,10 @@ import {
 	signUpAndSignIn,
 	signUpApiAccount,
 	signUpViaApi,
+	seedRecords,
 	unlockWith
 } from './helpers';
+import { heartRateType, month, watchRecord, watchRecord2 } from './trends-data';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
 // Opt-in: SCREENSHOTS=<folder name> npx playwright test screenshots --project=phone-chromium
@@ -892,6 +894,48 @@ for (const scheme of ['light', 'dark'] as const) {
 			await card.getByText(/Add to Home Screen/).waitFor();
 			await card.scrollIntoViewIfNeeded();
 			await snap(page, 'me-reminders-ios', scheme);
+		});
+
+		test(`trends ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'trends', 'trends screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const [gluten, lactose, heartRate] = await seedRecords(page.request, account, [
+				watchRecord,
+				watchRecord2,
+				heartRateType
+			]);
+			void lactose;
+			await seedRecords(page.request, account, month(gluten!, heartRate!));
+			await page.goto('/trends');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('heading', { name: 'After meals with…' }).waitFor({ timeout: 20_000 });
+			await snap(page, 'trends-30', scheme);
+			await snap(page, 'trends-30-full', scheme, true);
+			await page.getByRole('radio', { name: '7 days' }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-7-full', scheme, true);
+			await page.getByRole('radio', { name: '90 days' }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-90-full', scheme, true);
+			await page.getByRole('radio', { name: 'Custom' }).click();
+			await page.waitForTimeout(300);
+			await page.evaluate(() => window.scrollTo(0, 0));
+			await snap(page, 'trends-custom', scheme);
+			await page.getByRole('radio', { name: '30 days' }).click();
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			await page.getByRole('radio', { name: 'Dansk' }).click();
+			await page.getByRole('link', { name: 'Udvikling', exact: true }).click();
+			await page.getByRole('heading', { name: 'Efter måltider med…' }).waitFor();
+			await snap(page, 'trends-da-full', scheme, true);
+		});
+
+		test(`trends empty ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'trends', 'trends screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/trends');
+			await page.getByRole('heading', { name: 'No charts yet' }).waitFor();
+			await snap(page, 'trends-empty', scheme);
 		});
 	});
 }

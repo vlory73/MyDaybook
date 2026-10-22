@@ -281,7 +281,9 @@ test.describe('auto-lock', () => {
 		await page.clock.install();
 		await signUpAndSignIn(page);
 		await page.clock.fastForward('04:00');
-		await page.mouse.click(50, 300); // interaction restarts the countdown
+		// Interaction restarts the countdown. Click the inert heading: a click on whatever sits at a fixed spot
+		// could open something whose animation scrolls later and postpones the lock again.
+		await todayHeading(page).click();
 		await page.clock.fastForward('04:00');
 		await expect(todayHeading(page)).toHaveText(GREETING);
 		await page.clock.fastForward('02:00');

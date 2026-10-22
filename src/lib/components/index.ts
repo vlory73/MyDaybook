@@ -50,3 +50,5 @@ export { default as UnlockView } from './UnlockView.svelte';
 export { showToast, dismissToast } from './toast.svelte';
 export { categories, type Category } from './categories';
 export type { IconName } from './icon-names';
+export { default as AfterMeals } from './AfterMeals.svelte';
+export { default as TrendChart, type Scale } from './TrendChart.svelte';
