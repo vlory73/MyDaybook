@@ -780,3 +780,39 @@ describe('head zones', () => {
 		});
 	});
 });
+
+describe('head areas seen from the other drawing', () => {
+	it('offers the width chips of the drawing that is shown', () => {
+		const backTap = { region: 'rear_head', side: 'right', space: '2d-head-back-v2' } as const;
+		const ids = (shown?: 'front' | 'back') =>
+			wideOptions(
+				{ region: 'head_band', side: 'midline', space: '2d-head-back-v2' },
+				{ ...backTap, u: 0.3, v: 0.3 },
+				shown
+			).map((o) => o.id);
+		expect(ids('front')).toEqual(['this', 'head_front_side', 'head_side', 'whole_head', 'head_band']);
+		expect(ids('back')).toEqual(['this', 'head_back_side', 'head_side', 'whole_head', 'head_band']);
+	});
+
+	it('moves a point to the drawing its area belongs to, and "This spot" back to where it was tapped', () => {
+		const tap = { region: 'rear_head', side: 'right', u: 0.3, v: 0.4, space: '2d-head-back-v2' } as const;
+		const band = widen(
+			tap,
+			wideOptions(tap).find((o) => o.id === 'head_band')!
+		);
+		expect(band.place.space).toBe('2d-head-back-v2'); // the band exists on both drawings: the space is kept
+		const front = widen(
+			{ ...band.place, space: band.place.space },
+			wideOptions(band.place, band.origin, 'front').find((o) => o.id === 'head_front_side')!,
+			band.origin
+		);
+		expect(front.place).toMatchObject({
+			region: 'head_front_side',
+			side: 'right',
+			space: '2d-head-front-v2'
+		});
+		expect(isPlace(front.place.region, front.place.side, front.place.space!)).toBe(true);
+		const home = wideOptions(front.place, front.origin, 'front').find((o) => o.id === 'this')!;
+		expect(widen(front.place, home, front.origin).place).toEqual(tap);
+	});
+});

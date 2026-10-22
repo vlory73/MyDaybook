@@ -410,3 +410,36 @@ test('head zones: the names are in Danish', async ({ page }) => {
 	await group.getByRole('button', { name: 'Bånd rundt om hovedet', exact: true }).click();
 	await expect(dlg.getByRole('heading', { name: 'Bånd rundt om hovedet' })).toBeVisible();
 });
+
+test('head zones: a band chosen on the back is drawn on the front too, and the chips follow the view', async ({
+	page
+}) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').click();
+	await radio(page, 'Back').click();
+	await tap(page, 'Back of the right side of your head');
+	await wide(page).getByRole('button', { name: 'Band around the head', exact: true }).click();
+	await expect(figure(page).locator('.wide.sel')).toHaveCount(1);
+	await radio(page, 'Front').click();
+	// The band is drawn on the front view as well, selected, with the point's dot on it.
+	await expect(figure(page).locator('.wide.sel[data-region="head_band"]')).toHaveCount(1);
+	await expect(figure(page).locator('.dot')).toHaveCount(1);
+	await expect(sheet(page).getByRole('heading', { name: 'Band around the head' })).toBeVisible();
+	await expect(wide(page).getByRole('button', { name: 'Front of this side', exact: true })).toBeVisible();
+	await expect(wide(page).getByRole('button', { name: 'Back of this side' })).toHaveCount(0);
+	// Choosing the front of the side moves the point to the front drawing; "This spot" goes back to the back one.
+	await wide(page).getByRole('button', { name: 'Front of this side', exact: true }).click();
+	await expect(sheet(page).getByRole('heading', { name: 'Front of the right side' })).toBeVisible();
+	await expect(figure(page).locator('.wide.sel')).toHaveCount(4);
+	await wide(page).getByRole('button', { name: 'This spot', exact: true }).click();
+	await expect(radio(page, 'Back')).toBeChecked();
+	await expect(
+		sheet(page).getByRole('heading', { name: 'Back of the right side of your head' })
+	).toBeVisible();
+	await intensity(page, 2).click();
+	await saveButton(page, 'Save 1 point').click();
+	await expect(
+		timeline(page).getByText('Back of the right side of your head 2', { exact: true })
+	).toBeVisible();
+});

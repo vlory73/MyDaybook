@@ -816,7 +816,7 @@ export function toView(shape: Shape, u: number, v: number): { x: number; y: numb
 // bounding box, with the whole area softly highlighted. Widening remembers the original quarter or zone in the draft (not
 // in the record), so "This quarter" / "This spot" puts the point back where it was.
 
-export type Anchor = { region: RegionId; side: Side; u: number; v: number };
+export type Anchor = { region: RegionId; side: Side; u: number; v: number; space?: Space };
 export type WideId =
 	| 'this'
 	| 'upper_belly'
@@ -859,6 +859,17 @@ export const wideGroup = (region: string): 'belly' | 'back' | 'head' | null =>
 			: HEAD_ZONES.includes(region) || HEAD_WIDE.includes(region)
 				? 'head'
 				: null;
+/** Wider head areas that exist on both head drawings: a point on one is drawn on whichever drawing is shown. */
+export const isViewIndependent = (region: string): boolean =>
+	region === 'head_side' || region === 'whole_head' || region === 'head_band';
+
+/** The head drawing's space an area that only one drawing has belongs to, else undefined. */
+function ownSpace(region: string): Space | undefined {
+	const views = regionDef(region)?.views ?? [];
+	const only = views.length === 1 ? views[0] : undefined;
+	return only === 'head' || only === 'head_back' ? spaceOf(only) : undefined;
+}
+
 /** A quarter, back part or head zone, rather than a wider area. */
 const isNarrow = (region: string, side: Side) =>
 	(region === 'upper_belly' || region === 'lower_belly' ? side !== 'midline' : false) ||
@@ -877,14 +888,15 @@ function headFaceOf(at: { region: string; space?: Space }): HeadFace | undefined
 
 function headOptions(
 	at: { region: string; side: Side; space?: Space },
-	home: { region: RegionId; side: Side } | undefined
+	home: { region: RegionId; side: Side } | undefined,
+	shown?: HeadFace
 ): WideOption[] {
 	const out: WideOption[] = [];
 	if (home) out.push({ id: 'this', key: 'bodymap.wide.spot', region: home.region, side: home.side });
 	// The side-wide choices need a side: a zone or area on one side (not the top of the head, the whole head or the band).
 	const ref = home ?? at;
 	const side = ref.side === 'left' || ref.side === 'right' ? ref.side : undefined;
-	const face = headFaceOf(at.space ? at : { region: ref.region });
+	const face = shown ?? headFaceOf(at.space ? at : { region: ref.region });
 	if (side) {
 		if (face === 'back')
 			out.push({ id: 'head_back_side', key: 'bodymap.wide.head_back_side', region: 'head_back_side', side });
@@ -908,12 +920,13 @@ function headOptions(
  */
 export function wideOptions(
 	at: { region: string; side: Side; space?: Space },
-	origin?: Anchor
+	origin?: Anchor,
+	shown?: HeadFace
 ): WideOption[] {
 	const group = wideGroup(at.region);
 	if (!group) return [];
 	const home = isNarrow(at.region, at.side) ? { region: at.region as RegionId, side: at.side } : origin;
-	if (group === 'head') return headOptions(at, home);
+	if (group === 'head') return headOptions(at, home, shown);
 	const out: WideOption[] = [];
 	if (home)
 		out.push({
@@ -964,10 +977,18 @@ export function widen(
 ): { place: Anchor; origin: Anchor | undefined } {
 	if (option.id === 'this') {
 		const back = origin ?? at;
-		return { place: { region: back.region, side: back.side, u: back.u, v: back.v }, origin: undefined };
+		return {
+			place: { region: back.region, side: back.side, u: back.u, v: back.v, space: back.space },
+			origin: undefined
+		};
 	}
 	const remembered = isNarrow(at.region, at.side) ? { ...at } : origin;
-	return { place: { region: option.region, side: option.side, u: 0.5, v: 0.5 }, origin: remembered };
+	// An area only one head drawing has moves the point to that drawing; the others keep the point's space.
+	const space = ownSpace(option.region) ?? at.space;
+	return {
+		place: { region: option.region, side: option.side, u: 0.5, v: 0.5, space },
+		origin: remembered
+	};
 }
 
 // ---- Places and the Find list ----

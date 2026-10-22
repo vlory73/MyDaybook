@@ -106,7 +106,9 @@
 	const current = $derived(sel === null ? undefined : points[sel]);
 	const complete = $derived(points.length > 0 && points.every((p) => p.intensity !== undefined));
 	const full = $derived(points.length >= MAX_PAIN_POINTS);
-	const wides = $derived(current ? wideOptions(current, current.origin) : []);
+	const wides = $derived(
+		current ? wideOptions(current, current.origin, zoomKind === 'head' ? headFace : undefined) : []
+	);
 	const wideNow = $derived(current ? activeWide(current, wides) : undefined);
 	const hasHead = $derived(points.some((p) => isHeadPoint(p)));
 	const showHeadache = $derived(hasHead || headacheTick);
@@ -268,7 +270,7 @@
 	function setWider(option: WideOption) {
 		if (!current) return;
 		const next = widen(
-			{ region: current.region, side: current.side, u: current.u, v: current.v },
+			{ region: current.region, side: current.side, u: current.u, v: current.v, space: current.space },
 			option,
 			current.origin
 		);
@@ -277,6 +279,9 @@
 		current.u = next.place.u;
 		current.v = next.place.v;
 		current.origin = next.origin;
+		if (next.place.space) current.space = next.place.space;
+		// "This spot" goes back to the drawing the tap was made on.
+		if (option.id === 'this') show(current);
 		void reveal(false);
 	}
 

@@ -372,6 +372,10 @@ for (const scheme of ['light', 'dark'] as const) {
 			await wider('Band around the head');
 			await page.waitForTimeout(300);
 			await snap(page, 'back-band', scheme);
+			// The same band seen from the front.
+			await sheet.getByRole('radio', { name: 'Front', exact: true }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'front-band', scheme);
 		});
 
 		test(`body map close-ups and wider areas ${scheme}`, async ({ page }) => {

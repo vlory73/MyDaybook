@@ -5,6 +5,7 @@
 		sceneOf,
 		sceneShape,
 		sideKey,
+		isViewIndependent,
 		toLocal,
 		toView,
 		type BodyPlace,
@@ -56,9 +57,12 @@
 	const edges = $derived(scene.edges);
 	const body = $derived(scene.decor.filter((d) => d.kind === 'body'));
 	const features = $derived(scene.decor.filter((d) => d.kind === 'feature'));
+	/** A point is drawn on its own view; the wider head areas (band, whole head, this side) on either head drawing. */
+	const onScene = (p: Dot) =>
+		p.space === scene.space || (scene.edges !== null && zoom?.zoom === 'head' && isViewIndependent(p.region));
 	const placed = $derived(
 		points.flatMap((p) => {
-			if (p.space !== scene.space) return [];
+			if (!onScene(p)) return [];
 			const shape = sceneShape(scene, p.region, p.side);
 			return shape ? [{ shape, p }] : [];
 		})
@@ -68,9 +72,7 @@
 	);
 	/** Wider areas in use (whole belly, whole back, ...): softly highlighted, the dot sits at their centre. */
 	const wides = $derived(
-		scene.wide.filter((w) =>
-			points.some((p) => p.space === scene.space && p.region === w.region && p.side === w.side)
-		)
+		scene.wide.filter((w) => points.some((p) => onScene(p) && p.region === w.region && p.side === w.side))
 	);
 	const label = $derived(
 		zoom
