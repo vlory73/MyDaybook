@@ -488,6 +488,8 @@ that would be a diagnostic insight (MDR Rule 11). The same rule applies to bowel
 the doctor-visit PDF, but it never triggers a message or alert. General, static information ("talk to your doctor about anything
 that worries you") lives on the About page, never as a reaction to an entry.
 
+**Trends (M5):** `src/lib/trends/` holds pure, unit-tested aggregation on the device: `range.ts` (7/30/90 days or a custom range of at most 366 days, DST-safe day keys), `series.ts` (per-day series aligned with the day list, `null` = no data so charts leave a gap, never a zero), `afterMeals.ts` (the side-by-side meal view, windows 6/24/48 h by real elapsed time) and `paths.ts` (runs and SVG path text). Charts are hand-built SVG (`TrendChart.svelte` frame + layers in the page); no chart library, no thresholds or reference ranges.
+
 ## 6. Medication reminders (Web Push)
 
 Opt-in per device (Me → "Reminders on this device"); the medication toggle only says which medicines are included.
