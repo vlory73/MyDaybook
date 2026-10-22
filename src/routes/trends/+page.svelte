@@ -317,7 +317,7 @@
 
 		{#if showFluids}
 			<Card title={t('trends.fluids.title')}>
-				<p class="sub">{t('trends.fluids.sub', { avg: num(mlToCl(fluids.averageMl ?? 0)) })}</p>
+				<p class="sub">{t('trends.fluids.sub', { avg: num(Math.round(mlToCl(fluids.averageMl ?? 0))) })}</p>
 				<TrendChart
 					{days}
 					yMin={0}
