@@ -2,7 +2,15 @@ import type { APIRequestContext, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { initCrypto, createAccount, formatRecoveryKey, toB64, type KdfParams } from '../../src/lib/crypto';
+import {
+	initCrypto,
+	createAccount,
+	encryptRecord,
+	formatRecoveryKey,
+	recordKek,
+	toB64,
+	type KdfParams
+} from '../../src/lib/crypto';
 
 // Synthetic data only. Accounts made by `signUpAndSignIn` use cheap KDF parameters (the client reads them from the
 // server when it unlocks), so most UI tests stay fast. The real join journey in auth-ui.spec.ts uses the app's defaults.
@@ -148,4 +156,28 @@ export function loginApi(ctx: APIRequestContext, a: Pick<ApiAccount, 'username' 
 /** A POST with the origin and content type the API requires. */
 export function postJson(ctx: APIRequestContext, path: string, data: unknown = {}) {
 	return ctx.post(path, { headers: JSON_HEADERS, data: data as object });
+}
+
+/**
+ * Writes synthetic records for an API account straight to the server, encrypted the way the app does it (so the
+ * app opens them after unlock). Returns the record ids, in the same order as `payloads`.
+ */
+export async function seedRecords(
+	ctx: APIRequestContext,
+	account: Pick<ApiAccount, 'userId' | 'masterKey'>,
+	payloads: object[]
+): Promise<string[]> {
+	const kek = recordKek(account.masterKey);
+	const ids: string[] = [];
+	for (const payload of payloads) {
+		const id = randomUUID();
+		const enc = encryptRecord(kek, account.userId, id, payload as never);
+		const res = await ctx.put(`/api/records/${id}`, {
+			headers: JSON_HEADERS,
+			data: { wrappedKey: toB64(enc.wrappedKey), ciphertext: toB64(enc.ciphertext) }
+		});
+		expect(res.status()).toBe(200);
+		ids.push(id);
+	}
+	return ids;
 }
