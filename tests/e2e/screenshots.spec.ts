@@ -1017,5 +1017,142 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.getByRole('heading', { name: 'No charts yet' }).waitFor();
 			await snap(page, 'trends-empty', scheme);
 		});
+
+		test(`headache report ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'headache-report', 'headache report screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const todayIso = at(0, 12).slice(0, 10);
+			const medBase = {
+				v: 1,
+				type: 'medication',
+				form: 'tablet',
+				times: [],
+				start: todayIso,
+				reminders: false,
+				archived: false
+			};
+			const [para, ibu] = await seedRecords(page.request, account, [
+				{ ...medBase, name: 'Paracetamol', strength: 500, unit: 'mg', schedule: { kind: 'as_needed' } },
+				{ ...medBase, name: 'Ibuprofen', strength: 400, unit: 'mg', schedule: { kind: 'as_needed' } }
+			]);
+			const head = (side: string, intensity: number, qualities: string[] = []) => ({
+				region: 'temple',
+				side,
+				space: '2d-head-front-v2',
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities
+			});
+			const days = [1, 2, 4, 5, 7, 9, 10, 12, 13];
+			const records: object[] = [];
+			days.forEach((d, i) => {
+				const side = ['right', 'left', 'right', 'right', 'left', 'right', 'left', 'right', 'right'][i]!;
+				const start = 7 + (i % 5) * 3;
+				records.push({
+					v: 1,
+					type: 'pain',
+					at: at(d, start),
+					points: [
+						head(side, 3 + (i % 4) * 2, i % 2 ? ['constant'] : ['throbbing']),
+						...(i === 1 ? [head('right', 8)] : [])
+					],
+					headache: {
+						started: at(d, start),
+						...(i === 0
+							? { stillGoing: true }
+							: { stopped: at(i === 1 ? d - 1 : d, i === 1 ? 2 : Math.min(start + 4, 23)) }),
+						...(i % 3 === 0 ? { before: ['vision'] } : i % 3 === 1 ? { before: ['vision', 'feeling'] } : {}),
+						...(i % 2 === 0
+							? { worseWithActivity: true, light: true, sound: i % 4 === 0 }
+							: { worseWithActivity: false, light: false }),
+						...(i === 1
+							? { trigger: 'Skipped lunch, long meeting, bright screen all afternoon and a noisy office' }
+							: i % 3 === 0
+								? { trigger: 'Poor sleep' }
+								: {})
+					}
+				});
+				if (i % 2 === 0) {
+					records.push({
+						v: 1,
+						type: 'gut',
+						at: at(d, start + 1),
+						symptoms: [{ kind: 'nausea', intensity: 1 + (i % 5) }],
+						flags: []
+					});
+				}
+				records.push({
+					v: 1,
+					type: 'dose',
+					at: at(d, start + 1, 10),
+					medicationId: para!,
+					status: 'taken',
+					amount: '500 mg'
+				});
+				if (i === 1) {
+					for (const [h, m, id] of [
+						[start + 2, 30, ibu!],
+						[start + 5, 15, para!],
+						[start + 8, 0, para!]
+					] as const) {
+						records.push({
+							v: 1,
+							type: 'dose',
+							at: at(d, h, m),
+							medicationId: id,
+							status: 'taken',
+							amount: id === ibu ? '400 mg' : '500 mg'
+						});
+					}
+				}
+			});
+			await seedRecords(page.request, account, records);
+			await page.goto('/reports/headache');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('heading', { name: 'Headache diary', level: 1 }).waitFor();
+			await page.getByLabel('Name on the report').fill('Sam Example');
+			await snap(page, 'report-screen', scheme, true);
+			if (scheme !== 'light') return;
+
+			const shoot = async (layout: RegExp, language: string, file: string, pages: number) => {
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.getByRole('radio', { name: layout }).click();
+				await page.getByRole('radio', { name: language }).click();
+				await page.getByRole('button', { name: 'Make report' }).click();
+				await page.getByTestId('report').waitFor();
+				await page.emulateMedia({ media: 'print', colorScheme: scheme });
+				const sheets = page.locator('.report-sheet');
+				if ((await sheets.count()) !== pages)
+					throw new Error(`expected ${pages} sheets, got ${await sheets.count()}`);
+				const portrait = layout.source.includes('paper');
+				await page.setViewportSize(portrait ? { width: 793, height: 1122 } : { width: 1122, height: 793 });
+				for (let i = 0; i < pages; i++) {
+					await page.evaluate(() => window.scrollTo(0, 0));
+					const box = (await sheets.nth(i).boundingBox())!;
+					await page.screenshot({
+						path: `docs/screenshots/${folder}/${file}-page${i + 1}.png`,
+						fullPage: true,
+						clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+					});
+				}
+				await page.setViewportSize({ width: 375, height: 812 });
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.waitForTimeout(200);
+				if (file === 'table-en') await snap(page, 'report-preview', scheme);
+				await page.getByRole('button', { name: /^(Back|Tilbage)$/ }).click();
+			};
+			await page
+				.getByRole('radio', { name: 'Custom from–to' })
+				.or(page.getByRole('button', { name: 'Custom from–to' }))
+				.click();
+			await page.locator('.custom input').first().fill(at(13, 12).slice(0, 10));
+			await page.locator('.custom input').last().fill(todayIso);
+			await shoot(/Clean table/, 'English', 'table-en', 2);
+			await shoot(/Clean table/, 'Dansk', 'table-da', 2);
+			await shoot(/Like the paper form/, 'English', 'form-en', 2);
+			await shoot(/Like the paper form/, 'Dansk', 'form-da', 2);
+		});
 	});
 }

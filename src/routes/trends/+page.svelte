@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { resolve } from '$app/paths';
 	import {
 		AfterMeals,
 		Card,
 		HeatMapCard,
 		EmptyState,
+		Icon,
 		Segmented,
 		TrendChart,
 		type Scale
@@ -177,7 +179,12 @@
 	</Card>
 {/snippet}
 
-<header class="page-head"><h1 class="large-title">{t('trends.title')}</h1></header>
+<header class="page-head">
+	<h1 class="large-title">{t('trends.title')}</h1>
+	<a class="reports-link" href={resolve('/reports/headache')}
+		><Icon name="printer" size={18} />{t('reports.button')}</a
+	>
+</header>
 
 <Segmented
 	label={t('trends.period.label')}
@@ -521,6 +528,18 @@
 {/if}
 
 <style>
+	.reports-link {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-2);
+		min-height: 36px;
+		padding: 0 var(--sp-3);
+		border-radius: var(--r-full);
+		background: var(--surface-2);
+		color: var(--text);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-medium);
+	}
 	.custom {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
