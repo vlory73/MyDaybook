@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Headache report picker: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.field.txt { color: var(--text); }
+.hint-note { display: flex; gap: var(--sp-2); align-items: flex-start; color: var(--text-2); font-size: var(--fs-footnote); margin: var(--sp-5) 0 var(--sp-4); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+
+<main class="content">
+  <div class="nav-head"><button class="icon-btn" aria-label="Back to Trends"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button>
+    <span class="title"></span><span style="width:var(--tap)"></span></div>
+  <header class="page-head" style="padding-top:0"><div><p class="eyebrow">Reports</p><h1 class="large-title">Headache diary</h1></div></header>
+
+  <section class="card">
+    <div class="label" style="margin-top:0">Period</div>
+    <div class="chip-row">
+      <button class="chip on" aria-pressed="true">Last 7 days</button><button class="chip">Last 14 days</button>
+      <button class="chip">Last 28 days</button><button class="chip">Custom from–to</button>
+    </div>
+    <p class="card-sub" style="margin-top:var(--sp-3)">13–19 Oct 2026</p>
+
+    <div class="label">Report language <span class="hint">Not the app language</span></div>
+    <div class="segmented" role="group" aria-label="Report language"><button>Dansk</button><button class="on" aria-pressed="true">English</button></div>
+
+    <div class="label">Name on the report <span class="hint">Optional</span></div>
+    <div class="field txt">Sam Example</div>
+  </section>
+
+  <p class="hint-note"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#printer"/></svg>
+    <span>Opens a page you can print or save as PDF.</span></p>
+  <button class="btn btn-primary btn-block">Make report</button>
+</main>
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>
