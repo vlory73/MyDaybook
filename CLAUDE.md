@@ -195,7 +195,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-22, end of session. Released: 0.5.0 (on the Pi). On develop, not released: M4 close-ups (#48), headache details (#49), headache-friendly head zones (#50, merging now). **Next session:** (1) remind the owner that 0.6.0 is unreleased (it can bundle everything on develop); (2) start `feature/trends` (M5 branch 2; scope and decisions in the M5 rows of the decisions log, incl. the food/symptom side-by-side view). Open: family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`)._
+_Last updated: 2026-10-22 (first session on the Team account). Released: 0.5.0 (on the Pi). On develop, not released: #48, #49, #50 (0.6.0 can bundle them). `feature/trends` PR open (M5 branch 2). CI #144 had timed out in a GitHub incident; re-run green, `:edge` published. **Next:** `feature/heatmap` (→ 0.7.0). Open: family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -265,7 +265,7 @@ _Last updated: 2026-10-22, end of session. Released: 0.5.0 (on the Pi). On devel
   Find lists them and opens the close-up), and wider areas (`belly`, `back`, and `upper_belly` / `lower_belly` on the midline; "This quarter · Upper belly · Lower belly · Whole belly"
   and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
   (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Foot: one footprint silhouette with five toes for both faces; count badges on the close-up buttons; belly width choices show only the half that holds the quarter. Screenshots in `docs/screenshots/bodymap-zoom/`.
-- **M5 (charts, heat map, export, PDF + headache diary):** plan and order in the decisions log. Done: `feature/headache-details` (#49), `feature/head-zones` (#50, an owner-requested insert). Next: `feature/trends` → `feature/heatmap` (→ 0.7.0) → `feature/pain-episodes` → `feature/export` → `feature/doctor-pdf` (Headache diary report in DA/EN; the source form's 13 questions are mapped in the "Headache diary" decisions-log row) (→ 0.8.0).
+- **M5 (charts, heat map, export, PDF + headache diary):** plan and order in the decisions log. Done: `feature/headache-details` (#49), `feature/head-zones` (#50, an owner-requested insert). In review: `feature/trends` (Trends tab: `src/lib/trends/`, `TrendChart.svelte`, `AfterMeals.svelte`; screenshots in `docs/screenshots/trends/`). Next: `feature/heatmap` (→ 0.7.0) → `feature/pain-episodes` → `feature/export` → `feature/doctor-pdf` (Headache diary report in DA/EN; the source form's 13 questions are mapped in the "Headache diary" decisions-log row) (→ 0.8.0).
 - **`feature/head-zones` (merged #50):** the head close-up is now two drawings with a Front / Back toggle (`2d-head-front-v2`, `2d-head-back-v2`,
   200 x 240; ARCHITECTURE §5), replacing the unreleased `2d-head-v1` outright. Zones are soft rounded paths (`Shape.d`) with gaps: front `forehead`, `temple`,
   `around_eye`, `behind_eye` (inside `around_eye`), `cheek`, `jaw`, all paired; back `top_of_head` (midline), `rear_head`, `rear_neck` (paired). Wider areas
