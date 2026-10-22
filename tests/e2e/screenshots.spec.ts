@@ -296,6 +296,39 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'sheet-same', scheme);
 		});
 
+		test(`headache details ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'headache-details', 'headache-details screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Head, close-up', exact: true }).click();
+			await sheet
+				.locator('svg[role=group]')
+				.getByRole('button', { name: 'Your left temple', exact: true })
+				.click();
+			await sheet
+				.getByRole('radiogroup', { name: /^Intensity/ })
+				.getByRole('radio', { name: '6', exact: true })
+				.click();
+			await sheet.getByRole('button', { name: 'Throbbing', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Constant', exact: true }).click();
+			await page.waitForTimeout(300);
+			await snap(page, 'sheet-zones', scheme);
+			await sheet.getByLabel('Hour Started').selectOption('22');
+			await sheet.getByLabel('Hour Stopped').selectOption('02');
+			await sheet.getByRole('button', { name: 'Vision', exact: true }).click();
+			await sheet
+				.getByRole('group', { name: 'Sensitive to light?' })
+				.getByRole('button', { name: 'Yes' })
+				.click();
+			await sheet.getByLabel('Possible trigger').fill('Skipped lunch');
+			await sheet.getByLabel('Possible trigger').scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'sheet-headache', scheme);
+		});
+
 		test(`body map close-ups and wider areas ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'bodymap-zoom', 'bodymap-zoom screenshots only');
 			await prepare(page, scheme);

@@ -258,6 +258,12 @@ _Last updated: 2026-10-22. M4 complete (#48); 0.6.0 to be released by the owner.
   and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
   (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Foot: one footprint silhouette with five toes for both faces; count badges on the close-up buttons; belly width choices show only the half that holds the quarter. Screenshots in `docs/screenshots/bodymap-zoom/`.
 - **M5 (charts, heat map, export, PDF + headache diary):** plan and order in the decisions log. `feature/headache-details` in progress.
+- **`feature/headache-details` (M5 branch 1, in review):** quality "Constant" after "Throbbing"; optional entry-level `headache` object on `pain`
+  (hour-rounded `started` / `stopped` date-times, `stillGoing`, `before`, `worseWithActivity`, `light`, `sound`, `trigger`; ARCHITECTURE §5);
+  collapsible "Headache details" section in the Pain sheet (shown with a head point or "This is a headache"), "Log nausea" round trip
+  (`openNauseaFromPain` / `leaveSheet` in `editor.svelte.ts`; the draft is parked in memory) with "Nausea: none / mild / moderate / severe";
+  mild / moderate / severe labels under the 0-10 scale; pure helpers for the report in `src/lib/records/headache.ts` (`isHeadacheEntry`,
+  `dailySeverity`, `headacheSides`, `pulsatingOrConstant`, `nauseaLevel`). The report itself is the next branch. Screenshots in `docs/screenshots/headache-details/`.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.

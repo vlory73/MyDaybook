@@ -26,7 +26,16 @@
 		type Zoom,
 		type ZoomState
 	} from '$lib/bodymap/catalogue';
-	import { editor } from '$lib/records/editor.svelte';
+	import { editor, openNauseaFromPain } from '$lib/records/editor.svelte';
+	import {
+		HEADACHE_BEFORE,
+		MAX_TRIGGER,
+		hasHeadacheAnswers,
+		isHeadPoint,
+		nauseaLevel,
+		type HeadacheBefore,
+		type HeadacheDetails
+	} from '$lib/records/headache';
 	import {
 		MAX_PAIN_POINTS,
 		MAX_PAIN_QUALITIES,
@@ -39,8 +48,8 @@
 	} from '$lib/records/pain';
 	import { copyPoints, latestPain, painSummary } from '$lib/records/painEntry';
 	import { allRecords } from '$lib/records/store.svelte';
-	import { fromLocalInput } from '$lib/records/time';
-	import type { Payload } from '$lib/records/types';
+	import { addDays, dayKey, formatAt, fromLocalInput, instant } from '$lib/records/time';
+	import type { GutPayload, Payload } from '$lib/records/types';
 
 	/**
 	 * "Where do you feel it?": place up to 20 points on the body (or pick them from Find), give each an intensity
@@ -75,25 +84,137 @@
 	let entryNote: string | undefined;
 	let panel: HTMLElement | undefined = $state();
 
+	// Headache details (entry level). Day and hour are kept apart so the hour picker stays simple; an empty day means
+	// "the day of the entry". Hours are "00".."23" or "" (not set).
+	let headacheTick = $state(false);
+	let hOpen = $state(false);
+	let hStartDay = $state('');
+	let hStartHour = $state('');
+	let hStopDay = $state('');
+	let hStopHour = $state('');
+	let hStill = $state(false);
+	let hBefore = $state<HeadacheBefore[]>([]);
+	let hActivity = $state<boolean | undefined>();
+	let hLight = $state<boolean | undefined>();
+	let hSound = $state<boolean | undefined>();
+	let hTrigger = $state('');
+
 	const isNew = $derived(editor.log?.kind === 'pain' && editor.log.id === null);
 	const last = $derived(latestPain(allRecords()));
 	const current = $derived(sel === null ? undefined : points[sel]);
 	const complete = $derived(points.length > 0 && points.every((p) => p.intensity !== undefined));
-	const valid = $derived(complete && fromLocalInput(time) !== null);
 	const full = $derived(points.length >= MAX_PAIN_POINTS);
 	const wides = $derived(current ? wideOptions(current, current.origin) : []);
 	const wideNow = $derived(current ? activeWide(current, wides) : undefined);
+	const hasHead = $derived(points.some((p) => isHeadPoint(p)));
+	const showHeadache = $derived(hasHead || headacheTick);
+	const entryDay = $derived(time.slice(0, 10));
+	const offset = $derived((fromLocalInput(time) ?? formatAt(new Date())).slice(19));
+	const hourAt = (day: string, hour: string) => `${day}T${hour}:00:00${offset}`;
+	const startDay = $derived(hStartDay || entryDay);
+	/** Until the person picks a day, a stop is on the start day, or the day after when its hour is earlier. */
+	const stopDay = $derived(
+		hStopDay ||
+			(hStartHour !== '' && hStopHour !== '' && hStopHour < hStartHour ? addDays(startDay, 1) : startDay)
+	);
+	const startedAt = $derived(hStartHour === '' ? undefined : hourAt(startDay, hStartHour));
+	const stoppedAt = $derived(hStill || hStopHour === '' ? undefined : hourAt(stopDay, hStopHour));
+	const orderOk = $derived(
+		startedAt === undefined ||
+			stoppedAt === undefined ||
+			Number.isNaN(instant(startedAt)) ||
+			instant(stoppedAt) >= instant(startedAt)
+	);
+	const valid = $derived(complete && fromLocalInput(time) !== null && (!showHeadache || orderOk));
+	const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+	/** The hour as the phone writes it (12 or 24 hour), for the picker. */
+	const hourLabel = (h: string) =>
+		new Date(2000, 0, 1, Number(h)).toLocaleTimeString(i18n.locale, { hour: 'numeric' });
+	/** Nausea logged on the entry's day, in the diary's words (conversion in `headache.ts`). */
+	const nausea = $derived(
+		nauseaLevel(
+			allRecords()
+				.filter((r) => r.payload.type === 'gut' && dayKey(r.payload.at) === entryDay)
+				.map((r) => r.payload as GutPayload)
+		)
+	);
 	const offerSame = $derived(isNew && points.length === 0 && last !== undefined && !finding);
 
 	function draftOf(p: PainPoint): Draft {
 		return { ...p, qualities: [...p.qualities], note: p.note ?? '' };
 	}
 
+	type Stash = {
+		time: string;
+		points: Draft[];
+		sel: number | null;
+		entryNote?: string;
+		tick: boolean;
+		open: boolean;
+		h: ReturnType<typeof headacheDraft>;
+	};
+
+	const headacheDraft = () => ({
+		startDay: hStartDay,
+		startHour: hStartHour,
+		stopDay: hStopDay,
+		stopHour: hStopHour,
+		still: hStill,
+		before: [...hBefore],
+		activity: hActivity,
+		light: hLight,
+		sound: hSound,
+		trigger: hTrigger
+	});
+
+	function fillHeadache(h: HeadacheDetails | undefined) {
+		hStartDay = h?.started?.slice(0, 10) ?? '';
+		hStartHour = h?.started?.slice(11, 13) ?? '';
+		hStopDay = h?.stopped?.slice(0, 10) ?? '';
+		hStopHour = h?.stopped?.slice(11, 13) ?? '';
+		hStill = h?.stillGoing === true;
+		hBefore = [...(h?.before ?? [])];
+		hActivity = h?.worseWithActivity;
+		hLight = h?.light;
+		hSound = h?.sound;
+		hTrigger = h?.trigger ?? '';
+	}
+
 	function onopen(existing: Payload | null) {
 		const saved = existing?.type === 'pain' ? existing : null;
-		entryNote = saved?.note;
+		const back = editor.log?.resume ? editor.backToPain : null;
+		editor.backToPain = null;
 		placing = false;
 		finding = false;
+		if (back) {
+			// Back from "Log nausea": the draft is exactly as it was left.
+			const d = back.draft as Stash;
+			time = d.time;
+			points = d.points;
+			sel = d.sel;
+			entryNote = d.entryNote;
+			headacheTick = d.tick;
+			hOpen = d.open;
+			hStartDay = d.h.startDay;
+			hStartHour = d.h.startHour;
+			hStopDay = d.h.stopDay;
+			hStopHour = d.h.stopHour;
+			hStill = d.h.still;
+			hBefore = d.h.before;
+			hActivity = d.h.activity;
+			hLight = d.h.light;
+			hSound = d.h.sound;
+			hTrigger = d.h.trigger;
+			zoomKind = null;
+			const at = sel === null ? undefined : points[sel];
+			if (at) show(at);
+			if (points.length > 0) void reveal(false);
+			return;
+		}
+		entryNote = saved?.note;
+		headacheTick = saved?.headache !== undefined;
+		hOpen = saved ? hasHeadacheAnswers(saved.headache ?? {}) : true;
+		fillHeadache(saved?.headache);
 		if (saved) points = saved.points.map(draftOf);
 		else if (editor.log?.same && last) points = copyPoints(last.payload).map(draftOf);
 		else points = [];
@@ -276,7 +397,39 @@
 			})
 		};
 		if (entryNote) p.note = entryNote;
+		if (showHeadache) {
+			const h: HeadacheDetails = {};
+			if (startedAt) h.started = startedAt;
+			if (stoppedAt) h.stopped = stoppedAt;
+			if (hStill) h.stillGoing = true;
+			if (hBefore.length > 0) h.before = HEADACHE_BEFORE.filter((b) => hBefore.includes(b));
+			if (hActivity !== undefined) h.worseWithActivity = hActivity;
+			if (hLight !== undefined) h.light = hLight;
+			if (hSound !== undefined) h.sound = hSound;
+			if (hTrigger.trim()) h.trigger = hTrigger.trim();
+			// With a point on the head, an empty form adds nothing; a ticked "This is a headache" is kept as `{}`.
+			if (hasHeadacheAnswers(h) || headacheTick) p.headache = h;
+		}
 		return p;
+	}
+
+	function toggleBefore(b: HeadacheBefore) {
+		hBefore = hBefore.includes(b) ? hBefore.filter((x) => x !== b) : [...hBefore, b];
+	}
+	const answer = (current: boolean | undefined, value: boolean) => (current === value ? undefined : value);
+
+	/** "Log nausea": the draft is parked, the nausea sheet opens at the entry's time, and closing it comes back here. */
+	function logNausea() {
+		const draft: Stash = {
+			time,
+			points: $state.snapshot(points) as Draft[],
+			sel,
+			entryNote,
+			tick: headacheTick,
+			open: hOpen,
+			h: $state.snapshot(headacheDraft())
+		};
+		openNauseaFromPain({ id: editor.log?.id ?? null, draft }, fromLocalInput(time) ?? formatAt(new Date()));
 	}
 
 	const zoomButtons = ['head', 'hand', 'foot'] as const;
@@ -372,8 +525,111 @@
 			selected={current ? { region: current.region, side: current.side } : null}
 			ontap={place}
 		/>
+		{@render headache()}
 	{/if}
 </LogSheet>
+
+{#snippet headache()}
+	<div class="hd">
+		<label class="tick">
+			<input
+				type="checkbox"
+				checked={hasHead || headacheTick}
+				disabled={hasHead}
+				onchange={(e) => (headacheTick = e.currentTarget.checked)}
+			/>
+			{t('headache.tick')}
+		</label>
+		{#if showHeadache}
+			<button type="button" class="hd-head" aria-expanded={hOpen} onclick={() => (hOpen = !hOpen)}>
+				<span>{t('headache.title')}</span>
+				<Icon name={hOpen ? 'chevron-down' : 'chevron-right'} size={18} />
+			</button>
+			{#if hOpen}
+				<div class="hd-body">
+					{#each [{ key: 'started', hourKey: 'start' }, { key: 'stopped', hourKey: 'stop' }] as row (row.key)}
+						{@const isStart = row.key === 'started'}
+						{@const off = !isStart && hStill}
+						<div class="when" role="group" aria-label={t(`headache.${row.key}` as MessageKey)}>
+							<span class="label">{t(`headache.${row.key}` as MessageKey)}</span>
+							<div class="pick">
+								<input
+									type="date"
+									class="field"
+									aria-label={t('headache.day') + ' ' + t(`headache.${row.key}` as MessageKey)}
+									disabled={off}
+									value={isStart ? startDay : stopDay}
+									onchange={(e) =>
+										isStart ? (hStartDay = e.currentTarget.value) : (hStopDay = e.currentTarget.value)}
+								/>
+								<select
+									class="field"
+									aria-label={t('headache.hour') + ' ' + t(`headache.${row.key}` as MessageKey)}
+									disabled={off}
+									value={isStart ? hStartHour : hStopHour}
+									onchange={(e) =>
+										isStart ? (hStartHour = e.currentTarget.value) : (hStopHour = e.currentTarget.value)}
+								>
+									<option value="">{t('headache.hour.none')}</option>
+									{#each hours as h (h)}
+										<option value={h}>{hourLabel(h)}</option>
+									{/each}
+								</select>
+							</div>
+							{#if !isStart}
+								<Chip selected={hStill} onclick={() => (hStill = !hStill)}>{t('headache.stillGoing')}</Chip>
+							{/if}
+						</div>
+					{/each}
+					{#if !orderOk}
+						<p class="warn" role="alert">{t('headache.order')}</p>
+					{/if}
+					<p class="label">{t('headache.before')}</p>
+					<div class="chips">
+						{#each HEADACHE_BEFORE as b (b)}
+							<Chip selected={hBefore.includes(b)} onclick={() => toggleBefore(b)}
+								>{t(`headache.before.${b}` as MessageKey)}</Chip
+							>
+						{/each}
+					</div>
+					{#each [{ k: 'activity', v: hActivity }, { k: 'light', v: hLight }, { k: 'sound', v: hSound }] as q (q.k)}
+						<div class="yn" role="group" aria-label={t(`headache.${q.k}` as MessageKey)}>
+							<span>{t(`headache.${q.k}` as MessageKey)}</span>
+							<div class="chips">
+								{#each [true, false] as yes (yes)}
+									<Chip
+										selected={q.v === yes}
+										onclick={() => {
+											const next = answer(q.v, yes);
+											if (q.k === 'activity') hActivity = next;
+											else if (q.k === 'light') hLight = next;
+											else hSound = next;
+										}}>{yes ? t('headache.yes') : t('headache.no')}</Chip
+									>
+								{/each}
+							</div>
+						</div>
+					{/each}
+					<label class="label" for="hd-trigger">{t('headache.trigger')}</label>
+					<input
+						id="hd-trigger"
+						type="text"
+						class="field text"
+						maxlength={MAX_TRIGGER}
+						placeholder={t('headache.trigger.placeholder')}
+						bind:value={hTrigger}
+					/>
+					<div class="nausea">
+						<span aria-live="polite"
+							>{t('headache.nausea.shown', { level: t(`headache.nausea.${nausea}` as MessageKey) })}</span
+						>
+						<Button variant="quiet" size="sm" onclick={logNausea}>{t('headache.nausea.log')}</Button>
+					</div>
+				</div>
+			{/if}
+		{/if}
+	</div>
+{/snippet}
 
 {#snippet extra()}
 	<Button
@@ -433,6 +689,11 @@
 						onkeydown={(e) => onRampKey(e, n)}>{n}</button
 					>
 				{/each}
+			</div>
+			<div class="zones" aria-hidden="true">
+				<span class="z1">{t('bodymap.zone.mild')}</span>
+				<span class="z2">{t('bodymap.zone.moderate')}</span>
+				<span class="z3">{t('bodymap.zone.severe')}</span>
 			</div>
 			<p class="label">{t('bodymap.quality.title')}<span class="hint">{t('bodymap.quality.hint')}</span></p>
 			<div class="chips">
@@ -623,6 +884,120 @@
 	.ramp button:focus-visible {
 		outline: 3px solid var(--focus);
 		outline-offset: 2px;
+	}
+	/* Zone labels sit under the 0 to 10 ramp: 1-3, 4-6 and 7-10. A reading aid only. */
+	.zones {
+		display: grid;
+		grid-template-columns: repeat(11, 1fr);
+		gap: 3px;
+		margin-top: -2px;
+		font-size: var(--fs-caption);
+		color: var(--text-3);
+		text-align: center;
+	}
+	.zones span {
+		padding-top: 2px;
+		border-top: 2px solid var(--surface-3);
+		white-space: nowrap;
+	}
+	.z1 {
+		grid-column: 2 / 5;
+	}
+	.z2 {
+		grid-column: 5 / 8;
+	}
+	.z3 {
+		grid-column: 8 / 12;
+	}
+	.hd {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		margin-top: var(--sp-2);
+	}
+	.tick {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-3);
+		min-height: 44px;
+		font-size: var(--fs-callout);
+	}
+	.tick input {
+		width: 22px;
+		height: 22px;
+		accent-color: var(--primary);
+	}
+	.hd-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		min-height: 44px;
+		padding: 0 var(--sp-4);
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		font-weight: var(--fw-semibold);
+		font-size: var(--fs-callout);
+	}
+	.hd-body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		padding: var(--sp-3);
+		border-radius: var(--r-md);
+		border: 1.5px solid var(--surface-3);
+	}
+	.when {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--sp-2);
+	}
+	.when .label {
+		width: 5.5rem;
+		margin: 0;
+	}
+	.pick {
+		display: flex;
+		gap: var(--sp-2);
+		flex: 1;
+		min-width: 0;
+	}
+	.field {
+		min-height: 44px;
+		min-width: 0;
+		padding: 0 var(--sp-3);
+		border-radius: var(--r-md);
+		border: 1.5px solid transparent;
+		background: var(--surface-2);
+		font-size: var(--fs-callout);
+	}
+	.pick .field {
+		flex: 1;
+	}
+	.field.text {
+		width: 100%;
+	}
+	.field:focus-visible {
+		outline: none;
+		border-color: var(--focus);
+	}
+	.warn {
+		margin: 0;
+		font-size: var(--fs-footnote);
+		color: var(--text-2);
+	}
+	.yn {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: var(--fs-callout);
+	}
+	.nausea {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--sp-2);
+		font-size: var(--fs-callout);
 	}
 	.chips {
 		display: flex;

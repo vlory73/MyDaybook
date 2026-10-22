@@ -40,6 +40,7 @@ describe('pain validator', () => {
 			'dull',
 			'burning',
 			'throbbing',
+			'constant',
 			'aching',
 			'tingling',
 			'numb',
@@ -132,5 +133,53 @@ describe('heat steps', () => {
 	it('is a plain, rising scale of seven steps with no thresholds', () => {
 		const steps = Array.from({ length: 11 }, (_, i) => heatStep(i));
 		expect(steps).toEqual([0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6]);
+	});
+});
+
+describe('pain: constant quality and headache details', () => {
+	const H = '2026-10-18T22:00:00+02:00';
+	it('accepts "constant" as a quality, still at most three per point', () => {
+		expect(isPainPoint(point({ qualities: ['throbbing', 'constant'] }))).toBe(true);
+		expect(isPainPoint(point({ qualities: ['throbbing', 'constant', 'dull', 'sharp'] }))).toBe(false);
+	});
+	it('keeps entries without details valid and takes a full headache object', () => {
+		expect(isPainPayload(pain())).toBe(true);
+		expect(isPainPayload(pain({ headache: {} }))).toBe(true);
+		expect(
+			isPainPayload(
+				pain({
+					headache: {
+						started: H,
+						stopped: '2026-10-19T03:00:00+02:00',
+						before: ['vision', 'speech'],
+						worseWithActivity: true,
+						light: false,
+						sound: true,
+						trigger: 'skipped lunch'
+					}
+				})
+			)
+		).toBe(true);
+	});
+	it('rejects bad headache values', () => {
+		for (const headache of [
+			null,
+			[],
+			'x',
+			{ started: '2026-10-18T22:30:00+02:00' },
+			{ started: '2026-10-18T22:00:00' },
+			{ started: '2026-10-18T22:00:30+02:00' },
+			{ started: H, stopped: '2026-10-18T20:00:00+02:00' },
+			{ stopped: H, stillGoing: true },
+			{ stillGoing: false },
+			{ before: ['aura'] },
+			{ before: ['vision', 'vision'] },
+			{ before: 'vision' },
+			{ light: 'yes' },
+			{ trigger: '' },
+			{ trigger: 'x'.repeat(201) },
+			{ other: 1 }
+		])
+			expect(isPainPayload(pain({ headache })), JSON.stringify(headache)).toBe(false);
 	});
 });
