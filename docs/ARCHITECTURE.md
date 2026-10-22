@@ -490,6 +490,8 @@ that worries you") lives on the About page, never as a reaction to an entry.
 
 **Trends (M5):** `src/lib/trends/` holds pure, unit-tested aggregation on the device: `range.ts` (7/30/90 days or a custom range of at most 366 days, DST-safe day keys), `series.ts` (per-day series aligned with the day list, `null` = no data so charts leave a gap, never a zero), `afterMeals.ts` (the side-by-side meal view, windows 6/24/48 h by real elapsed time) and `paths.ts` (runs and SVG path text). Charts are hand-built SVG (`TrendChart.svelte` frame + layers in the page); no chart library, no thresholds or reference ranges.
 
+**Headache report (M5):** `src/lib/reports/headache.ts` is the pure, unit-tested builder (records + days + layout into pages of 7 columns, one column per day the headache started; the Medicine row holds only as-needed and one-off doses) and the report-language date formatting; `ReportPages.svelte` draws the A4 sheets (clean table, landscape; paper-form layout, portrait) with the chosen locale via `translate(locale, ...)`, independent of the app language. The choices (including the optional name) pass through the in-memory `state.ts`, never the URL or storage (only the layout is remembered on the device). Routes: `/reports/headache` (choices) and `/reports/headache/print` (preview scaled to the phone, `window.print()`; named `@page` rules in `report.css` set the paper). No new dependencies.
+
 ## 6. Medication reminders (Web Push)
 
 Opt-in per device (Me → "Reminders on this device"); the medication toggle only says which medicines are included.
