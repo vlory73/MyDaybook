@@ -8,7 +8,18 @@
 <link rel="stylesheet" href="mockup.css">
 <style>
 .field.txt { color: var(--text); }
-.hint-note { display: flex; gap: var(--sp-2); align-items: flex-start; color: var(--text-2); font-size: var(--fs-footnote); margin: var(--sp-5) 0 var(--sp-4); }
+.hint-note { display: flex; gap: var(--sp-2); align-items: flex-start; color: var(--text-2); font-size: var(--fs-footnote); margin: var(--sp-3) 0 var(--sp-3); }
+.lay { display: grid; gap: var(--sp-2); }
+.lay button { display: grid; grid-template-columns: 72px 1fr; column-gap: var(--sp-3); align-items: center; padding: 6px var(--sp-3); border-radius: var(--r-md); background: var(--surface-2); border: 1.5px solid transparent; color: var(--text); text-align: left; }
+.lay button.on { background: var(--primary-soft); border-color: var(--primary); }
+.lay b { align-self: end; font-size: var(--fs-callout); font-weight: var(--fw-semibold); } .lay button.on b { color: var(--primary-press); }
+.lay small { align-self: start; font-size: var(--fs-footnote); color: var(--text-2); line-height: 1.25; }
+.thumb { grid-row: 1 / 3; height: 52px; display: flex; align-items: center; justify-content: center; }
+.pg { background: #fff; border: 1px solid var(--line); border-radius: 2px; box-shadow: var(--shadow-1); display: grid; gap: 2px; padding: 3px; }
+.pg i { background: #c9c0cf; border-radius: 1px; }
+.pg.ls { width: 64px; height: 45px; grid-template-columns: 1.6fr repeat(7, 1fr); grid-template-rows: repeat(5, 1fr); }
+.pg.pt { width: 36px; height: 51px; grid-template-columns: 1.6fr repeat(4, 1fr); grid-template-rows: repeat(7, 1fr); }
+.pg .h { background: #8d8394 }
 </style>
 </head>
 <body>
@@ -23,15 +34,20 @@
   <header class="page-head" style="padding-top:0"><div><p class="eyebrow">Reports</p><h1 class="large-title">Headache diary</h1></div></header>
 
   <section class="card">
-    <div class="label" style="margin-top:0">Period</div>
+    <div class="label" style="margin-top:0">Period <span class="hint">13–19 Oct 2026</span></div>
     <div class="chip-row">
       <button class="chip on" aria-pressed="true">Last 7 days</button><button class="chip">Last 14 days</button>
       <button class="chip">Last 28 days</button><button class="chip">Custom from–to</button>
     </div>
-    <p class="card-sub" style="margin-top:var(--sp-3)">13–19 Oct 2026</p>
-
+    
     <div class="label">Report language <span class="hint">Not the app language</span></div>
     <div class="segmented" role="group" aria-label="Report language"><button>Dansk</button><button class="on" aria-pressed="true">English</button></div>
+
+    <div class="label">Layout <span class="hint">Remembered on this device</span></div>
+    <div class="lay" role="group" aria-label="Layout">
+      <button class="on" aria-pressed="true"><span class="thumb"><span class="pg ls"><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span><b>Clean table</b><small>Every day, landscape</small></button>
+      <button aria-pressed="false"><span class="thumb"><span class="pg pt"><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i class=h></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i><i class=h></i><i></i><i></i><i></i><i></i></span></span><b>Like the paper form</b><small>Headache days only, portrait</small></button>
+    </div>
 
     <div class="label">Name on the report <span class="hint">Optional</span></div>
     <div class="field txt">Sam Example</div>
