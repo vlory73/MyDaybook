@@ -221,14 +221,17 @@ describe('mergeYesNo', () => {
 	});
 });
 
+// ICU versions differ in the spacing around the range dash.
+const tight = (s: string) => s.replace(/\s*–\s*/, '–');
+
 describe('report language', () => {
 	it('formats dates in the chosen language', () => {
 		expect(weekdayLabel('2026-10-13', 'en')).toBe('Tue');
 		expect(weekdayLabel('2026-10-13', 'da')).toBe('Tir');
 		expect(dayMonthLabel('2026-10-13', 'en')).toBe('13 Oct');
 		expect(dayMonthLabel('2026-10-13', 'da')).toBe('13. okt.');
-		expect(periodLabel('2026-10-13', '2026-10-19', 'en')).toBe('13–19 Oct 2026');
-		expect(periodLabel('2026-10-13', '2026-10-19', 'da')).toBe('13.–19. okt. 2026');
+		expect(tight(periodLabel('2026-10-13', '2026-10-19', 'en'))).toBe('13–19 Oct 2026');
+		expect(tight(periodLabel('2026-10-13', '2026-10-19', 'da'))).toBe('13.–19. okt. 2026');
 		expect(numericDayMonth('2026-10-03')).toBe('3/10');
 	});
 
