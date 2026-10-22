@@ -21,6 +21,7 @@
 		type Anchor,
 		type BodyPlace,
 		type Face,
+		type HeadFace,
 		type View,
 		type WideOption,
 		type Zoom,
@@ -69,11 +70,12 @@
 	let zoomKind = $state<Zoom | null>(null);
 	let zoomSide = $state<'left' | 'right'>('right');
 	let zoomFace = $state<Face>('palm');
+	let headFace = $state<HeadFace>('front');
 	const zoom = $derived<ZoomState | null>(
 		zoomKind === null
 			? null
 			: zoomKind === 'head'
-				? { zoom: 'head' }
+				? { zoom: 'head', face: headFace }
 				: { zoom: zoomKind, side: zoomSide, face: zoomFace }
 	);
 	let points = $state<Draft[]>([]);
@@ -104,7 +106,9 @@
 	const current = $derived(sel === null ? undefined : points[sel]);
 	const complete = $derived(points.length > 0 && points.every((p) => p.intensity !== undefined));
 	const full = $derived(points.length >= MAX_PAIN_POINTS);
-	const wides = $derived(current ? wideOptions(current, current.origin) : []);
+	const wides = $derived(
+		current ? wideOptions(current, current.origin, zoomKind === 'head' ? headFace : undefined) : []
+	);
 	const wideNow = $derived(current ? activeWide(current, wides) : undefined);
 	const hasHead = $derived(points.some((p) => isHeadPoint(p)));
 	const showHeadache = $derived(hasHead || headacheTick);
@@ -238,7 +242,8 @@
 		const next = zoomFor(at, zoom);
 		if (next) {
 			zoomKind = next.zoom;
-			if (next.zoom !== 'head') {
+			if (next.zoom === 'head') headFace = next.face;
+			else {
 				zoomSide = next.side;
 				zoomFace = next.face;
 			}
@@ -250,7 +255,8 @@
 
 	function openZoom(kind: Zoom) {
 		zoomKind = kind;
-		if (kind !== 'head') {
+		if (kind === 'head') headFace = 'front';
+		else {
 			zoomFace = FACES[kind][0];
 			zoomSide = 'right';
 		}
@@ -264,7 +270,7 @@
 	function setWider(option: WideOption) {
 		if (!current) return;
 		const next = widen(
-			{ region: current.region, side: current.side, u: current.u, v: current.v },
+			{ region: current.region, side: current.side, u: current.u, v: current.v, space: current.space },
 			option,
 			current.origin
 		);
@@ -273,6 +279,9 @@
 		current.u = next.place.u;
 		current.v = next.place.v;
 		current.origin = next.origin;
+		if (next.place.space) current.space = next.place.space;
+		// "This spot" goes back to the drawing the tap was made on.
+		if (option.id === 'this') show(current);
 		void reveal(false);
 	}
 
@@ -434,7 +443,8 @@
 
 	const zoomButtons = ['head', 'hand', 'foot'] as const;
 	/** How many points of this entry are in a close-up's space (shown as a badge on its button). */
-	const zoomCount = (z: Zoom) => points.filter((p) => p.space === spaceOf(z)).length;
+	const zoomCount = (z: Zoom) =>
+		points.filter((p) => p.space === spaceOf(z) || (z === 'head' && p.space === spaceOf('head_back'))).length;
 	const zoomLabel = (z: Zoom) => {
 		const label = t(`bodymap.zoom.${z}.aria` as MessageKey);
 		const n = zoomCount(z);
@@ -496,6 +506,18 @@
 			{/each}
 		</div>
 	{/if}
+	{#if !finding && zoomKind === 'head'}
+		<div class="toggles">
+			<Segmented
+				label={t('bodymap.head.face')}
+				bind:value={headFace}
+				options={[
+					{ value: 'front', label: t('bodymap.front') },
+					{ value: 'back', label: t('bodymap.back') }
+				]}
+			/>
+		</div>
+	{/if}
 	{#if !finding && (zoomKind === 'hand' || zoomKind === 'foot')}
 		<div class="toggles">
 			<Segmented
@@ -520,7 +542,7 @@
 			bind:view
 			{zoom}
 			showToggle={false}
-			width={zoom ? (zoom.zoom === 'head' ? 230 : 190) : 210}
+			width={zoom ? (zoom.zoom === 'head' ? 250 : 190) : 210}
 			{points}
 			selected={current ? { region: current.region, side: current.side } : null}
 			ontap={place}

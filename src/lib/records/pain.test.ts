@@ -87,10 +87,18 @@ describe('pain validator', () => {
 	});
 
 	it('accepts the close-up spaces for their own regions only', () => {
-		const head = { space: '2d-head-v1' } as const;
+		const head = { space: '2d-head-front-v2' } as const;
 		expect(isPainPoint(point({ region: 'temple', side: 'left', ...head }))).toBe(true);
-		expect(isPainPoint(point({ region: 'nose', side: 'midline', ...head }))).toBe(true);
-		expect(isPainPoint(point({ region: 'nose', side: 'left', ...head }))).toBe(false);
+		expect(isPainPoint(point({ region: 'temple', side: 'midline', ...head }))).toBe(false);
+		expect(isPainPoint(point({ region: 'top_of_head', side: 'midline', ...head }))).toBe(false); // back view only
+		const headBack = { space: '2d-head-back-v2' } as const;
+		expect(isPainPoint(point({ region: 'top_of_head', side: 'midline', ...headBack }))).toBe(true);
+		expect(isPainPoint(point({ region: 'rear_head', side: 'right', ...headBack }))).toBe(true);
+		// The first head close-up (`2d-head-v1`, with nose, mouth, chin and ear zones) was never released, so its space
+		// and those zone IDs are simply rejected: there is no compatibility layer.
+		expect(isPainPoint(point({ region: 'temple', side: 'left', space: '2d-head-v1' as never }))).toBe(false);
+		for (const old of ['nose', 'mouth', 'chin', 'ear', 'eye'])
+			expect(isPainPoint(point({ region: old, side: 'midline', ...head }))).toBe(false);
 		expect(isPainPoint(point({ region: 'temple', side: 'left' }))).toBe(false); // not on the front view
 		expect(isPainPoint(point({ region: 'knee', side: 'left', ...head }))).toBe(false);
 		const hand = { space: '2d-hand-v1' } as const;

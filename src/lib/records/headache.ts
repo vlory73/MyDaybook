@@ -76,9 +76,15 @@ export function zoneOf(n: number): Zone | null {
 	return n <= 3 ? 'mild' : n <= 6 ? 'moderate' : 'severe';
 }
 
-/** A point on the head: the main-view head or back of head, or any close-up region whose parent is the head. */
+/**
+ * A point on the head: the main-view head or back of head, or any region of the head close-up (its parent is the head):
+ * the zones (including the neck zones of the back drawing) and the wider areas (this side, whole head, band).
+ */
+// The neck zones of the head close-up are not head points on their own (owner decision on #50): the headache details
+// ask nothing about the neck, so a neck-only point does not open them. Wider areas that include the neck still count.
 export const isHeadPoint = (p: Pick<PainPoint, 'region'>): boolean =>
-	p.region === 'head' || p.region === 'back_of_head' || regionDef(p.region)?.parent === 'head';
+	p.region !== 'rear_neck' &&
+	(p.region === 'head' || p.region === 'back_of_head' || regionDef(p.region)?.parent === 'head');
 
 /** A pain entry with a point on the head, or with headache details (even an empty `{}`). */
 export function isHeadacheEntry(payload: Payload): payload is PainPayload {
@@ -100,8 +106,10 @@ export function dailySeverity(entriesOfDay: readonly PainPayload[]): Zone | null
 export type HeadacheSides = 'both' | 'right' | 'left' | 'none';
 
 /**
- * Which side of the head: right, left, or both when points are on both sides. A point on the midline (forehead, the
- * whole head, back of the head, nose, mouth, chin) is not one-sided and counts as both. No head points: none.
+ * Which side of the head: right, left, or both when points are on both sides. A zone or wider area on one side (temple,
+ * "front of this side", "this side", ...) is that side. A point on the midline (top of the head, the whole head, the
+ * band around the head, the main-view head and back of head) is not one-sided and counts as both. Mixed points are both.
+ * No head points: none.
  */
 export function headacheSides(points: readonly PainPoint[]): HeadacheSides {
 	const head = points.filter(isHeadPoint);

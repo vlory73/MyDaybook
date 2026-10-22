@@ -219,7 +219,7 @@ describe('summary of close-ups and wider areas', () => {
 		expect(painSummary('en', points)).toBe('Whole belly 5 · Upper belly 4 · Whole back 3');
 		expect(painSummary('da', points)).toBe('Hele maven 5 · Øvre mave 4 · Hele ryggen 3');
 		const zoomed = [
-			at('temple', 'left', '2d-head-v1', 2),
+			at('temple', 'left', '2d-head-front-v2', 2),
 			at('thumb', 'right', '2d-hand-v1', 7),
 			at('sole', 'left', '2d-foot-v1', 1)
 		];

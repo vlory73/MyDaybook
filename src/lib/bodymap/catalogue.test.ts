@@ -13,6 +13,7 @@ import {
 	findRegions,
 	findShape,
 	isPlace,
+	isRegionId,
 	regionKey,
 	regionName,
 	shapesOf,
@@ -190,7 +191,8 @@ describe('Find', () => {
 });
 
 const zoomStates = (): ZoomState[] => [
-	{ zoom: 'head' },
+	{ zoom: 'head', face: 'front' },
+	{ zoom: 'head', face: 'back' },
 	...(['left', 'right'] as const).flatMap((side) =>
 		FACES.hand.map((face) => ({ zoom: 'hand' as const, side, face }))
 	),
@@ -199,16 +201,21 @@ const zoomStates = (): ZoomState[] => [
 	)
 ];
 
+/** The view (or close-up) a close-up state draws: the head has one per face. */
+const viewOfState = (z: ZoomState) =>
+	z.zoom === 'head' ? (z.face === 'front' ? 'head' : 'head_back') : z.zoom;
+
 describe('close-up views', () => {
 	it('gives every close-up region a parent on the main view and a name in both languages', () => {
-		for (const def of REGIONS.filter((r) => r.views.every((v) => ZOOMS.includes(v as never)))) {
+		const closeUps = [...ZOOMS, 'head_back'];
+		for (const def of REGIONS.filter((r) => r.views.every((v) => closeUps.includes(v)))) {
 			expect(def.parent, def.id).toBeTruthy();
 			expect(regionDef(def.parent!)?.views.some((v) => v === 'front' || v === 'back')).toBe(true);
-			expect(def.parent).toBe(def.views[0]);
+			expect(def.parent).toBe(def.views[0] === 'head_back' ? 'head' : def.views[0]);
 		}
-		for (const zoom of ZOOMS) {
-			const count = REGIONS.filter((r) => r.views.includes(zoom)).length;
-			expect(count, zoom).toBeGreaterThanOrEqual(8);
+		for (const zoom of closeUps) {
+			const count = REGIONS.filter((r) => r.views.includes(zoom as never)).length;
+			expect(count, zoom).toBeGreaterThanOrEqual(zoom === 'head_back' ? 6 : 8);
 			expect(count, zoom).toBeLessThanOrEqual(15);
 		}
 		expect(regionName('en', 'thumb', 'right')).toBe('Your right thumb');
@@ -219,8 +226,8 @@ describe('close-up views', () => {
 	it('has a shape in its own space for every region and side a close-up lists', () => {
 		for (const z of zoomStates()) {
 			const scene = zoomScene(z);
-			expect(scene.space).toBe(spaceOf(z.zoom));
-			expect(viewIdOf(scene.space)).toBe(z.zoom);
+			expect(scene.space).toBe(spaceOf(viewOfState(z)));
+			expect(viewIdOf(scene.space)).toBe(viewOfState(z));
 			const keys = scene.shapes.map((s) => s.key);
 			expect(new Set(keys).size).toBe(keys.length);
 			for (const s of scene.shapes) {
@@ -230,7 +237,7 @@ describe('close-up views', () => {
 				expect(isPlace(s.region, s.side, scene.space), `${s.region}/${s.side}`).toBe(true);
 			}
 			// Every region of the view appears (on its faces), on the right side(s).
-			for (const def of REGIONS.filter((r) => r.views.includes(z.zoom))) {
+			for (const def of REGIONS.filter((r) => r.views.includes(viewOfState(z)))) {
 				const face = z.zoom === 'head' ? undefined : (z as { face: Face }).face;
 				const faces = (def as { faces?: readonly Face[] }).faces;
 				const drawn = !faces || (face !== undefined && faces.includes(face));
@@ -243,10 +250,15 @@ describe('close-up views', () => {
 	});
 
 	it('mirrors the head like the front view and shows hands and feet on the side chosen', () => {
-		const head = zoomScene({ zoom: 'head' });
-		const eye = sceneShape(head, 'eye', 'right')!;
+		const head = zoomScene({ zoom: 'head', face: 'front' });
+		const eye = sceneShape(head, 'around_eye', 'right')!;
 		expect(eye.x + eye.w / 2).toBeLessThan(100); // the person's right is on the screen's left
 		expect(head.edges).toEqual({ screenLeft: 'right', screenRight: 'left' });
+		// The back of the head does not mirror.
+		const back = zoomScene({ zoom: 'head', face: 'back' });
+		const rear = sceneShape(back, 'rear_head', 'right')!;
+		expect(rear.x + rear.w / 2).toBeGreaterThan(100);
+		expect(back.edges).toEqual({ screenLeft: 'left', screenRight: 'right' });
 		const hand = zoomScene({ zoom: 'hand', side: 'left', face: 'palm' });
 		expect(hand.edges).toBeNull();
 		expect(hand.shapes.every((s) => s.side === 'left')).toBe(true);
@@ -338,13 +350,14 @@ describe('close-up views', () => {
 		const at = (
 			region: string,
 			side: 'left' | 'right',
-			space: '2d-hand-v1' | '2d-foot-v1' | '2d-head-v1'
+			space: '2d-hand-v1' | '2d-foot-v1' | '2d-head-front-v2' | '2d-head-back-v2'
 		) => ({
 			region,
 			side,
 			space
 		});
-		expect(zoomFor(at('nose', 'right', '2d-head-v1'), null)).toEqual({ zoom: 'head' });
+		expect(zoomFor(at('temple', 'right', '2d-head-front-v2'), null)).toEqual({ zoom: 'head', face: 'front' });
+		expect(zoomFor(at('rear_head', 'left', '2d-head-back-v2'), null)).toEqual({ zoom: 'head', face: 'back' });
 		expect(zoomFor(at('thumb', 'left', '2d-hand-v1'), null)).toEqual({
 			zoom: 'hand',
 			side: 'left',
@@ -508,11 +521,298 @@ describe('Find, close-ups and wider areas', () => {
 			'Din højre tommelfinger',
 			'Din venstre tommelfinger'
 		]);
-		expect(findRegions('temple', 'en')[0]!.place.space).toBe('2d-head-v1');
+		expect(findRegions('temple', 'en')[0]!.place.space).toBe('2d-head-front-v2');
 		expect(findRegions('sole', 'en')[0]!.place.space).toBe('2d-foot-v1');
-		expect(findRegions('nose', 'en')[0]!.place.space).toBe('2d-head-v1');
+		expect(findRegions('nose', 'en')).toEqual([]); // no nose, mouth, chin or ear zones any more
 		// The heel is on the back view and the sole close-up: listed once.
 		expect(findRegions('heel', 'en').filter((c) => c.name === 'Your right heel')).toHaveLength(1);
 		for (const c of allChoices('en')) expect(isPlace(c.place.region, c.place.side, c.place.space)).toBe(true);
+	});
+});
+
+describe('head zones', () => {
+	const FRONT_ZONES = ['forehead', 'temple', 'around_eye', 'behind_eye', 'cheek', 'jaw'] as const;
+	const front = () => zoomScene({ zoom: 'head', face: 'front' });
+	const back = () => zoomScene({ zoom: 'head', face: 'back' });
+	const inside = (poly: readonly (readonly [number, number])[], x: number, y: number) => {
+		let hit = false;
+		for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+			const [xi, yi] = poly[i]!;
+			const [xj, yj] = poly[j]!;
+			if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+		}
+		return hit;
+	};
+
+	it('has the two head drawings, each in its own versioned space', () => {
+		expect(spaceOf('head')).toBe('2d-head-front-v2');
+		expect(spaceOf('head_back')).toBe('2d-head-back-v2');
+		expect(front().space).toBe('2d-head-front-v2');
+		expect(back().space).toBe('2d-head-back-v2');
+		expect(viewIdOf('2d-head-back-v2')).toBe('head_back');
+	});
+
+	it('lists the front zones on both sides, the back zones, and no nose, mouth, chin or ear zones', () => {
+		for (const id of [...FRONT_ZONES, 'rear_head', 'rear_neck'] as const) {
+			expect(regionDef(id)?.paired, id).toBe(true);
+			expect(regionDef(id)?.parent, id).toBe('head');
+		}
+		expect(regionDef('top_of_head')?.paired).toBe(false); // one zone, no sides
+		for (const id of FRONT_ZONES) expect(regionDef(id)?.views).toEqual(['head']);
+		for (const id of ['top_of_head', 'rear_head', 'rear_neck'])
+			expect(regionDef(id)?.views).toEqual(['head_back']);
+		for (const gone of ['nose', 'mouth', 'chin', 'ear', 'eye']) expect(isRegionId(gone), gone).toBe(false);
+		expect(sidesOf('top_of_head')).toEqual(['midline']);
+		// The main-view head and back of head stay as they were.
+		expect(regionDef('head')?.views).toEqual(['front']);
+		expect(regionDef('back_of_head')?.views).toEqual(['back']);
+	});
+
+	it('names every zone and wider area in English and Danish', () => {
+		expect(regionName('en', 'behind_eye', 'right')).toBe('Behind your right eye');
+		expect(regionName('da', 'behind_eye', 'right')).toBe('Bag dit højre øje');
+		expect(regionName('en', 'head_side', 'right')).toBe('Right side of your head');
+		expect(regionName('da', 'head_side', 'right')).toBe('Højre side af hovedet');
+		expect(regionName('en', 'head_front_side', 'right')).toBe('Front of the right side');
+		expect(regionName('da', 'head_front_side', 'right')).toBe('Forreste del af højre side');
+		expect(regionName('en', 'head_band', 'midline')).toBe('Band around the head');
+		expect(regionName('da', 'head_band', 'midline')).toBe('Bånd rundt om hovedet');
+		expect(regionName('en', 'whole_head', 'midline')).toBe('Whole head');
+		expect(regionName('da', 'whole_head', 'midline')).toBe('Hele hovedet');
+		for (const key of Object.keys(en).filter((k) =>
+			/^bodymap\.(region\.(head|whole|top|rear)|wide\.head)/.test(k)
+		))
+			expect(da, key).toHaveProperty([key]);
+	});
+
+	it('gives every zone a soft outline, with the mirror image on the other side', () => {
+		for (const scene of [front(), back()]) {
+			for (const s of scene.shapes) {
+				expect(s.d, s.key).toMatch(/^M.*Z$/);
+				expect(s.poly!.length, s.key).toBeGreaterThanOrEqual(4);
+				expect(s.x, s.key).toBeGreaterThanOrEqual(0);
+				expect(s.x + s.w, s.key).toBeLessThanOrEqual(scene.viewBox.w);
+				expect(s.y + s.h, s.key).toBeLessThanOrEqual(scene.viewBox.h);
+			}
+			for (const s of scene.shapes.filter((s) => s.side === 'right')) {
+				const other = sceneShape(scene, s.region, 'left')!;
+				expect(s.x + s.w / 2 + (other.x + other.w / 2)).toBeCloseTo(200, 6);
+				expect(s.w).toBeCloseTo(other.w, 6);
+			}
+		}
+		// Right is on the screen's left in the front drawing, and not in the back drawing.
+		expect(sceneShape(front(), 'temple', 'right')!.x).toBeLessThan(100);
+		expect(sceneShape(back(), 'rear_neck', 'right')!.x).toBeGreaterThan(100);
+		expect(sceneShape(back(), 'top_of_head', 'midline')).toBeDefined();
+	});
+
+	it('draws a tappable shape for every zone, and the centre (keyboard and Find) is inside it', () => {
+		for (const [scene, ids] of [
+			[front(), FRONT_ZONES],
+			[back(), ['top_of_head', 'rear_head', 'rear_neck'] as const]
+		] as const)
+			for (const id of ids)
+				for (const side of sidesOf(id as RegionId)) {
+					const s = scene.shapes.find((x) => x.region === id && x.side === side);
+					expect(s, `${id}/${side}`).toBeDefined();
+					const c = toView(s!, 0.5, 0.5);
+					expect(inside(s!.poly!, c.x, c.y), `${id}/${side}`).toBe(true);
+				}
+		// Wider areas are never tappable shapes.
+		for (const id of ['head_side', 'whole_head', 'head_band', 'head_front_side'])
+			expect(front().shapes.some((s) => s.region === id)).toBe(false);
+	});
+
+	it('leaves a gap between neighbouring zones, and puts the behind-the-eye zone inside the eye area', () => {
+		const around = sceneShape(front(), 'around_eye', 'right')!;
+		const behind = sceneShape(front(), 'behind_eye', 'right')!;
+		expect(behind.x).toBeGreaterThan(around.x);
+		expect(behind.x + behind.w).toBeLessThan(around.x + around.w);
+		expect(behind.y).toBeGreaterThan(around.y);
+		expect(behind.y + behind.h).toBeLessThan(around.y + around.h);
+		const right = sceneShape(front(), 'forehead', 'right')!;
+		const left = sceneShape(front(), 'forehead', 'left')!;
+		expect(left.x - (right.x + right.w)).toBeGreaterThanOrEqual(2);
+	});
+
+	it('draws faint features on the front only: brows, closed eyes, a nose line and a straight mouth', () => {
+		const features = front().decor.filter((d) => d.kind === 'feature');
+		expect(features).toHaveLength(4);
+		// The mouth is one straight horizontal line (no curve, so no smile).
+		expect(features.some((f) => /^M\d+ \d+h\d+$/.test(f.d))).toBe(true);
+		expect(back().decor.some((d) => d.kind === 'feature')).toBe(false);
+	});
+
+	it('draws each wider area as a highlight over the zones it covers', () => {
+		const covered = (face: 'front' | 'back', region: string, side: 'left' | 'right' | 'midline') =>
+			(sceneShape(zoomScene({ zoom: 'head', face }), region, side)!.cover ?? []).map((c) => c.key);
+		expect(covered('front', 'head_front_side', 'right').sort()).toEqual(
+			['around_eye:right', 'behind_eye:right', 'forehead:right', 'temple:right'].sort()
+		);
+		expect(covered('front', 'head_side', 'right')).toHaveLength(6);
+		expect(covered('front', 'whole_head', 'midline')).toHaveLength(12);
+		expect(covered('back', 'head_back_side', 'left').sort()).toEqual(['rear_head:left', 'rear_neck:left']);
+		// "This side" on the back also takes the near half of the top of the head.
+		expect(covered('back', 'head_side', 'left')).toContain('top_of_head:left');
+		expect(covered('back', 'whole_head', 'midline')).toContain('top_of_head');
+		// The band is one midline area on both drawings.
+		for (const face of ['front', 'back'] as const) {
+			const band = sceneShape(zoomScene({ zoom: 'head', face }), 'head_band', 'midline')!;
+			expect(band.cover).toHaveLength(1);
+			expect(toView(band, 0.5, 0.5).x).toBeCloseTo(100, 6);
+		}
+		// A sided wider area exists on both sides, a front-only one only on the front.
+		expect(sceneShape(back(), 'head_front_side', 'right')).toBeUndefined();
+		expect(sceneShape(front(), 'head_back_side', 'right')).toBeUndefined();
+	});
+
+	const labels = (at: Parameters<typeof wideOptions>[0], origin?: Parameters<typeof wideOptions>[1]) =>
+		wideOptions(at, origin).map((o) => translate('en', o.key));
+
+	it('offers the wider choices after tapping a zone', () => {
+		const space = '2d-head-front-v2';
+		const backSpace = '2d-head-back-v2';
+		expect(labels({ region: 'temple', side: 'right', space })).toEqual([
+			'This spot',
+			'Front of this side',
+			'This side',
+			'Whole head',
+			'Band around the head'
+		]);
+		expect(labels({ region: 'rear_head', side: 'left', space: backSpace })).toEqual([
+			'This spot',
+			'Back of this side',
+			'This side',
+			'Whole head',
+			'Band around the head'
+		]);
+		// The top of the head has no side.
+		expect(labels({ region: 'top_of_head', side: 'midline', space: backSpace })).toEqual([
+			'This spot',
+			'Whole head',
+			'Band around the head'
+		]);
+		expect(translate('da', 'bodymap.wide.head_side')).toBe('Denne side');
+		expect(translate('da', 'bodymap.wide.head_band')).toBe('Bånd rundt om hovedet');
+		// Other regions are not offered head areas.
+		expect(wideOptions({ region: 'head', side: 'midline' })).toEqual([]);
+		expect(wideOptions({ region: 'neck', side: 'midline' })).toEqual([]);
+	});
+
+	it('widens to the centre of the area, keeps the way back, and "This spot" restores the tap', () => {
+		const space = '2d-head-front-v2';
+		const tap = { region: 'temple', side: 'right', u: 0.3, v: 0.7 } as const;
+		const options = wideOptions({ ...tap, space });
+		const side = options.find((o) => o.id === 'head_side')!;
+		expect(side).toMatchObject({ region: 'head_side', side: 'right' });
+		const wide = widen(tap, side);
+		expect(wide.place).toEqual({ region: 'head_side', side: 'right', u: 0.5, v: 0.5 });
+		expect(wide.origin).toEqual(tap);
+		expect(isPlace('head_side', 'right', space)).toBe(true);
+		expect(isPlace('head_side', 'right', '2d-head-back-v2')).toBe(true);
+		expect(isPlace('head_front_side', 'right', '2d-head-back-v2')).toBe(false);
+		expect(isPlace('head_side', 'midline', space)).toBe(false);
+		expect(isPlace('whole_head', 'midline', space)).toBe(true);
+		// The options after widening keep "This spot" and mark the area chosen.
+		const after = wideOptions({ ...wide.place, space }, wide.origin);
+		expect(after.map((o) => o.id)).toEqual([
+			'this',
+			'head_front_side',
+			'head_side',
+			'whole_head',
+			'head_band'
+		]);
+		expect(activeWide(wide.place, after)).toBe('head_side');
+		expect(activeWide(tap, options)).toBe('this');
+		// Switching to the whole head keeps the remembered zone; "This spot" puts the tap back.
+		const whole = widen(
+			wide.place,
+			after.find((o) => o.id === 'whole_head')!,
+			wide.origin
+		);
+		expect(whole.place).toEqual({ region: 'whole_head', side: 'midline', u: 0.5, v: 0.5 });
+		expect(whole.origin).toEqual(tap);
+		const home = wideOptions({ ...whole.place, space }, whole.origin).find((o) => o.id === 'this')!;
+		expect(widen(whole.place, home, whole.origin)).toEqual({ place: tap, origin: undefined });
+		// A band picked from Find has no zone to go back to.
+		expect(labels({ region: 'head_band', side: 'midline', space })).toEqual([
+			'Whole head',
+			'Band around the head'
+		]);
+	});
+
+	it('lists the zones and wider areas in Find, in the head close-up', () => {
+		expect(findRegions('temple', 'en').map((c) => c.name)).toEqual(['Your right temple', 'Your left temple']);
+		expect(findRegions('temple', 'en')[0]!.place).toEqual({
+			region: 'temple',
+			side: 'right',
+			space: '2d-head-front-v2',
+			u: 0.5,
+			v: 0.5
+		});
+		expect(findRegions('behind', 'en').map((c) => c.name)).toEqual([
+			'Behind your right eye',
+			'Behind your left eye'
+		]);
+		expect(findRegions('top of your head', 'en')[0]!.place.space).toBe('2d-head-back-v2');
+		expect(findRegions('band', 'en')[0]!.place).toMatchObject({
+			region: 'head_band',
+			space: '2d-head-front-v2'
+		});
+		expect(findRegions('whole head', 'en').map((c) => c.name)).toEqual(['Whole head']);
+		expect(findRegions('bag dit højre øje', 'da').map((c) => c.name)).toEqual(['Bag dit højre øje']);
+		expect(findRegions('tinding', 'da')).toHaveLength(2);
+		expect(findRegions('side af hovedet', 'da').map((c) => c.name)).toContain('Højre side af hovedet');
+		for (const c of findRegions('', 'en'))
+			expect(isPlace(c.place.region, c.place.side, c.place.space)).toBe(true);
+	});
+
+	it('chooses the head drawing for a place', () => {
+		expect(
+			zoomFor(
+				{ region: 'behind_eye', side: 'left', space: '2d-head-front-v2' },
+				{ zoom: 'head', face: 'back' }
+			)
+		).toEqual({ zoom: 'head', face: 'front' });
+		expect(zoomFor({ region: 'top_of_head', side: 'midline', space: '2d-head-back-v2' }, null)).toEqual({
+			zoom: 'head',
+			face: 'back'
+		});
+	});
+});
+
+describe('head areas seen from the other drawing', () => {
+	it('offers the width chips of the drawing that is shown', () => {
+		const backTap = { region: 'rear_head', side: 'right', space: '2d-head-back-v2' } as const;
+		const ids = (shown?: 'front' | 'back') =>
+			wideOptions(
+				{ region: 'head_band', side: 'midline', space: '2d-head-back-v2' },
+				{ ...backTap, u: 0.3, v: 0.3 },
+				shown
+			).map((o) => o.id);
+		expect(ids('front')).toEqual(['this', 'head_front_side', 'head_side', 'whole_head', 'head_band']);
+		expect(ids('back')).toEqual(['this', 'head_back_side', 'head_side', 'whole_head', 'head_band']);
+	});
+
+	it('moves a point to the drawing its area belongs to, and "This spot" back to where it was tapped', () => {
+		const tap = { region: 'rear_head', side: 'right', u: 0.3, v: 0.4, space: '2d-head-back-v2' } as const;
+		const band = widen(
+			tap,
+			wideOptions(tap).find((o) => o.id === 'head_band')!
+		);
+		expect(band.place.space).toBe('2d-head-back-v2'); // the band exists on both drawings: the space is kept
+		const front = widen(
+			{ ...band.place, space: band.place.space },
+			wideOptions(band.place, band.origin, 'front').find((o) => o.id === 'head_front_side')!,
+			band.origin
+		);
+		expect(front.place).toMatchObject({
+			region: 'head_front_side',
+			side: 'right',
+			space: '2d-head-front-v2'
+		});
+		expect(isPlace(front.place.region, front.place.side, front.place.space!)).toBe(true);
+		const home = wideOptions(front.place, front.origin, 'front').find((o) => o.id === 'this')!;
+		expect(widen(front.place, home, front.origin).place).toEqual(tap);
 	});
 });
