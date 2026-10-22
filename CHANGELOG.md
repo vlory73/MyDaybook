@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0 (2026-10-22)
+
+### Features
+
+- **bodymap:** headache-friendly head zones with front/back views and wider areas (#50)
+- **pain:** headache details, "Constant" quality and intensity zone labels (M5 branch 1) (#49)
+- **bodymap:** recognisable foot, count badges on close-up buttons, narrower belly choices
+- **bodymap:** close-ups for head, hands and feet, and wider areas for belly and back
+
+### Fixes
+
+- **bodymap:** call the quick-log tile and timeline entry "Pain" / "Smerter"
+
+### Documentation
+
+- M3 done (reminders confirmed on the iPhone), upgrade block confirmed
+- record ways of working, lessons and current status in CLAUDE.md before the Team-account move
+
 ## 0.5.0 (2026-10-19)
 
 ### Features
