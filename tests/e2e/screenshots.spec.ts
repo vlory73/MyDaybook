@@ -329,6 +329,51 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'sheet-headache', scheme);
 		});
 
+		test(`head zones ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'head-zones', 'head-zones screenshots only');
+			// Taller than the usual 812 px so that the whole head shows above the pinned panel (width stays 375).
+			await page.setViewportSize({ width: 375, height: 1150 });
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			const region = (name: string) =>
+				sheet.locator('svg[role=group]').getByRole('button', { name, exact: true }).click();
+			const wider = (name: string) =>
+				sheet
+					.getByRole('group', { name: 'How wide an area' })
+					.getByRole('button', { name, exact: true })
+					.click();
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			await page.waitForTimeout(400);
+			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
+			await page.waitForTimeout(300);
+			// Empty: to judge the faint features.
+			await snap(page, 'front-empty', scheme);
+			await region('Your right temple');
+			await sheet
+				.getByRole('radiogroup', { name: /^Intensity/ })
+				.getByRole('radio', { name: '5', exact: true })
+				.click();
+			await page.waitForTimeout(300);
+			await snap(page, 'front-temple', scheme);
+			await wider('Front of this side');
+			await page.waitForTimeout(300);
+			await snap(page, 'front-of-side', scheme);
+			await wider('This side');
+			await page.waitForTimeout(300);
+			await snap(page, 'this-side', scheme);
+			await sheet.getByRole('radio', { name: 'Back', exact: true }).click();
+			await region('Back of the left side of your head');
+			await sheet
+				.getByRole('radiogroup', { name: /^Intensity/ })
+				.getByRole('radio', { name: '3', exact: true })
+				.click();
+			await wider('Band around the head');
+			await page.waitForTimeout(300);
+			await snap(page, 'back-band', scheme);
+		});
+
 		test(`body map close-ups and wider areas ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'bodymap-zoom', 'bodymap-zoom screenshots only');
 			await prepare(page, scheme);

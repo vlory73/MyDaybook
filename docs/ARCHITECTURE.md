@@ -338,7 +338,8 @@ children's outline (decided); the same regions and spaces serve every profile.
 | --- | --- | --- | --- |
 | `2d-front-v1` | main front view, mirrors the person | 200 x 440 | head, neck, arm parts, chest, belly quarters, hip and groin, leg parts, foot |
 | `2d-back-v1` | main back view, does not mirror | 200 x 440 | back of head and neck, the three back parts, buttock, leg parts, heel |
-| `2d-head-v1` | head close-up, facing the person (mirrors like the front) | 200 x 220 | forehead, temple, eye, ear, nose, cheek, mouth, jaw, chin |
+| `2d-head-front-v2` | head close-up, front: faces the person (mirrors like the front view) | 200 x 240 | per side: `forehead`, `temple`, `around_eye`, `behind_eye` (drawn inside `around_eye`), `cheek` (cheek and sinus), `jaw` (jaw, in front of the ear); wider areas `head_front_side`, `head_side`, `whole_head`, `head_band` |
+| `2d-head-back-v2` | head close-up, back (does not mirror) | 200 x 240 | `top_of_head` (one zone, midline), per side `rear_head` and `rear_neck`; wider areas `head_back_side`, `head_side`, `whole_head`, `head_band` |
 | `2d-hand-v1` | one hand, palm or back, thumb on the side that face shows | 200 x 290 | thumb, index, middle, ring and little finger, palm, base of palm, back of hand |
 | `2d-foot-v1` | one foot, one footprint silhouette for both faces (big toe on the viewer's left for the right foot, on the right for the left foot) | 200 x 300 | five toes (`big_toe`, `second_toe`, `third_toe`, `fourth_toe`, `little_toe`), then top: `top_of_foot` (ball and midfoot, one shared box), `inner_ankle`, `outer_ankle`; sole: `sole` (ball), `arch`, `heel` |
 
@@ -359,6 +360,33 @@ centre (`u = v = 0.5`) of the area's bounding box; it is drawn as a dot at that 
 highlighted. The entry sheet offers the choice for a point on a belly quarter ("This quarter", "Upper belly", "Lower
 belly", "Whole belly") or a back part ("This part", "Whole back") and remembers the original quarter in the draft only, so
 "This quarter" puts the point back where it was; nothing else is stored. The chest is not widened (decided).
+
+*Head zones.* The head close-up has two drawings with a Front / Back toggle (the sheet's `headFace`); `2d-head-front-v2` and
+`2d-head-back-v2` replace the first head close-up (`2d-head-v1`, with nose, mouth, chin and ear zones), which was never
+released, so those IDs are rejected and there is no compatibility layer. The zones follow how headache diaries describe
+location (side and broad areas), not face landmarks. They are drawn as soft rounded outlines (SVG paths with a 3 unit gap, the
+shape's `d`, with the bounding box as `x, y, w, h`), described for the left half of the screen and mirrored. There is no
+separate nose, mouth, chin or ear zone: ears, the neck and the faint face features (brows, closed eyes, a nose line and a
+neutral, straight mouth, `scene.decor`) are drawn for recognition only and are never tappable. The main-view `head` and
+`back_of_head` stay as they are. Every region of the head close-up has the parent `head`, which is what
+`isHeadPoint` (`src/lib/records/headache.ts`) tests; the neck zones count as head points.
+
+*Wider head areas.* After a tap on a head zone the sheet offers "This spot", "Front of this side" (front drawing) or "Back of
+this side" (back drawing), "This side", "Whole head" and "Band around the head" (the top of the head has no side, so it
+offers only "This spot", "Whole head" and the band). The wider areas are regions, stored at the centre (`u = v = 0.5`) of the
+bounding box of the zones they cover, with the zones softly highlighted (a wider area's shape has `cover`, the shapes to
+draw):
+
+| Region | Sides | Drawn in | Covers |
+| --- | --- | --- | --- |
+| `head_front_side` | right, left | front | forehead, temple, around the eye and behind the eye of that side |
+| `head_back_side` | right, left | back | back of the head and neck of that side |
+| `head_side` | right, left | both | every zone of that side, front or back (back: plus the near half of the top of the head) |
+| `whole_head` | midline | both | every zone of the drawing |
+| `head_band` | midline | both | one band: across forehead and temples (front), across the back of the head (back) |
+
+`headacheSides` reads a sided zone or area as that side; the top of the head, the whole head and the band count as both
+sides, and mixed points as both. Nothing here names a headache type (not a medical device).
 
 ### 5.1 Sync and client storage
 

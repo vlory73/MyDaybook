@@ -16,7 +16,7 @@ import type { GutPayload } from './types';
 
 // Synthetic data only.
 const point = (region: string, side: string, intensity: number, qualities: string[] = []) =>
-	({ region, side, space: '2d-head-v1', u: 0.5, v: 0.5, intensity, qualities }) as unknown as PainPoint;
+	({ region, side, space: '2d-head-front-v2', u: 0.5, v: 0.5, intensity, qualities }) as unknown as PainPoint;
 const entry = (points: PainPoint[], headache?: object) =>
 	({ v: 1, type: 'pain', at: '2026-10-18T08:00:00+02:00', points, headache }) as unknown as PainPayload;
 const gut = (...symptoms: [string, number][]) =>
@@ -49,6 +49,25 @@ describe('head points and headache entries', () => {
 			expect(isHeadPoint({ region } as never)).toBe(true);
 		for (const region of ['neck', 'knee', 'palm']) expect(isHeadPoint({ region } as never)).toBe(false);
 	});
+	it('knows every head zone and wider head area of the head close-up', () => {
+		const zones = [
+			'forehead',
+			'temple',
+			'around_eye',
+			'behind_eye',
+			'cheek',
+			'jaw',
+			'top_of_head',
+			'rear_head',
+			'rear_neck'
+		];
+		const wider = ['head_front_side', 'head_back_side', 'head_side', 'whole_head', 'head_band'];
+		for (const region of [...zones, ...wider]) expect(isHeadPoint({ region } as never), region).toBe(true);
+		expect(isHeadacheEntry(entry([point('behind_eye', 'left', 5)]))).toBe(true);
+		expect(isHeadacheEntry(entry([point('head_band', 'midline', 5)]))).toBe(true);
+		// The main-view neck stays a neck point; only the neck zones of the head close-up are head points.
+		expect(isHeadPoint({ region: 'neck' } as never)).toBe(false);
+	});
 	it('is a headache entry with a head point or with details, even an empty object', () => {
 		expect(isHeadacheEntry(entry([point('temple', 'right', 4)]))).toBe(true);
 		expect(isHeadacheEntry(entry([point('knee', 'right', 4)]))).toBe(false);
@@ -64,7 +83,9 @@ describe('dailySeverity', () => {
 		expect(dailySeverity([entry([point('temple', 'left', 0)])])).toBeNull();
 		// 1 / 3 = 0.33 rounds to 0.
 		expect(
-			dailySeverity([entry([point('temple', 'left', 0), point('eye', 'left', 0), point('ear', 'left', 1)])])
+			dailySeverity([
+				entry([point('temple', 'left', 0), point('around_eye', 'left', 0), point('cheek', 'left', 1)])
+			])
 		).toBeNull();
 	});
 	it('averages head points only, across the whole day, and rounds before zoning', () => {
@@ -81,10 +102,12 @@ describe('dailySeverity', () => {
 		);
 		// 20 / 3 = 6.67 rounds to 7: severe.
 		expect(
-			dailySeverity([entry([point('temple', 'left', 6), point('eye', 'left', 7), point('ear', 'left', 7)])])
+			dailySeverity([
+				entry([point('temple', 'left', 6), point('around_eye', 'left', 7), point('cheek', 'left', 7)])
+			])
 		).toBe('severe');
 		// 0.5 rounds to 1: mild.
-		expect(dailySeverity([entry([point('temple', 'left', 0), point('eye', 'left', 1)])])).toBe('mild');
+		expect(dailySeverity([entry([point('temple', 'left', 0), point('around_eye', 'left', 1)])])).toBe('mild');
 	});
 });
 
@@ -93,8 +116,30 @@ describe('headacheSides', () => {
 		expect(headacheSides([])).toBe('none');
 		expect(headacheSides([point('knee', 'left', 3)])).toBe('none');
 		expect(headacheSides([point('temple', 'right', 3), point('knee', 'left', 3)])).toBe('right');
-		expect(headacheSides([point('temple', 'left', 3), point('eye', 'left', 3)])).toBe('left');
-		expect(headacheSides([point('temple', 'left', 3), point('eye', 'right', 3)])).toBe('both');
+		expect(headacheSides([point('temple', 'left', 3), point('around_eye', 'left', 3)])).toBe('left');
+		expect(headacheSides([point('temple', 'left', 3), point('around_eye', 'right', 3)])).toBe('both');
+	});
+	it('reads sided zones and wider areas on one side as that side', () => {
+		for (const region of [
+			'forehead',
+			'behind_eye',
+			'rear_head',
+			'rear_neck',
+			'head_side',
+			'head_front_side',
+			'head_back_side'
+		]) {
+			expect(headacheSides([point(region, 'right', 3)]), region).toBe('right');
+			expect(headacheSides([point(region, 'left', 3)]), region).toBe('left');
+		}
+		// Mixed: this side plus a point on the other side is both.
+		expect(headacheSides([point('head_side', 'right', 3), point('temple', 'left', 3)])).toBe('both');
+		expect(headacheSides([point('head_front_side', 'left', 3), point('rear_head', 'right', 3)])).toBe('both');
+	});
+	it('counts the whole head, the band and the top of the head as both sides', () => {
+		for (const region of ['whole_head', 'head_band', 'top_of_head'])
+			expect(headacheSides([point(region, 'midline', 3)]), region).toBe('both');
+		expect(headacheSides([point('temple', 'right', 3), point('top_of_head', 'midline', 3)])).toBe('both');
 	});
 	it('counts a midline point as both sides', () => {
 		expect(headacheSides([point('forehead', 'midline', 3)])).toBe('both');
@@ -109,7 +154,10 @@ describe('pulsatingOrConstant', () => {
 		expect(pulsatingOrConstant([point('temple', 'left', 3, ['throbbing'])])).toBe('pulsating');
 		expect(pulsatingOrConstant([point('temple', 'left', 3, ['constant'])])).toBe('constant');
 		expect(
-			pulsatingOrConstant([point('temple', 'left', 3, ['throbbing']), point('eye', 'left', 3, ['constant'])])
+			pulsatingOrConstant([
+				point('temple', 'left', 3, ['throbbing']),
+				point('around_eye', 'left', 3, ['constant'])
+			])
 		).toBe('both');
 		expect(pulsatingOrConstant([point('knee', 'left', 3, ['throbbing'])])).toBeNull();
 	});

@@ -250,3 +250,163 @@ test('the close-up and wider-area names are in Danish', async ({ page }) => {
 		.click();
 	await expect(dlg.getByRole('heading', { name: 'Hele maven' })).toBeVisible();
 });
+
+// Head zones (feature/head-zones): front and back drawings, behind the eye, wider areas, Find, keyboard, Danish.
+const wide = (page: Page) => sheet(page).getByRole('group', { name: 'How wide an area' });
+
+test('head zones: tap the right temple, widen to "This side", save, see it on the timeline', async ({
+	page
+}) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').click();
+	await expect(radio(page, 'Front')).toBeChecked();
+	await tap(page, 'Your right temple');
+	await expect(sheet(page).getByRole('heading', { name: 'Your right temple' })).toBeVisible();
+	for (const label of ['This spot', 'Front of this side', 'This side', 'Whole head', 'Band around the head'])
+		await expect(wide(page).getByRole('button', { name: label, exact: true })).toBeVisible();
+	await expect(wide(page).getByRole('button', { name: 'This spot' })).toHaveAttribute('aria-pressed', 'true');
+	await wide(page).getByRole('button', { name: 'Front of this side', exact: true }).click();
+	await expect(sheet(page).getByRole('heading', { name: 'Front of the right side' })).toBeVisible();
+	// Forehead, temple, around the eye and behind the eye of that side are highlighted.
+	await expect(figure(page).locator('.wide.sel')).toHaveCount(4);
+	await wide(page).getByRole('button', { name: 'This side', exact: true }).click();
+	await expect(sheet(page).getByRole('heading', { name: 'Right side of your head' })).toBeVisible();
+	await expect(figure(page).locator('.wide.sel')).toHaveCount(6);
+	// "This spot" puts the original tap back.
+	await wide(page).getByRole('button', { name: 'This spot', exact: true }).click();
+	await expect(sheet(page).getByRole('heading', { name: 'Your right temple' })).toBeVisible();
+	await expect(figure(page).locator('.wide')).toHaveCount(0);
+	await wide(page).getByRole('button', { name: 'This side', exact: true }).click();
+	await intensity(page, 5).click();
+	await saveButton(page, 'Save 1 point').click();
+	await expect(timeline(page).getByText('Right side of your head 5', { exact: true })).toBeVisible();
+});
+
+test('head zones: the back view has the top, back and neck, and a band around the head', async ({ page }) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').click();
+	await radio(page, 'Back').click();
+	await expect(figure(page)).toHaveAccessibleName('Head, back view. Choose a part of the head.');
+	// The back view does not mirror the person.
+	await expect(sheet(page).getByText('Your left', { exact: true })).toBeVisible();
+	for (const name of [
+		'Top of your head',
+		'Back of the right side of your head',
+		'Back of the left side of your head',
+		'Right side of your neck',
+		'Left side of your neck'
+	])
+		await expect(figure(page).getByRole('button', { name, exact: true })).toBeVisible();
+	await tap(page, 'Back of the right side of your head');
+	for (const label of ['This spot', 'Back of this side', 'This side', 'Whole head', 'Band around the head'])
+		await expect(wide(page).getByRole('button', { name: label, exact: true })).toBeVisible();
+	await wide(page).getByRole('button', { name: 'Band around the head', exact: true }).click();
+	await expect(sheet(page).getByRole('heading', { name: 'Band around the head' })).toBeVisible();
+	await expect(figure(page).locator('.wide.sel')).toHaveCount(1);
+	await intensity(page, 3).click();
+	// The top of the head is one zone with no sides.
+	await tap(page, 'Top of your head');
+	await expect(wide(page).getByRole('button')).toHaveCount(3);
+	await intensity(page, 2).click();
+	// The badge on the Head button counts points on both drawings.
+	await button(page, 'Back to the body').click();
+	await expect(button(page, 'Head, close-up, 2 points')).toBeVisible();
+	await saveButton(page, 'Save 2 points').click();
+	await expect(
+		timeline(page).getByText('Band around the head 3 · Top of your head 2', { exact: true })
+	).toBeVisible();
+});
+
+test('head zones: behind the eye is its own zone inside the eye area', async ({ page }) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').click();
+	await expect(
+		figure(page).getByRole('button', { name: 'Around your right eye', exact: true })
+	).toBeVisible();
+	await tap(page, 'Behind your right eye');
+	await expect(sheet(page).getByRole('heading', { name: 'Behind your right eye' })).toBeVisible();
+	await intensity(page, 6).click();
+	await saveButton(page, 'Save 1 point').click();
+	await expect(timeline(page).getByText('Behind your right eye 6', { exact: true })).toBeVisible();
+	// No separate nose, mouth, chin or ear zones.
+	await timeline(page).getByText('Behind your right eye 6', { exact: true }).click();
+	for (const gone of ['Nose', 'Mouth', 'Chin', 'Your right ear'])
+		await expect(figure(page).getByRole('button', { name: gone })).toHaveCount(0);
+});
+
+test('head zones: Find lists the zones and opens the right drawing', async ({ page }) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Find').click();
+	await sheet(page).getByLabel('Find a body part').fill('temple');
+	await expect(sheet(page).getByRole('button', { name: 'Your left temple', exact: true })).toBeVisible();
+	await sheet(page).getByRole('button', { name: 'Your right temple', exact: true }).click();
+	await expect(radio(page, 'Front')).toBeChecked();
+	await expect(sheet(page).getByRole('heading', { name: 'Your right temple' })).toBeVisible();
+	await intensity(page, 4).click();
+
+	await button(page, 'Find').click();
+	await sheet(page).getByLabel('Find a body part').fill('top of your');
+	await sheet(page).getByRole('button', { name: 'Top of your head', exact: true }).click();
+	await expect(radio(page, 'Back')).toBeChecked();
+	await intensity(page, 1).click();
+
+	await button(page, 'Find').click();
+	await sheet(page).getByLabel('Find a body part').fill('band');
+	await sheet(page).getByRole('button', { name: 'Band around the head', exact: true }).click();
+	await expect(sheet(page).getByRole('heading', { name: 'Band around the head' })).toBeVisible();
+	await expect(figure(page).locator('.wide.sel')).toHaveCount(1);
+});
+
+test('head zones: keyboard alone, with the Front and Back choice', async ({ page }) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').focus();
+	await page.keyboard.press('Enter');
+	await figure(page).getByRole('button', { name: 'Left side of your forehead', exact: true }).focus();
+	await page.keyboard.press('Enter');
+	await expect(sheet(page).getByRole('heading', { name: 'Left side of your forehead' })).toBeVisible();
+	await expect(intensity(page, 0)).toBeFocused();
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await expect(intensity(page, 2)).toBeChecked();
+	// Switch to the back with the keyboard (arrow keys on the radio group).
+	await radio(page, 'Front').focus();
+	await page.keyboard.press('ArrowRight');
+	await expect(radio(page, 'Back')).toBeChecked();
+	await figure(page).getByRole('button', { name: 'Right side of your neck', exact: true }).focus();
+	await page.keyboard.press('Space');
+	await expect(sheet(page).getByRole('heading', { name: 'Right side of your neck' })).toBeVisible();
+	await page.keyboard.press('Enter');
+	await expect(sheet(page).getByRole('heading', { name: 'Right side of your neck' })).toBeVisible();
+});
+
+test('head zones: the names are in Danish', async ({ page }) => {
+	await signUpAndSignIn(page, '/me');
+	await page.getByRole('radio', { name: 'Dansk' }).click();
+	await page.getByRole('link', { name: 'I dag' }).click();
+	await page.getByRole('button', { name: 'Registrér noget' }).click();
+	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
+	const dlg = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
+	await dlg.getByRole('button', { name: 'Hoved, tæt på', exact: true }).click();
+	const fig = dlg.locator('svg[role=group]');
+	await expect(fig).toHaveAccessibleName('Hovedet set forfra. Vælg en del af hovedet.');
+	await fig.getByRole('button', { name: 'Bag dit højre øje', exact: true }).click();
+	await expect(dlg.getByRole('heading', { name: 'Bag dit højre øje' })).toBeVisible();
+	const group = dlg.getByRole('group', { name: 'Hvor stort et område' });
+	for (const label of [
+		'Dette sted',
+		'Forreste del af denne side',
+		'Denne side',
+		'Hele hovedet',
+		'Bånd rundt om hovedet'
+	])
+		await expect(group.getByRole('button', { name: label, exact: true })).toBeVisible();
+	await group.getByRole('button', { name: 'Denne side', exact: true }).click();
+	await expect(dlg.getByRole('heading', { name: 'Højre side af hovedet' })).toBeVisible();
+	await group.getByRole('button', { name: 'Bånd rundt om hovedet', exact: true }).click();
+	await expect(dlg.getByRole('heading', { name: 'Bånd rundt om hovedet' })).toBeVisible();
+});

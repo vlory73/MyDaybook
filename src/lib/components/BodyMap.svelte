@@ -54,6 +54,8 @@
 	const scene = $derived(sceneOf(view, zoom));
 	const shapes = $derived(scene.shapes);
 	const edges = $derived(scene.edges);
+	const body = $derived(scene.decor.filter((d) => d.kind === 'body'));
+	const features = $derived(scene.decor.filter((d) => d.kind === 'feature'));
 	const placed = $derived(
 		points.flatMap((p) => {
 			if (p.space !== scene.space) return [];
@@ -74,7 +76,9 @@
 		zoom
 			? t(
 					zoom.zoom === 'head'
-						? 'bodymap.svg.head'
+						? zoom.face === 'back'
+							? 'bodymap.svg.head_back'
+							: 'bodymap.svg.head'
 						: zoom.zoom === 'hand'
 							? 'bodymap.svg.hand'
 							: 'bodymap.svg.foot'
@@ -135,52 +139,74 @@
 			role="group"
 			aria-label={label}
 		>
-			{#if scene.backdrop}
-				<rect
-					class="backdrop"
-					x={scene.backdrop.x}
-					y={scene.backdrop.y}
-					width={scene.backdrop.w}
-					height={scene.backdrop.h}
-					rx={scene.backdrop.rx}
-					ry={scene.backdrop.ry}
-					aria-hidden="true"
-				/>
-			{/if}
+			{#each body as d, i (i)}
+				<path class="decor" d={d.d} aria-hidden="true" />
+			{/each}
 			{#each shapes as s (s.space + s.key)}
-				<rect
-					class="rg"
-					class:sel={isSelected(s)}
-					x={s.x}
-					y={s.y}
-					width={s.w}
-					height={s.h}
-					rx={s.rx}
-					ry={s.ry}
-					transform={transform(s)}
-					role="button"
-					tabindex="0"
-					aria-label={nameOf(s)}
-					data-region={s.region}
-					data-side={s.side}
-					onclick={(e) => onclick(e, s)}
-					onkeydown={(e) => onkeydown(e, s)}
-				/>
+				{#if s.d}
+					<path
+						class="rg"
+						class:sel={isSelected(s)}
+						d={s.d}
+						role="button"
+						tabindex="0"
+						aria-label={nameOf(s)}
+						data-region={s.region}
+						data-side={s.side}
+						onclick={(e) => onclick(e, s)}
+						onkeydown={(e) => onkeydown(e, s)}
+					/>
+				{:else}
+					<rect
+						class="rg"
+						class:sel={isSelected(s)}
+						x={s.x}
+						y={s.y}
+						width={s.w}
+						height={s.h}
+						rx={s.rx}
+						ry={s.ry}
+						transform={transform(s)}
+						role="button"
+						tabindex="0"
+						aria-label={nameOf(s)}
+						data-region={s.region}
+						data-side={s.side}
+						onclick={(e) => onclick(e, s)}
+						onkeydown={(e) => onkeydown(e, s)}
+					/>
+				{/if}
+			{/each}
+			{#each features as d, i (i)}
+				<path class="feature" d={d.d} aria-hidden="true" />
 			{/each}
 			{#each wides as w (w.key)}
-				<rect
-					class="wide"
-					class:sel={isSelected(w)}
-					x={w.x}
-					y={w.y}
-					width={w.w}
-					height={w.h}
-					rx={w.rx}
-					ry={w.ry}
-					aria-hidden="true"
-					data-region={w.region}
-					data-side={w.side}
-				/>
+				{#each w.cover ?? [w] as c (c.key)}
+					{#if c.d}
+						<path
+							class="wide"
+							class:sel={isSelected(w)}
+							d={c.d}
+							aria-hidden="true"
+							data-region={w.region}
+							data-side={w.side}
+						/>
+					{:else}
+						<rect
+							class="wide"
+							class:sel={isSelected(w)}
+							x={c.x}
+							y={c.y}
+							width={c.w}
+							height={c.h}
+							rx={c.rx}
+							ry={c.ry}
+							aria-hidden="true"
+							data-region={w.region}
+							data-side={w.side}
+						/>
+					{/if}
+				{/each}
 			{/each}
 			{#each dots as d, i (i)}
 				<g class="dot" aria-hidden="true">
@@ -260,10 +286,20 @@
 		stroke: var(--focus);
 		stroke-width: 2.6;
 	}
-	.backdrop {
-		fill: var(--surface);
+	/* Ears and neck of the head close-up, and its faint, neutral face features: for recognition only. */
+	.decor {
+		fill: var(--surface-2);
 		stroke: var(--line);
 		stroke-width: 1.2;
+		pointer-events: none;
+	}
+	.feature {
+		fill: none;
+		stroke: var(--text-3);
+		stroke-opacity: 0.4;
+		stroke-width: 1.5;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 		pointer-events: none;
 	}
 	.wide {

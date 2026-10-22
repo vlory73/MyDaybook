@@ -246,3 +246,20 @@ test('an earlier stop hour defaults to the next day, and a stop before the start
 	await expect(sheet(page).getByRole('alert')).toHaveText('Stopped is before it started.');
 	await expect(button(page, 'Save 1 point')).toBeDisabled();
 });
+
+test('every head zone and wider head area shows the section, and it goes with the point', async ({
+	page
+}) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').click();
+	await sheet(page).getByRole('radio', { name: 'Back', exact: true }).click();
+	await figure(page).getByRole('button', { name: 'Top of your head', exact: true }).click();
+	await expect(details(page)).toBeVisible();
+	await intensity(page, 4).click();
+	// A wider area is still a head point.
+	await group(page, 'How wide an area').getByRole('button', { name: 'Whole head', exact: true }).click();
+	await expect(details(page)).toBeVisible();
+	await button(page, 'Save 1 point').click();
+	await expect(timeline(page).getByText('Whole head 4', { exact: true })).toBeVisible();
+});

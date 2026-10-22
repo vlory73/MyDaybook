@@ -9,16 +9,28 @@
 import { translate, type Locale } from '$lib/i18n/core';
 import type { MessageKey } from '$lib/i18n/en';
 
-export const SPACES = ['2d-front-v1', '2d-back-v1', '2d-head-v1', '2d-hand-v1', '2d-foot-v1'] as const;
+export const SPACES = [
+	'2d-front-v1',
+	'2d-back-v1',
+	'2d-head-front-v2',
+	'2d-head-back-v2',
+	'2d-hand-v1',
+	'2d-foot-v1'
+] as const;
 export type Space = (typeof SPACES)[number];
 export const SIDES = ['left', 'right', 'midline'] as const;
 export type Side = (typeof SIDES)[number];
-/** The two main views, and the three close-ups (zoom views) opened from them. Each has its own coordinate space. */
+/**
+ * The two main views, and the three close-ups (zoom views) opened from them. Each has its own coordinate space; the head
+ * close-up has two (`head` is its front, `head_back` its back).
+ */
 export type View = 'front' | 'back';
 export const VIEWS: readonly View[] = ['front', 'back'];
 export const ZOOMS = ['head', 'hand', 'foot'] as const;
 export type Zoom = (typeof ZOOMS)[number];
-export type ViewId = View | Zoom;
+export type ViewId = View | Zoom | 'head_back';
+/** Which side of the head the head close-up shows. */
+export type HeadFace = 'front' | 'back';
 /** Which face of a hand (palm, back of hand) or foot (top, sole) a close-up shows. */
 export type Face = 'palm' | 'back' | 'top' | 'sole';
 export const FACES: Record<'hand' | 'foot', readonly [Face, Face]> = {
@@ -29,7 +41,8 @@ export const FACES: Record<'hand' | 'foot', readonly [Face, Face]> = {
 const SPACE_OF: Record<ViewId, Space> = {
 	front: '2d-front-v1',
 	back: '2d-back-v1',
-	head: '2d-head-v1',
+	head: '2d-head-front-v2',
+	head_back: '2d-head-back-v2',
 	hand: '2d-hand-v1',
 	foot: '2d-foot-v1'
 };
@@ -48,9 +61,9 @@ export type RegionDef = {
 	id: string;
 	/** Paired regions exist as `left` and `right`; the others are `midline`. */
 	paired: boolean;
-	/** Which views draw this region: main views and/or close-ups. */
+	/** Which views draw this region: main views and/or close-ups (`head` = head front, `head_back` = head back). */
 	views: readonly ViewId[];
-	/** The region this one refines: a close-up region's main-view part, or a belly or back area's wider area. */
+	/** The region this one refines: a close-up region's main-view part, or a belly, back or head area's wider area. */
 	parent?: string;
 	/** Paired regions that are also valid on the midline: the wider "whole upper belly" and "whole lower belly". */
 	midline?: boolean;
@@ -63,7 +76,8 @@ export type RegionDef = {
  *
  * Wider areas (for diffuse pain): `belly` and `back` are midline regions that are the parents of the four belly quarters
  * and of the three back parts. `upper_belly` and `lower_belly` are also valid on the midline, where they mean the whole
- * upper or lower belly. Existing left/right points stay valid as they are.
+ * upper or lower belly. Existing left/right points stay valid as they are. The head close-up has the same idea: `head_side`,
+ * `head_front_side`, `head_back_side`, `whole_head` and `head_band` are wider areas over its zones.
  */
 const DEFS = [
 	{ id: 'head', paired: false, views: ['front'] },
@@ -95,16 +109,24 @@ const DEFS = [
 	{ id: 'calf', paired: true, views: ['back'] },
 	// The heel is drawn on the back view and on the sole of the foot close-up.
 	{ id: 'heel', paired: true, views: ['back', 'foot'], faces: ['sole'] },
-	// Head close-up (front-facing, mirrors the person like the front view).
-	{ id: 'forehead', paired: false, views: ['head'], parent: 'head' },
+	// Head close-up, front (faces the person, so it mirrors them like the front view). Zones follow how headache diaries
+	// describe location (side and broad areas), not face landmarks; `behind_eye` is drawn inside `around_eye`.
+	{ id: 'forehead', paired: true, views: ['head'], parent: 'head' },
 	{ id: 'temple', paired: true, views: ['head'], parent: 'head' },
-	{ id: 'eye', paired: true, views: ['head'], parent: 'head' },
-	{ id: 'ear', paired: true, views: ['head'], parent: 'head' },
-	{ id: 'nose', paired: false, views: ['head'], parent: 'head' },
+	{ id: 'around_eye', paired: true, views: ['head'], parent: 'head' },
+	{ id: 'behind_eye', paired: true, views: ['head'], parent: 'head' },
 	{ id: 'cheek', paired: true, views: ['head'], parent: 'head' },
-	{ id: 'mouth', paired: false, views: ['head'], parent: 'head' },
 	{ id: 'jaw', paired: true, views: ['head'], parent: 'head' },
-	{ id: 'chin', paired: false, views: ['head'], parent: 'head' },
+	// Head close-up, back (does not mirror).
+	{ id: 'top_of_head', paired: false, views: ['head_back'], parent: 'head' },
+	{ id: 'rear_head', paired: true, views: ['head_back'], parent: 'head' },
+	{ id: 'rear_neck', paired: true, views: ['head_back'], parent: 'head' },
+	// Wider head areas (not tappable): highlights built from the zones above, see "Wider areas".
+	{ id: 'head_front_side', paired: true, views: ['head'], parent: 'head' },
+	{ id: 'head_back_side', paired: true, views: ['head_back'], parent: 'head' },
+	{ id: 'head_side', paired: true, views: ['head', 'head_back'], parent: 'head' },
+	{ id: 'whole_head', paired: false, views: ['head', 'head_back'], parent: 'head' },
+	{ id: 'head_band', paired: false, views: ['head', 'head_back'], parent: 'head' },
 	// Hand close-up: one hand at a time, palm or back (fingers show on both).
 	{ id: 'thumb', paired: true, views: ['hand'], parent: 'hand' },
 	{ id: 'index_finger', paired: true, views: ['hand'], parent: 'hand' },
@@ -176,7 +198,8 @@ export const VIEWBOX = { w: 200, h: 440 } as const;
 const VIEWBOXES: Record<ViewId, { w: number; h: number }> = {
 	front: VIEWBOX,
 	back: VIEWBOX,
-	head: { w: 200, h: 220 },
+	head: { w: 200, h: 240 },
+	head_back: { w: 200, h: 240 },
 	hand: { w: 200, h: 290 },
 	foot: { w: 200, h: 300 }
 };
@@ -204,7 +227,14 @@ export type Shape = {
 	flip: boolean;
 	/** The box (u, v) is measured in, when it is not the shape itself (a region of several segments). */
 	box?: { x: number; y: number; w: number; h: number };
+	/** Head zones are soft outlines (an SVG path in view coordinates) instead of rectangles; x, y, w, h are the bounding box. */
+	d?: string;
+	/** The polygon the outline was rounded from, in view coordinates. */
+	poly?: readonly Pt[];
+	/** A wider area is drawn as these shapes (a highlight over the zones it covers) instead of its own box. */
+	cover?: readonly Shape[];
 };
+type Pt = readonly [number, number];
 
 type Spec = {
 	region: RegionId;
@@ -285,18 +315,230 @@ const BACK: Spec[] = [
 ];
 const BACK_WIDE: Spec[] = [spec('back', 74, 79, 52, 125, { r: 14, mid: true })];
 
-/** Head close-up, facing the person: mirrors them like the front view. Left half drawn, the other half mirrored. */
-const HEAD: Spec[] = [
-	spec('forehead', 66, 18, 68, 38, { r: 18 }),
-	spec('temple', 48, 60, 20, 34, { r: 10 }),
-	spec('eye', 72, 66, 24, 20, { r: 10 }),
-	spec('ear', 28, 80, 18, 40, { r: 9 }),
-	spec('nose', 90, 90, 20, 46, { r: 10 }),
-	spec('cheek', 56, 98, 32, 36, { r: 14 }),
-	spec('mouth', 80, 142, 40, 22, { r: 11 }),
-	spec('jaw', 52, 138, 26, 50, { r: 12 }),
-	spec('chin', 80, 170, 40, 28, { r: 12 })
+/**
+ * Head close-up. Two drawings (front: mirrors the person like the front view; back: does not), 200 x 240. Zones are soft
+ * rounded polygons that follow the outline of the head with a 3 unit gap between them; the left half of the screen is
+ * described and mirrored for the other half. Ears, neck and the faint face features are drawn for recognition only
+ * (not tappable): closed eyes, brows, a nose line and a neutral, straight mouth.
+ */
+const HEAD_GAP = 1.5;
+const MID = 100 - HEAD_GAP;
+/** Half the width of the front outline at height y (an egg: wide cranium, tapering jaw). */
+const frontHalf = (y: number): number =>
+	y <= 84
+		? 60 * Math.sqrt(Math.max(0, 1 - ((84 - y) / 64) ** 2))
+		: y <= 110
+			? 60 - 2 * ((y - 84) / 26)
+			: 58 * Math.sqrt(Math.max(0, 1 - ((y - 110) / 86) ** 2));
+/** The same for the back of the head. */
+const backHalf = (y: number): number => 62 * Math.sqrt(Math.max(0, 1 - ((y - 96) / 76) ** 2));
+type Half = (y: number) => number;
+const outline = (half: Half, y0: number, y1: number, n: number): Pt[] =>
+	Array.from({ length: n + 1 }, (_, i) => {
+		const y = y0 + ((y1 - y0) * i) / n;
+		return [100 - half(y), y] as const;
+	});
+const mirrorPt = (p: Pt): Pt => [200 - p[0], p[1]];
+
+/** A polygon with softly rounded corners (each corner cut by `r`, at most half of either edge). */
+function softPath(pts: readonly Pt[], r: number): string {
+	const n = pts.length;
+	const f = (v: number) => Math.round(v * 10) / 10;
+	let d = '';
+	for (let i = 0; i < n; i++) {
+		const p = pts[i]!;
+		const a = pts[(i + n - 1) % n]!;
+		const b = pts[(i + 1) % n]!;
+		const la = Math.hypot(a[0] - p[0], a[1] - p[1]);
+		const lb = Math.hypot(b[0] - p[0], b[1] - p[1]);
+		const k = Math.min(r, la / 2, lb / 2);
+		const p1 = [p[0] + ((a[0] - p[0]) * k) / la, p[1] + ((a[1] - p[1]) * k) / la];
+		const p2 = [p[0] + ((b[0] - p[0]) * k) / lb, p[1] + ((b[1] - p[1]) * k) / lb];
+		d += `${i === 0 ? 'M' : 'L'}${f(p1[0]!)} ${f(p1[1]!)}Q${f(p[0])} ${f(p[1])} ${f(p2[0]!)} ${f(p2[1]!)}`;
+	}
+	return d + 'Z';
+}
+
+type HeadZone = { region: RegionId; pts: Pt[]; r?: number; paired?: boolean };
+const zone = (region: RegionId, pts: Pt[], r = 6): HeadZone => ({ region, pts, r });
+/** A zone drawn once, centred (it spans both halves): its points are the full outline. */
+const centred = (region: RegionId, pts: Pt[], r = 8): HeadZone => ({ region, pts, r, paired: false });
+
+const FRONT_ROW = { eyeTop: 72, eyeBottom: 108, cheekTop: 111, cheekBottom: 146 };
+const HEAD_FRONT: HeadZone[] = [
+	zone('forehead', [[MID, 20.2], ...outline(frontHalf, 21.5, 52.5, 14), [63, 69], [MID, 69]], 7),
+	zone('temple', [...outline(frontHalf, 56, 108, 12), [60, 108], [60, 72]], 7),
+	zone('around_eye', [
+		[63, FRONT_ROW.eyeTop],
+		[MID, FRONT_ROW.eyeTop],
+		[MID, FRONT_ROW.eyeBottom],
+		[63, FRONT_ROW.eyeBottom]
+	]),
+	zone('behind_eye', [
+		[72, 82],
+		[91, 82],
+		[91, 100],
+		[72, 100]
+	]),
+	zone('cheek', [
+		[63, FRONT_ROW.cheekTop],
+		[MID, FRONT_ROW.cheekTop],
+		[MID, FRONT_ROW.cheekBottom],
+		[72, FRONT_ROW.cheekBottom],
+		[63, 138]
+	]),
+	zone(
+		'jaw',
+		[...outline(frontHalf, 111, 194.5, 14), [MID, 195], [MID, 150], [75, 150], [60, 139], [60, 111]],
+		7
+	)
 ];
+/** The screen-left half of the top of the head (the zone itself is one piece across the middle). */
+const TOP_HALF: Pt[] = [...outline(backHalf, 20.2, 64, 14), [MID, 64], [MID, 20.2]];
+const HEAD_BACK: HeadZone[] = [
+	centred('top_of_head', [
+		...outline(backHalf, 20.2, 64, 14),
+		...outline(backHalf, 64, 20.2, 14).map(mirrorPt)
+	]),
+	zone('rear_head', [[MID, 67.5], ...outline(backHalf, 67.5, 168, 18), [MID, 171]], 8),
+	zone(
+		'rear_neck',
+		[
+			[70, 178],
+			[MID, 178],
+			[MID, 232],
+			[70, 232]
+		],
+		8
+	)
+];
+/** The band around the head, drawn on both views as one midline highlight. */
+const bandPts = (half: Half, y0: number, y1: number): Pt[] => [
+	[100 - half(y0) - 2, y0],
+	[100 + half(y0) + 2, y0],
+	[100 + half(y1) + 2, y1],
+	[100 - half(y1) - 2, y1]
+];
+const BAND = { front: bandPts(frontHalf, 44, 90), back: bandPts(backHalf, 80, 120) } as const;
+
+const bbox = (pts: readonly Pt[]) => {
+	const xs = pts.map((p) => p[0]);
+	const ys = pts.map((p) => p[1]);
+	const x = Math.min(...xs);
+	const y = Math.min(...ys);
+	return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+};
+function pathShape(region: RegionId, side: Side, space: Space, key: string, pts: Pt[], r: number): Shape {
+	return {
+		key,
+		region,
+		side,
+		space,
+		...bbox(pts),
+		rx: 0,
+		ry: 0,
+		rot: 0,
+		px: 0,
+		py: 0,
+		flip: false,
+		d: softPath(pts, r),
+		poly: pts
+	};
+}
+
+/** The zones of one head drawing, left half of the screen mirrored for the other half. */
+function buildHead(face: HeadFace): Shape[] {
+	const space = spaceOf(face === 'front' ? 'head' : 'head_back');
+	const { screenLeft, screenRight } = edgeSides(face);
+	return (face === 'front' ? HEAD_FRONT : HEAD_BACK).flatMap((z) => {
+		const r = z.r ?? 6;
+		if (z.paired === false) return [pathShape(z.region, 'midline', space, z.region, z.pts, r)];
+		return [
+			pathShape(z.region, screenLeft, space, `${z.region}:${screenLeft}`, z.pts, r),
+			pathShape(z.region, screenRight, space, `${z.region}:${screenRight}`, z.pts.map(mirrorPt), r)
+		];
+	});
+}
+
+/** The widest highlight each wider head area uses, over the zones of this drawing. */
+const FRONT_OF_SIDE: readonly string[] = ['forehead', 'temple', 'around_eye', 'behind_eye'];
+const BACK_OF_SIDE: readonly string[] = ['rear_head', 'rear_neck'];
+function buildHeadWide(face: HeadFace, zones: readonly Shape[]): Shape[] {
+	const space = spaceOf(face === 'front' ? 'head' : 'head_back');
+	const wide = (region: RegionId, side: Side, cover: readonly Shape[]): Shape => ({
+		key: `${region}:${side}`,
+		region,
+		side,
+		space,
+		...bbox(cover.flatMap((c) => c.poly ?? [])),
+		rx: 0,
+		ry: 0,
+		rot: 0,
+		px: 0,
+		py: 0,
+		flip: false,
+		cover
+	});
+	const out: Shape[] = [];
+	for (const side of ['right', 'left'] as const) {
+		const mine = zones.filter((z) => z.side === side);
+		// "This side" also takes the near half of the top of the head (back view): the zone cut down the middle.
+		const half: Shape[] = [];
+		if (face === 'back') {
+			const left = TOP_HALF;
+			const pts = edgeSides(face).screenLeft === side ? left : left.map(mirrorPt);
+			half.push(pathShape('top_of_head', 'midline', space, `top_of_head:${side}`, pts, 8));
+		}
+		if (face === 'front') {
+			out.push(
+				wide(
+					'head_front_side',
+					side,
+					mine.filter((z) => FRONT_OF_SIDE.includes(z.region))
+				)
+			);
+			out.push(wide('head_side', side, mine));
+		} else {
+			out.push(
+				wide(
+					'head_back_side',
+					side,
+					mine.filter((z) => BACK_OF_SIDE.includes(z.region))
+				)
+			);
+			out.push(wide('head_side', side, [...mine, ...half]));
+		}
+	}
+	out.push(wide('whole_head', 'midline', zones));
+	out.push(
+		wide('head_band', 'midline', [
+			pathShape('head_band', 'midline', space, 'head_band:band', [...BAND[face]], 9)
+		])
+	);
+	return out;
+}
+
+/** Not tappable: ears and neck behind the zones, and the faint face features over them. */
+export type Decor = { d: string; kind: 'body' | 'feature' };
+const ear = (cx: number, cy: number): string => `M${cx} ${cy - 16}c-10 0-10 32 0 32c10 0 10-32 0-32Z`;
+const EARS = (frontFace: boolean): Decor[] => {
+	const y = frontFace ? 110 : 112;
+	const x = frontFace ? 38 : 36;
+	return [
+		{ d: ear(x, y), kind: 'body' },
+		{ d: ear(200 - x, y), kind: 'body' }
+	];
+};
+const DECOR_FRONT: Decor[] = [
+	...EARS(true),
+	{ d: 'M80 188h40v38q0 6-6 6H86q-6 0-6-6Z', kind: 'body' },
+	// Brows, closed eyes, a nose line and a straight, neutral mouth. Faint on purpose.
+	{ d: 'M66 78q11-6 25-1M134 78q-11-6-25-1', kind: 'feature' },
+	{ d: 'M74 90.5q8.5 5 17 0M126 90.5q-8.5 5-17 0', kind: 'feature' },
+	{ d: 'M100.5 104L98 127q1 4 6 3', kind: 'feature' },
+	{ d: 'M88 160h24', kind: 'feature' }
+];
+const DECOR_BACK: Decor[] = EARS(false);
 
 /** Hand close-up as drawn with the thumb on the right (the person's right palm, or their left hand's back). */
 const fingerBase = 140;
@@ -360,8 +602,8 @@ function shapeBase(space: Space, s: Spec) {
 	};
 }
 
-/** Main views and the head: paired regions are drawn once on each half of the screen; midline ones are centred. */
-function build(view: View | 'head', specs: Spec[]): Shape[] {
+/** Main views: paired regions are drawn once on each half of the screen; midline ones are centred. */
+function build(view: View, specs: Spec[]): Shape[] {
 	const space = spaceOf(view);
 	const W = VIEWBOXES[view].w;
 	const out: Shape[] = [];
@@ -376,7 +618,7 @@ function build(view: View | 'head', specs: Spec[]): Shape[] {
 			continue;
 		}
 		// The shape on the left of the screen is the person's right in the front view, their left in the back view.
-		const { screenLeft, screenRight } = edgeSides(view === 'back' ? 'back' : 'front');
+		const { screenLeft, screenRight } = edgeSides(view);
 		out.push({
 			...base,
 			key: `${s.region}:${screenLeft}`,
@@ -429,7 +671,8 @@ function buildOne(zoom: 'hand' | 'foot', side: 'left' | 'right', mirror: boolean
 }
 
 /** What a close-up shows: the head, or one hand or foot with the face turned towards the person. */
-export type ZoomState = { zoom: 'head' } | { zoom: 'hand' | 'foot'; side: 'left' | 'right'; face: Face };
+export type ZoomState =
+	{ zoom: 'head'; face: HeadFace } | { zoom: 'hand' | 'foot'; side: 'left' | 'right'; face: Face };
 
 /** What is drawn, and where taps and dots go. */
 export type Scene = {
@@ -438,8 +681,8 @@ export type Scene = {
 	shapes: readonly Shape[];
 	/** Wider areas: highlights only, never tapped. */
 	wide: readonly Shape[];
-	/** A soft outline drawn behind the shapes, not tappable (the head close-up), or none. */
-	backdrop: { x: number; y: number; w: number; h: number; rx: number; ry: number } | null;
+	/** Ears, neck and faint face features of the head close-up: not tappable. */
+	decor: readonly Decor[];
 	/** The person's sides shown at the screen's edges (main views and the head); none for hand and foot. */
 	edges: { screenLeft: 'left' | 'right'; screenRight: 'left' | 'right' } | null;
 };
@@ -460,20 +703,23 @@ export const mainScene = (view: View): Scene =>
 		viewBox: VIEWBOXES[view],
 		shapes: build(view, view === 'front' ? FRONT : BACK),
 		wide: build(view, view === 'front' ? FRONT_WIDE : BACK_WIDE),
-		backdrop: null,
+		decor: [],
 		edges: edgeSides(view)
 	}));
 
 export function zoomScene(z: ZoomState): Scene {
 	if (z.zoom === 'head')
-		return cached('head', () => ({
-			space: spaceOf('head'),
-			viewBox: VIEWBOXES.head,
-			shapes: build('head', HEAD),
-			wide: [],
-			backdrop: { x: 42, y: 8, w: 116, h: 200, rx: 58, ry: 72 },
-			edges: edgeSides('front')
-		}));
+		return cached(`head:${z.face}`, () => {
+			const shapes = buildHead(z.face);
+			return {
+				space: spaceOf(z.face === 'front' ? 'head' : 'head_back'),
+				viewBox: VIEWBOXES.head,
+				shapes,
+				wide: buildHeadWide(z.face, shapes),
+				decor: z.face === 'front' ? DECOR_FRONT : DECOR_BACK,
+				edges: edgeSides(z.face)
+			};
+		});
 	return cached(`${z.zoom}:${z.side}:${z.face}`, () => {
 		if (z.zoom === 'hand') {
 			// Palm of the right hand: thumb on the right. The back of the right hand and the palm of the left have it on the left.
@@ -484,7 +730,7 @@ export function zoomScene(z: ZoomState): Scene {
 				viewBox: VIEWBOXES.hand,
 				shapes: buildOne('hand', z.side, mirror, specs),
 				wide: [],
-				backdrop: null,
+				decor: [],
 				edges: null
 			};
 		}
@@ -499,7 +745,7 @@ export function zoomScene(z: ZoomState): Scene {
 			viewBox: VIEWBOXES.foot,
 			shapes: buildOne('foot', z.side, mirror, specs),
 			wide: [],
-			backdrop: null,
+			decor: [],
 			edges: null
 		};
 	});
@@ -523,7 +769,8 @@ export function zoomFor(
 	current: ZoomState | null
 ): ZoomState | null {
 	const view = viewIdOf(place.space);
-	if (view === 'head') return { zoom: 'head' };
+	if (view === 'head' || view === 'head_back')
+		return { zoom: 'head', face: view === 'head' ? 'front' : 'back' };
 	if (view !== 'hand' && view !== 'foot') return null;
 	const side = place.side === 'left' ? 'left' : 'right';
 	const faces = FACES[view];
@@ -563,32 +810,111 @@ export function toView(shape: Shape, u: number, v: number): { x: number; y: numb
 
 // ---- Wider areas ----
 //
-// A point on a belly quarter or a back part can be widened to the whole upper belly, lower belly, belly or back. A wider
+// A point on a belly quarter or a back part can be widened to the whole upper belly, lower belly, belly or back; a point
+// on a head zone to the front or back of its side, its whole side, the whole head or a band around the head. A wider
 // area has no tap position: its point is stored at the centre (u = v = 0.5) and drawn at the centre of the area's
-// bounding box, with the whole area softly highlighted. Widening remembers the original quarter in the draft (not in the
-// record), so "This quarter" puts the point back where it was.
+// bounding box, with the whole area softly highlighted. Widening remembers the original quarter or zone in the draft (not
+// in the record), so "This quarter" / "This spot" puts the point back where it was.
 
 export type Anchor = { region: RegionId; side: Side; u: number; v: number };
-export type WideId = 'this' | 'upper_belly' | 'lower_belly' | 'whole_belly' | 'whole_back';
+export type WideId =
+	| 'this'
+	| 'upper_belly'
+	| 'lower_belly'
+	| 'whole_belly'
+	| 'whole_back'
+	| 'head_front_side'
+	| 'head_back_side'
+	| 'head_side'
+	| 'whole_head'
+	| 'head_band';
 export type WideOption = { id: WideId; key: MessageKey; region: RegionId; side: Side };
 
 const BELLY: readonly string[] = ['upper_belly', 'lower_belly', 'belly'];
 const BACKS: readonly string[] = ['upper_back', 'mid_back', 'lower_back', 'back'];
-export const wideGroup = (region: string): 'belly' | 'back' | null =>
-	BELLY.includes(region) ? 'belly' : BACKS.includes(region) ? 'back' : null;
-/** A quarter or back part, rather than a wider area. */
+/** The tappable zones of the head close-up, and the wider head areas built over them. */
+const HEAD_ZONES: readonly string[] = [
+	'forehead',
+	'temple',
+	'around_eye',
+	'behind_eye',
+	'cheek',
+	'jaw',
+	'top_of_head',
+	'rear_head',
+	'rear_neck'
+];
+const HEAD_WIDE: readonly string[] = [
+	'head_front_side',
+	'head_back_side',
+	'head_side',
+	'whole_head',
+	'head_band'
+];
+export const wideGroup = (region: string): 'belly' | 'back' | 'head' | null =>
+	BELLY.includes(region)
+		? 'belly'
+		: BACKS.includes(region)
+			? 'back'
+			: HEAD_ZONES.includes(region) || HEAD_WIDE.includes(region)
+				? 'head'
+				: null;
+/** A quarter, back part or head zone, rather than a wider area. */
 const isNarrow = (region: string, side: Side) =>
 	(region === 'upper_belly' || region === 'lower_belly' ? side !== 'midline' : false) ||
 	region === 'upper_back' ||
 	region === 'mid_back' ||
-	region === 'lower_back';
+	region === 'lower_back' ||
+	HEAD_ZONES.includes(region);
 
-/** The choices for a point on the belly or back, or none. `origin` is the quarter it was widened from. */
-export function wideOptions(at: { region: string; side: Side }, origin?: Anchor): WideOption[] {
+/** Which drawing of the head a place is in: from its space, or else from its region when only one drawing has it. */
+function headFaceOf(at: { region: string; space?: Space }): HeadFace | undefined {
+	if (at.space === '2d-head-front-v2') return 'front';
+	if (at.space === '2d-head-back-v2') return 'back';
+	const views = regionDef(at.region)?.views ?? [];
+	return views.length === 1 ? (views[0] === 'head_back' ? 'back' : 'front') : undefined;
+}
+
+function headOptions(
+	at: { region: string; side: Side; space?: Space },
+	home: { region: RegionId; side: Side } | undefined
+): WideOption[] {
+	const out: WideOption[] = [];
+	if (home) out.push({ id: 'this', key: 'bodymap.wide.spot', region: home.region, side: home.side });
+	// The side-wide choices need a side: a zone or area on one side (not the top of the head, the whole head or the band).
+	const ref = home ?? at;
+	const side = ref.side === 'left' || ref.side === 'right' ? ref.side : undefined;
+	const face = headFaceOf(at.space ? at : { region: ref.region });
+	if (side) {
+		if (face === 'back')
+			out.push({ id: 'head_back_side', key: 'bodymap.wide.head_back_side', region: 'head_back_side', side });
+		else
+			out.push({
+				id: 'head_front_side',
+				key: 'bodymap.wide.head_front_side',
+				region: 'head_front_side',
+				side
+			});
+		out.push({ id: 'head_side', key: 'bodymap.wide.head_side', region: 'head_side', side });
+	}
+	out.push({ id: 'whole_head', key: 'bodymap.wide.whole_head', region: 'whole_head', side: 'midline' });
+	out.push({ id: 'head_band', key: 'bodymap.wide.head_band', region: 'head_band', side: 'midline' });
+	return out;
+}
+
+/**
+ * The choices for a point on the belly, back or head, or none. `origin` is the quarter or zone it was widened from; `space`
+ * (the head's drawing) decides between "front of this side" and "back of this side" for an area both drawings have.
+ */
+export function wideOptions(
+	at: { region: string; side: Side; space?: Space },
+	origin?: Anchor
+): WideOption[] {
 	const group = wideGroup(at.region);
 	if (!group) return [];
-	const out: WideOption[] = [];
 	const home = isNarrow(at.region, at.side) ? { region: at.region as RegionId, side: at.side } : origin;
+	if (group === 'head') return headOptions(at, home);
+	const out: WideOption[] = [];
 	if (home)
 		out.push({
 			id: 'this',
@@ -628,8 +954,8 @@ export function activeWide(
 }
 
 /**
- * The point after choosing an option: the new region and side with its position, and the quarter to remember. Widening
- * puts the point at the centre of the wider area; "This quarter" restores the remembered position.
+ * The point after choosing an option: the new region and side with its position, and the place to remember. Widening
+ * puts the point at the centre of the wider area; "This quarter" and "This spot" restore the remembered position.
  */
 export function widen(
 	at: Anchor,
