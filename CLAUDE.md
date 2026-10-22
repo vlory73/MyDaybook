@@ -86,6 +86,50 @@ Other key documents:
 - Phone-width screenshots: 375 × 812 CSS px at 2× device scale, light and dark.
 - Never commit `.env`, databases, backups or real photos.
 
+## Working with the owner (recorded 2026-10-22, before the move to a Team account)
+
+These are the owner's standing preferences, learned over M2–M4. Follow them in every session.
+
+- **Who's involved:**
+  - **The owner**, a product manager (communication and B2B messaging, not a developer). They review PRs on a phone, decide, merge, prepare releases and update branches on GitHub themselves.
+  - **The "HA session"**, a separate Claude session that manages the home Raspberry Pi (Home Assistant, Caddy, Docker, the NAS). The owner relays messages between it and this project. Write HA prompts as a ready-to-paste block. Never act on the Pi from here, and report any change to the Pi agreement.
+- **Tokens and tone:**
+  - The owner is token-conscious, so keep messages short and plain, with no narration of options that won't be pursued.
+  - Delegate well-scoped implementation to Sonnet sub-agents (or cheaper). The main session designs, reviews, opens PRs and talks to the owner.
+- **Check-ins:**
+  - Don't schedule check-ins or reminders unless asked.
+  - Watching a PR you opened (CI and review events) is fine and expected: fix red CI, report green CI once.
+- **Stopping:** stop at natural stopping points (a release, or a merged milestone branch), and update "Current status" before stopping.
+- **Decisions:**
+  - Present a plan and its open decisions before building anything sizeable, and give a recommendation for each.
+  - The owner answers in chat (e.g. "1 ok, 3 change…"). **Merging a PR without comments means its open decisions are accepted as built**; log them in the decisions log on the next branch.
+  - When the owner gives context mid-discussion ("we're still discussing"), don't change anything until they conclude.
+- **PR format** (owner-approved, used since #11):
+  - title in Conventional Commits
+  - "Summary" with five numbered points
+  - "Tests (local)" with counts
+  - "Screenshots" with paths
+  - "Open decisions for the owner" as a numbered list, plain language, most important first
+  End with the Claude Code footer.
+- **Releases:**
+  - The owner runs `docs/RELEASING.md` (Actions → Prepare release → release PR → GitHub release; main back into develop).
+  - Feature work continues on develop while a release branch is open.
+  - The Pi is then upgraded via the HA session or the copy-paste block (Option B).
+- **Small follow-ups:** they may ride on the next feature branch instead of their own PR, when the owner says so (e.g. the "Pain" rename went with `feature/bodymap-zoom`).
+- **Issues and milestones:** no GitHub milestones. Issues are not used yet (only family users); see the decisions log.
+- **Preferred style:** write all user-facing text and docs in plain, international English, and avoid jargon in messages to the owner.
+
+## Lessons learned (CI, tests and tooling)
+
+- **WebKit runs only in CI** (not installed locally), so design tests that pass there:
+  - Don't use `page.route` for requests from a page the service worker controls. WebKit bypasses it; use `test.use({ serviceWorkers: 'block' })` and stub what's needed (see `tests/e2e/reminders.spec.ts`).
+  - After `page.reload()`, wait for the "Your diary is locked" heading before unlocking, and give the first timeline assertion 15 s (see `tests/e2e/dose-adhoc.spec.ts`).
+- **Flaky-looking failures:** root-cause first. If the same code passed CI before and the failing test isn't touched by the PR, make the test robust within the PR instead of re-running.
+- **GitHub incidents:** during GitHub Actions incidents, runs may sit queued for minutes (Prepare release once took 9 min). Check githubstatus.com. If a release's `published` event was missed, rebuild with Actions → Release → Run workflow (tag input).
+- **Sub-agents** work best in their own git worktree (`isolation: worktree`), with a precise brief (scope, decisions, tests, screenshots, the full local check) and an instruction not to push. The main session reviews the screenshots, merges develop, runs the full local check, pushes and opens the PR.
+- **Merge conflicts in CLAUDE.md** are common, because every branch updates "Current status". Resolve them by combining both sides.
+- **Pi upgrades:** `sed` reports success even when it changes nothing. The upgrade block therefore checks that the tag changed and stops otherwise (#39, #43).
+
 ## Decisions log
 
 | Date | Decision | Source |
@@ -122,6 +166,8 @@ Other key documents:
 | 2026-10-19 | `release.yml` gets a manual "Run workflow" (tag input) to rebuild an existing release's images; the Pi upgrade block asks for the version | Owner |
 | 2026-10-19 | Body map entry (#45) merged with its 7 decisions as built ("Same as last time" copies intensities, no intensity until picked, calendar-day window for "Still there?", "0 none · 10 worst imaginable", no entry-level note). 0.5.0 released. Quick-log tile and timeline label renamed from "Body map" to **"Pain" / "Smerter"** (the sheet keeps "Where do you feel it?"); ships with `feature/bodymap-zoom` | Owner |
 | 2026-10-20 | Body map close-ups for head, hands and feet, and wider areas for diffuse pain (whole belly, upper and lower belly, whole back) approved after 0.5.0 feedback. Chest is not widened | Owner |
+| 2026-10-22 | #48 feedback: one recognisable footprint (five toes) for both foot faces, with Top/Sole only relabelling; count badges on the close-up buttons; belly width choices show only the half holding the tapped quarter. Open: the sole is drawn as a footprint (big toe on the same side as the top view); a code switch `SOLE_TOES_UP` would flip it | Owner |
+| 2026-10-22 | Project memory lives in this repo (CLAUDE.md), ahead of the move to a Team account; owner preferences and lessons recorded above | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -137,7 +183,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-22, 0.5.0 released (body map); `feature/bodymap-zoom` (→ 0.6.0) built, in review; it also carries the "Pain" label. Owner checks pending: reminders on the iPhone, the upgrade block at 0.5.0._
+_Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/bodymap-zoom` (CI green; merging it completes M4 → 0.6.0). Open owner checks: reminders on the iPhone (M3), the upgrade block that asks for the version (first used at 0.5.0?; ask the owner), sole drawn as a footprint (keep?). Next: plan M5 (charts, heat map, export, PDF; include pain episodes and the body thumbnail idea from the backlog)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -189,7 +235,7 @@ _Last updated: 2026-10-22, 0.5.0 released (body map); `feature/bodymap-zoom` (�
   (healthy). The upgrade block in docs/RELEASING.md only matched 0.1.0, so it silently kept 0.2.0; it now takes `V=<version>`,
   matches any version and stops when the tag did not change (#39). **Pending:** the owner's iPhone check (Home Screen app,
   iOS 16.4+); after that M3 is done.
-- **`feature/fluids` (in review, 0.4.0):** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
+- **`feature/fluids` merged (#40), released in 0.4.0:** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
 - **M4 (body map):** `feature/release-tooling` merged (#43: #40 log, M4 decisions, `release.yml` manual rebuild, upgrade block that
