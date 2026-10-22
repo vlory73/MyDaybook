@@ -80,8 +80,11 @@ export function zoneOf(n: number): Zone | null {
  * A point on the head: the main-view head or back of head, or any region of the head close-up (its parent is the head):
  * the zones (including the neck zones of the back drawing) and the wider areas (this side, whole head, band).
  */
+// The neck zones of the head close-up are not head points on their own (owner decision on #50): the headache details
+// ask nothing about the neck, so a neck-only point does not open them. Wider areas that include the neck still count.
 export const isHeadPoint = (p: Pick<PainPoint, 'region'>): boolean =>
-	p.region === 'head' || p.region === 'back_of_head' || regionDef(p.region)?.parent === 'head';
+	p.region !== 'rear_neck' &&
+	(p.region === 'head' || p.region === 'back_of_head' || regionDef(p.region)?.parent === 'head');
 
 /** A pain entry with a point on the head, or with headache details (even an empty `{}`). */
 export function isHeadacheEntry(payload: Payload): payload is PainPayload {

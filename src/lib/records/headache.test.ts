@@ -58,15 +58,16 @@ describe('head points and headache entries', () => {
 			'cheek',
 			'jaw',
 			'top_of_head',
-			'rear_head',
-			'rear_neck'
+			'rear_head'
 		];
 		const wider = ['head_front_side', 'head_back_side', 'head_side', 'whole_head', 'head_band'];
 		for (const region of [...zones, ...wider]) expect(isHeadPoint({ region } as never), region).toBe(true);
 		expect(isHeadacheEntry(entry([point('behind_eye', 'left', 5)]))).toBe(true);
 		expect(isHeadacheEntry(entry([point('head_band', 'midline', 5)]))).toBe(true);
-		// The main-view neck stays a neck point; only the neck zones of the head close-up are head points.
+		// Neither neck is a head point on its own: the headache details ask nothing about the neck (#50).
 		expect(isHeadPoint({ region: 'neck' } as never)).toBe(false);
+		expect(isHeadPoint({ region: 'rear_neck' } as never)).toBe(false);
+		expect(isHeadacheEntry(entry([point('rear_neck', 'right', 5)]))).toBe(false);
 	});
 	it('is a headache entry with a head point or with details, even an empty object', () => {
 		expect(isHeadacheEntry(entry([point('temple', 'right', 4)]))).toBe(true);
@@ -124,7 +125,6 @@ describe('headacheSides', () => {
 			'forehead',
 			'behind_eye',
 			'rear_head',
-			'rear_neck',
 			'head_side',
 			'head_front_side',
 			'head_back_side'

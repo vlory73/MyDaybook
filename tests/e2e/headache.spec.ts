@@ -263,3 +263,18 @@ test('every head zone and wider head area shows the section, and it goes with th
 	await button(page, 'Save 1 point').click();
 	await expect(timeline(page).getByText('Whole head 4', { exact: true })).toBeVisible();
 });
+
+test('a point on the neck alone does not open the headache section (owner decision on #50)', async ({
+	page
+}) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Head, close-up').click();
+	await sheet(page).getByRole('radio', { name: 'Back', exact: true }).click();
+	await figure(page).getByRole('button', { name: 'Right side of your neck', exact: true }).click();
+	await expect(details(page)).toBeHidden();
+	await expect(sheet(page).getByRole('checkbox', { name: 'This is a headache' })).not.toBeChecked();
+	// A wider area that includes the neck still counts as the head.
+	await group(page, 'How wide an area').getByRole('button', { name: 'This side', exact: true }).click();
+	await expect(details(page)).toBeVisible();
+});
