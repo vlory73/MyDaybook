@@ -168,6 +168,7 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 | 2026-10-20 | Body map close-ups for head, hands and feet, and wider areas for diffuse pain (whole belly, upper and lower belly, whole back) approved after 0.5.0 feedback. Chest is not widened | Owner |
 | 2026-10-22 | #48 feedback: one recognisable footprint (five toes) for both foot faces, with Top/Sole only relabelling; count badges on the close-up buttons; belly width choices show only the half holding the tapped quarter. Open: the sole is drawn as a footprint (big toe on the same side as the top view); a code switch `SOLE_TOES_UP` would flip it | Owner |
 | 2026-10-22 | Project memory lives in this repo (CLAUDE.md), ahead of the move to a Team account; owner preferences and lessons recorded above | Owner |
+| 2026-10-22 | M3 done: reminders confirmed on the owner's iPhone against the Pi; the Pi upgrade block that asks for the version confirmed working | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -183,7 +184,7 @@ Remind the owner of these when planning the next feature milestone; don't build 
 
 ## Current status
 
-_Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/bodymap-zoom` (CI green; merging it completes M4 → 0.6.0). Open owner checks: reminders on the iPhone (M3), the upgrade block that asks for the version (first used at 0.5.0?; ask the owner), sole drawn as a footprint (keep?). Next: plan M5 (charts, heat map, export, PDF; include pain episodes and the body thumbnail idea from the backlog)._
+_Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/bodymap-zoom` (CI green; merging it completes M4 → 0.6.0). M3 done: reminders confirmed on the owner's iPhone. The upgrade block that asks for the version works. Open: the owner tests the footprint sole and gathers family feedback (keep, or flip with `SOLE_TOES_UP`). Next: plan M5 (charts, heat map, export, PDF; include pain episodes and the body thumbnail idea from the backlog)._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
@@ -233,8 +234,7 @@ _Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/
   The six open decisions in #35 were accepted with the merge. **Pi prepared** by the HA session: `VAPID_SUBJECT` in `.env` (3 VAPID
   lines), outbound HTTPS to all four push hosts works. **0.3.0 released** by the owner and deployed on the Pi by the HA session
   (healthy). The upgrade block in docs/RELEASING.md only matched 0.1.0, so it silently kept 0.2.0; it now takes `V=<version>`,
-  matches any version and stops when the tag did not change (#39). **Pending:** the owner's iPhone check (Home Screen app,
-  iOS 16.4+); after that M3 is done.
+  matches any version and stops when the tag did not change (#39). **Done:** confirmed on the owner's iPhone (2026-10-22); M3 is complete.
 - **`feature/fluids` merged (#40), released in 0.4.0:** `drink` and `drink_presets` records (`src/lib/records/drinks.ts`), Drink tile, `DrinkSheet.svelte`
   (two taps for water, quantity stepper 1 to 10, typed amount, "Same again", live total), `DrinkPresetsSheet.svelte` (edit mode), plain
   day total on Today; screenshots in `docs/screenshots/fluids/`. Trends charts stay in M5.
@@ -243,8 +243,7 @@ _Last updated: 2026-10-22. Released: 0.5.0 (on the Pi). In review: #48 `feature/
   0.4.0 (fluids) released and on the Pi.
 - **`feature/bodymap-regions` (M4 branch 1, merged #44):** region catalogue (26 IDs, `src/lib/bodymap/catalogue.ts`), `BodyMap` and `RegionFinder` components
   (style guide only, no entry UI yet), `pain` validator (`src/lib/records/pain.ts`, not yet in `parsePayload`); screenshots in `docs/screenshots/bodymap-regions/`.
-- **To test at 0.5.0:** the Pi upgrade block that asks for the version (docs/RELEASING.md Option B, from #43); 0.4.0 was upgraded
-  with an older copy of the block. Copy it fresh from the doc.
+- **Upgrade block** (docs/RELEASING.md Option B, asks for the version): confirmed working by the owner (2026-10-22).
 - **`feature/bodymap-entry` (M4 branch 2, merged #45, in 0.5.0):** `pain` wired into `parsePayload` and the timeline; "Body map" quick-log tile
   (`cat.pain` now reads "Body map" / "Kropskort"); `BodyMapSheet.svelte` ("Where do you feel it?": map, Find, pinned point panel with
   intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
