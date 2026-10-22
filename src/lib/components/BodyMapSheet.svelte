@@ -13,6 +13,7 @@
 		FACES,
 		activeWide,
 		regionName,
+		spaceOf,
 		viewOf,
 		wideOptions,
 		widen,
@@ -279,6 +280,13 @@
 	}
 
 	const zoomButtons = ['head', 'hand', 'foot'] as const;
+	/** How many points of this entry are in a close-up's space (shown as a badge on its button). */
+	const zoomCount = (z: Zoom) => points.filter((p) => p.space === spaceOf(z)).length;
+	const zoomLabel = (z: Zoom) => {
+		const label = t(`bodymap.zoom.${z}.aria` as MessageKey);
+		const n = zoomCount(z);
+		return n > 0 ? tn('bodymap.zoom.points', n, { label }) : label;
+	};
 	const ramp = Array.from({ length: 11 }, (_, i) => i);
 	const lastSummary = $derived(last ? painSummary(i18n.locale, last.payload.points) : '');
 	const saveLabel = $derived(points.length > 0 ? tn('bodymap.save', points.length) : undefined);
@@ -326,14 +334,11 @@
 	</div>
 	{#if !finding && !zoom}
 		<div class="zooms" role="group" aria-label={t('bodymap.zoom.label')}>
-			<span class="muted">{t('bodymap.zoom.label')}</span>
 			{#each zoomButtons as z (z)}
-				<button
-					type="button"
-					class="zoom"
-					data-zoom={z}
-					aria-label={t(`bodymap.zoom.${z}.aria` as MessageKey)}
-					onclick={() => openZoom(z)}>{t(`bodymap.zoom.${z}` as MessageKey)}</button
+				<button type="button" class="zoom" data-zoom={z} aria-label={zoomLabel(z)} onclick={() => openZoom(z)}
+					>{t(`bodymap.zoom.${z}` as MessageKey)}{#if zoomCount(z) > 0}<span class="badge" aria-hidden="true"
+							>{zoomCount(z)}</span
+						>{/if}</button
 				>
 			{/each}
 		</div>
@@ -508,18 +513,31 @@
 		align-items: center;
 		gap: var(--sp-2);
 	}
-	.zooms .muted {
-		font-size: var(--fs-footnote);
-		color: var(--text-3);
-		margin-right: var(--sp-1);
-	}
 	.zoom {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+		white-space: nowrap;
 		min-height: 40px;
 		padding: 0 var(--sp-4);
 		border-radius: var(--r-full);
 		background: var(--surface-2);
 		font-weight: var(--fw-semibold);
 		font-size: var(--fs-callout);
+	}
+	.badge {
+		display: inline-grid;
+		place-items: center;
+		min-width: 20px;
+		height: 20px;
+		margin-left: 6px;
+		padding: 0 6px;
+		border-radius: var(--r-full);
+		background: var(--primary);
+		color: var(--on-primary, #fff);
+		font-size: var(--fs-caption);
+		font-weight: var(--fw-bold);
 	}
 	.zoom:active {
 		background: var(--surface-3);

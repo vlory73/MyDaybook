@@ -81,6 +81,67 @@ test('feet: tap the sole, and Back returns to the body', async ({ page }) => {
 	await expect(timeline(page).getByText('Sole of your right foot 2', { exact: true })).toBeVisible();
 });
 
+test('foot close-up: five toes, top of foot and ankles on the top, sole parts on the sole', async ({
+	page
+}) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await button(page, 'Feet, close-up').click();
+	const part = (name: string) => figure(page).getByRole('button', { name, exact: true });
+	for (const toe of ['big', 'second', 'third', 'fourth', 'little'])
+		await expect(part(`Your right ${toe} toe`)).toHaveCount(1);
+	await expect(part('Inner ankle of your right foot')).toBeVisible();
+	await expect(part('Outer ankle of your right foot')).toBeVisible();
+	await expect(part('Top of your right foot')).toHaveCount(2); // ball and midfoot are one region
+	await expect(part('Sole of your right foot')).toHaveCount(0);
+	await part('Top of your right foot').last().click();
+	await expect(sheet(page).getByRole('heading', { name: 'Top of your right foot' })).toBeVisible();
+	await intensity(page, 2).click();
+	// The same toes are on the sole, with the sole's own parts.
+	await radio(page, 'Sole').click();
+	for (const name of [
+		'Your right second toe',
+		'Sole of your right foot',
+		'Arch of your right foot',
+		'Your right heel'
+	])
+		await expect(part(name)).toHaveCount(1);
+	await expect(part('Inner ankle of your right foot')).toHaveCount(0);
+	await part('Your right fourth toe').click();
+	await intensity(page, 5).click();
+	await saveButton(page, 'Save 2 points').click();
+	await expect(
+		timeline(page).getByText('Top of your right foot 2 · Your right fourth toe 5', { exact: true })
+	).toBeVisible();
+});
+
+test('the close-up buttons show how many points of the entry are in them', async ({ page }) => {
+	await signUpAndSignIn(page);
+	await openSheet(page);
+	await expect(sheet(page).getByRole('button', { name: 'Hands, close-up', exact: true })).toBeVisible();
+	await button(page, 'Hands, close-up').click();
+	await tap(page, 'Your right thumb');
+	await intensity(page, 3).click();
+	await tap(page, 'Your right palm');
+	await intensity(page, 4).click();
+	await button(page, 'Back to the body').click();
+	const hands = sheet(page).getByRole('button', { name: 'Hands, close-up, 2 points', exact: true });
+	await expect(hands).toBeVisible();
+	await expect(hands).toContainText('2');
+	// Hidden at zero.
+	await expect(sheet(page).getByRole('button', { name: 'Head, close-up', exact: true })).toBeVisible();
+	await button(page, 'Feet, close-up').click();
+	await tap(page, 'Your right little toe');
+	await intensity(page, 1).click();
+	await button(page, 'Back to the body').click();
+	await expect(
+		sheet(page).getByRole('button', { name: 'Feet, close-up, 1 point', exact: true })
+	).toBeVisible();
+	await expect(sheet(page).getByRole('button', { name: 'Head, close-up', exact: true })).not.toContainText(
+		/\d/
+	);
+});
+
 test('the whole hand on the main map is still a valid choice', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openSheet(page);
@@ -95,9 +156,11 @@ test('a belly quarter can be widened to the whole belly', async ({ page }) => {
 	await openSheet(page);
 	await tap(page, 'Your left upper belly');
 	const group = sheet(page).getByRole('group', { name: 'How wide an area' });
-	for (const label of ['This quarter', 'Upper belly', 'Lower belly', 'Whole belly'])
+	for (const label of ['This quarter', 'Upper belly', 'Whole belly'])
 		await expect(group.getByRole('button', { name: label, exact: true })).toBeVisible();
 	await expect(group.getByRole('button', { name: 'This quarter' })).toHaveAttribute('aria-pressed', 'true');
+	// Only the half that contains the quarter.
+	await expect(group.getByRole('button', { name: 'Lower belly', exact: true })).toHaveCount(0);
 	await group.getByRole('button', { name: 'Whole belly', exact: true }).click();
 	await expect(sheet(page).getByRole('heading', { name: 'Whole belly' })).toBeVisible();
 	await expect(figure(page).locator('.wide.sel')).toHaveCount(1);
@@ -155,15 +218,15 @@ test('a close-up can be used with the keyboard alone', async ({ page }) => {
 	await button(page, 'Feet, close-up').focus();
 	await page.keyboard.press('Enter');
 	await expect(button(page, 'Back to the body')).toBeVisible();
-	await figure(page).getByRole('button', { name: 'Big toe of your right foot', exact: true }).focus();
+	await figure(page).getByRole('button', { name: 'Your right big toe', exact: true }).focus();
 	await page.keyboard.press('Enter');
-	await expect(sheet(page).getByRole('heading', { name: 'Big toe of your right foot' })).toBeVisible();
+	await expect(sheet(page).getByRole('heading', { name: 'Your right big toe' })).toBeVisible();
 	await expect(intensity(page, 0)).toBeFocused();
 	for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
 	await expect(intensity(page, 3)).toBeChecked();
 	await saveButton(page, 'Save 1 point').focus();
 	await page.keyboard.press('Enter');
-	await expect(timeline(page).getByText('Big toe of your right foot 3', { exact: true })).toBeVisible();
+	await expect(timeline(page).getByText('Your right big toe 3', { exact: true })).toBeVisible();
 });
 
 test('the close-up and wider-area names are in Danish', async ({ page }) => {

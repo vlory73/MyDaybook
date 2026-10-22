@@ -116,7 +116,10 @@ const DEFS = [
 	{ id: 'back_of_hand', paired: true, views: ['hand'], parent: 'hand', faces: ['back'] },
 	// Foot close-up: one foot at a time, top or sole (toes show on both).
 	{ id: 'big_toe', paired: true, views: ['foot'], parent: 'foot' },
-	{ id: 'other_toes', paired: true, views: ['foot'], parent: 'foot' },
+	{ id: 'second_toe', paired: true, views: ['foot'], parent: 'foot' },
+	{ id: 'third_toe', paired: true, views: ['foot'], parent: 'foot' },
+	{ id: 'fourth_toe', paired: true, views: ['foot'], parent: 'foot' },
+	{ id: 'little_toe', paired: true, views: ['foot'], parent: 'foot' },
 	{ id: 'top_of_foot', paired: true, views: ['foot'], parent: 'foot', faces: ['top'] },
 	{ id: 'inner_ankle', paired: true, views: ['foot'], parent: 'foot', faces: ['top'] },
 	{ id: 'outer_ankle', paired: true, views: ['foot'], parent: 'foot', faces: ['top'] },
@@ -199,6 +202,8 @@ export type Shape = {
 	 * measured in the unmirrored drawing, so a point keeps its place when the person turns the hand or foot over.
 	 */
 	flip: boolean;
+	/** The box (u, v) is measured in, when it is not the shape itself (a region of several segments). */
+	box?: { x: number; y: number; w: number; h: number };
 };
 
 type Spec = {
@@ -212,6 +217,10 @@ type Spec = {
 	rot?: number;
 	px?: number;
 	py?: number;
+	/** Shape key when a region has several segments. */
+	key?: string;
+	/** Box that (u, v) is measured in, when a region has several segments sharing one position space. [x, y, w, h] */
+	box?: [number, number, number, number];
 	/** Force a midline shape for a paired region: the wider "whole upper belly" and so on. */
 	mid?: boolean;
 };
@@ -304,20 +313,38 @@ const HAND_DIGITS: Spec[] = [
 	spec('thumb', 133, 152, 20, 62, { r: 10, rot: 32, px: 143, py: 214 })
 ];
 
-/** Foot close-up as drawn with the big toe on the left (the person's right foot from above, or their left foot's sole). */
-const FOOT_DIGITS: Spec[] = [
-	spec('big_toe', 56, 26, 36, 50, { r: 18 }),
-	spec('other_toes', 96, 46, 62, 36, { r: 16 })
+/**
+ * Foot close-up: ONE footprint silhouette serves both faces, drawn as the person's right foot with the big toe (the inner
+ * side) on the viewer's left. The Top / Sole toggle only changes which regions the same segments stand for:
+ * sole: five toes, `sole` (the ball), `arch` (midfoot), `heel`;
+ * top: the same five toes, `top_of_foot` (ball and midfoot together) and `inner_ankle` / `outer_ankle` (the two halves of
+ * the heel end; the inner one is on the big toe side).
+ * A region of several segments (`top_of_foot`) shares one box (`box`), so (u, v) means the same wherever it was tapped.
+ */
+const FOOT_TOES: Spec[] = [
+	spec('big_toe', 50, 36, 38, 52, { r: 19 }),
+	spec('second_toe', 92, 30, 24, 42, { r: 12 }),
+	spec('third_toe', 120, 38, 22, 36, { r: 11 }),
+	spec('fourth_toe', 145, 48, 20, 32, { r: 10 }),
+	spec('little_toe', 168, 60, 18, 28, { r: 9 })
 ];
+const FOOT_BALL = { x: 50, y: 92, w: 134, h: 74 } as const;
+const FOOT_MID = { x: 92, y: 170, w: 78, h: 54 } as const;
+const FOOT_TOP_BOX: [number, number, number, number] = [50, 92, 134, 132];
 const FOOT_TOP: Spec[] = [
-	spec('top_of_foot', 54, 88, 106, 104, { r: 30 }),
-	spec('inner_ankle', 58, 196, 38, 34, { r: 15 }),
-	spec('outer_ankle', 100, 196, 38, 34, { r: 15 })
+	spec('top_of_foot', FOOT_BALL.x, FOOT_BALL.y, FOOT_BALL.w, FOOT_BALL.h, { r: 34, box: FOOT_TOP_BOX }),
+	spec('top_of_foot', FOOT_MID.x, FOOT_MID.y, FOOT_MID.w, FOOT_MID.h, {
+		r: 24,
+		box: FOOT_TOP_BOX,
+		key: 'top_of_foot:mid'
+	}),
+	spec('inner_ankle', 90, 228, 37, 58, { r: 18 }),
+	spec('outer_ankle', 131, 228, 37, 58, { r: 18 })
 ];
 const FOOT_SOLE: Spec[] = [
-	spec('sole', 54, 88, 106, 84, { r: 28 }),
-	spec('arch', 62, 176, 70, 44, { r: 20 }),
-	spec('heel', 68, 224, 68, 58, { r: 28 })
+	spec('sole', FOOT_BALL.x, FOOT_BALL.y, FOOT_BALL.w, FOOT_BALL.h, { r: 34 }),
+	spec('arch', FOOT_MID.x, FOOT_MID.y, FOOT_MID.w, FOOT_MID.h, { r: 24 }),
+	spec('heel', 90, 228, 78, 58, { r: 30 })
 ];
 
 function shapeBase(space: Space, s: Spec) {
@@ -383,9 +410,21 @@ function buildOne(zoom: 'hand' | 'foot', side: 'left' | 'right', mirror: boolean
 		const rot = s.rot ?? 0;
 		const px = s.px ?? 0;
 		const py = s.py ?? 0;
+		const key = s.key ?? s.region;
+		const bx = s.box ? { x: s.box[0], y: s.box[1], w: s.box[2], h: s.box[3] } : undefined;
 		return mirror
-			? { ...base, key: s.region, side, x: W - s.x - s.w, rot: -rot, px: W - px, py, flip: true }
-			: { ...base, key: s.region, side, x: s.x, rot, px, py, flip: false };
+			? {
+					...base,
+					key,
+					side,
+					x: W - s.x - s.w,
+					rot: -rot,
+					px: W - px,
+					py,
+					flip: true,
+					box: bx && { ...bx, x: W - bx.x - bx.w }
+				}
+			: { ...base, key, side, x: s.x, rot, px, py, flip: false, box: bx };
 	});
 }
 
@@ -404,6 +443,9 @@ export type Scene = {
 	/** The person's sides shown at the screen's edges (main views and the head); none for hand and foot. */
 	edges: { screenLeft: 'left' | 'right'; screenRight: 'left' | 'right' } | null;
 };
+
+/** Draw the sole as seen toes-up (mirror of the top) instead of with the big toe on the same side as on top. */
+const SOLE_TOES_UP = false;
 
 const SCENES = new Map<string, Scene>();
 function cached(key: string, make: () => Scene): Scene {
@@ -446,9 +488,12 @@ export function zoomScene(z: ZoomState): Scene {
 				edges: null
 			};
 		}
-		// Top of the right foot: big toe on the left. Its sole, and the top of the left foot, have it on the right.
-		const mirror = (z.side === 'right') !== (z.face === 'top');
-		const specs = [...FOOT_DIGITS, ...(z.face === 'top' ? FOOT_TOP : FOOT_SOLE)];
+		// One silhouette for both faces: the right foot has its big toe on the viewer's left, the left foot on the right.
+		// (Seen from below with the toes up, a sole would be the mirror image; the owner asked for the same side on both
+		// faces, so the sole is drawn as it would be seen with the foot turned over about its toe-to-heel axis. Flip
+		// SOLE_TOES_UP to get the other reading: that mirrors the sole only.)
+		const mirror = (z.side === 'left') !== (SOLE_TOES_UP && z.face === 'sole');
+		const specs = [...FOOT_TOES, ...(z.face === 'top' ? FOOT_TOP : FOOT_SOLE)];
 		return {
 			space: spaceOf('foot'),
 			viewBox: VIEWBOXES.foot,
@@ -497,15 +542,17 @@ export function toLocal(shape: Shape, px: number, py: number): { u: number; v: n
 	const dy = py - shape.py;
 	const lx = shape.px + dx * Math.cos(a) + dy * Math.sin(a);
 	const ly = shape.py - dx * Math.sin(a) + dy * Math.cos(a);
-	const u = clamp01((lx - shape.x) / shape.w);
-	return { u: shape.flip ? 1 - u : u, v: clamp01((ly - shape.y) / shape.h) };
+	const b = shape.box ?? shape;
+	const u = clamp01((lx - b.x) / b.w);
+	return { u: shape.flip ? 1 - u : u, v: clamp01((ly - b.y) / b.h) };
 }
 
 /** Region-local `(u, v)` back to view coordinates, to draw a stored point. */
 export function toView(shape: Shape, u: number, v: number): { x: number; y: number } {
 	const a = rad(shape.rot);
-	const lx = shape.x + (shape.flip ? 1 - u : u) * shape.w;
-	const ly = shape.y + v * shape.h;
+	const b = shape.box ?? shape;
+	const lx = b.x + (shape.flip ? 1 - u : u) * b.w;
+	const ly = b.y + v * b.h;
 	const dx = lx - shape.px;
 	const dy = ly - shape.py;
 	return {
@@ -549,13 +596,25 @@ export function wideOptions(at: { region: string; side: Side }, origin?: Anchor)
 			region: home.region,
 			side: home.side
 		});
-	if (group === 'belly')
-		out.push(
-			{ id: 'upper_belly', key: 'bodymap.wide.upper_belly', region: 'upper_belly', side: 'midline' },
-			{ id: 'lower_belly', key: 'bodymap.wide.lower_belly', region: 'lower_belly', side: 'midline' },
-			{ id: 'whole_belly', key: 'bodymap.wide.whole_belly', region: 'belly', side: 'midline' }
-		);
-	else out.push({ id: 'whole_back', key: 'bodymap.wide.whole_back', region: 'back', side: 'midline' });
+	if (group === 'belly') {
+		// Only the half that contains the quarter; when that is unknown (a wider area picked from Find) both halves.
+		const half = home?.region ?? (at.region === 'belly' ? undefined : at.region);
+		if (half !== 'lower_belly')
+			out.push({
+				id: 'upper_belly',
+				key: 'bodymap.wide.upper_belly',
+				region: 'upper_belly',
+				side: 'midline'
+			});
+		if (half !== 'upper_belly')
+			out.push({
+				id: 'lower_belly',
+				key: 'bodymap.wide.lower_belly',
+				region: 'lower_belly',
+				side: 'midline'
+			});
+		out.push({ id: 'whole_belly', key: 'bodymap.wide.whole_belly', region: 'belly', side: 'midline' });
+	} else out.push({ id: 'whole_back', key: 'bodymap.wide.whole_back', region: 'back', side: 'midline' });
 	return out;
 }
 

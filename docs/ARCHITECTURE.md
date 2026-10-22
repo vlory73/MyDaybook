@@ -322,7 +322,7 @@ children's outline (decided); the same regions and spaces serve every profile.
 | `2d-back-v1` | main back view, does not mirror | 200 x 440 | back of head and neck, the three back parts, buttock, leg parts, heel |
 | `2d-head-v1` | head close-up, facing the person (mirrors like the front) | 200 x 220 | forehead, temple, eye, ear, nose, cheek, mouth, jaw, chin |
 | `2d-hand-v1` | one hand, palm or back, thumb on the side that face shows | 200 x 290 | thumb, index, middle, ring and little finger, palm, base of palm, back of hand |
-| `2d-foot-v1` | one foot, top or sole, big toe on the side that face shows | 200 x 300 | big toe, other toes, top of foot, inner and outer ankle, sole, arch, heel |
+| `2d-foot-v1` | one foot, one footprint silhouette for both faces (big toe on the viewer's left for the right foot, on the right for the left foot) | 200 x 300 | five toes (`big_toe`, `second_toe`, `third_toe`, `fourth_toe`, `little_toe`), then top: `top_of_foot` (ball and midfoot, one shared box), `inner_ankle`, `outer_ankle`; sole: `sole` (ball), `arch`, `heel` |
 
 In the hand and foot close-ups one drawing serves both sides and both faces: it is mirrored when needed, and the stored `u`
 is always measured in the unmirrored drawing, so a point keeps its place when the hand or foot is turned over. The side of

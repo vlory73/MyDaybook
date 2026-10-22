@@ -311,7 +311,6 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.getByRole('button', { name: 'Log something' }).click();
 			await page.getByRole('button', { name: 'Pain', exact: true }).click();
 			await page.waitForTimeout(400);
-			await snap(page, 'main-with-closeups', scheme);
 			const back = () => sheet.getByRole('button', { name: 'Back to the body' }).click();
 			// The close-ups as they open, before any point is chosen.
 			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
@@ -345,6 +344,9 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.waitForTimeout(300);
 			await snap(page, 'hand-point', scheme);
 			await back();
+			// The close-up buttons carry a count of the points in them.
+			await page.waitForTimeout(300);
+			await snap(page, 'main-with-closeups', scheme);
 			await region('Your left upper belly');
 			await intensity(5);
 			await sheet

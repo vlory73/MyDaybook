@@ -265,7 +265,20 @@ describe('close-up views', () => {
 		};
 		expect(toeX('right', 'top')).toBeLessThan(100);
 		expect(toeX('left', 'top')).toBeGreaterThan(100);
-		expect(toeX('right', 'sole')).toBeGreaterThan(100);
+		// One silhouette for both faces: the inner (big toe) side is the same on the sole as on the top.
+		expect(toeX('right', 'sole')).toBeLessThan(100);
+		expect(toeX('left', 'sole')).toBeGreaterThan(100);
+		// Five toes, big toe the largest, decreasing towards the little toe.
+		const foot = zoomScene({ zoom: 'foot', side: 'right', face: 'top' });
+		const sizes = ['big_toe', 'second_toe', 'third_toe', 'fourth_toe', 'little_toe'].map((r) => {
+			const t = sceneShape(foot, r, 'right')!;
+			return t.w * t.h;
+		});
+		expect([...sizes].sort((a, b) => b - a)).toEqual(sizes);
+		// The inner ankle is on the big toe side.
+		expect(sceneShape(foot, 'inner_ankle', 'right')!.x).toBeLessThan(
+			sceneShape(foot, 'outer_ankle', 'right')!.x
+		);
 	});
 
 	it('round-trips (u, v) in every close-up, also for mirrored and rotated shapes', () => {
@@ -303,6 +316,24 @@ describe('close-up views', () => {
 		expect(b.x).toBeLessThan(back.x + back.w / 2);
 	});
 
+	it('uses the same segments for both faces and one position box for top_of_foot', () => {
+		const top = zoomScene({ zoom: 'foot', side: 'left', face: 'top' });
+		const sole = zoomScene({ zoom: 'foot', side: 'left', face: 'sole' });
+		const toes = (sc: typeof top) =>
+			sc.shapes.filter((s) => s.region.endsWith('toe')).map((s) => [s.region, s.x, s.y]);
+		expect(toes(top)).toEqual(toes(sole));
+		expect(toes(top)).toHaveLength(5);
+		const segments = top.shapes.filter((s) => s.region === 'top_of_foot');
+		expect(segments).toHaveLength(2);
+		expect(segments[0]!.box).toEqual(segments[1]!.box);
+		for (const s of segments) {
+			const p = toView(s, 0.25, 0.75);
+			const back = toLocal(s, p.x, p.y);
+			expect(back.u).toBeCloseTo(0.25, 6);
+			expect(back.v).toBeCloseTo(0.75, 6);
+		}
+	});
+
 	it('chooses the close-up for a place, keeping the face for fingers and toes', () => {
 		const at = (
 			region: string,
@@ -336,7 +367,7 @@ describe('close-up views', () => {
 			side: 'left',
 			face: 'sole'
 		});
-		expect(zoomFor(at('big_toe', 'left', '2d-foot-v1'), null)).toEqual({
+		expect(zoomFor(at('little_toe', 'left', '2d-foot-v1'), null)).toEqual({
 			zoom: 'foot',
 			side: 'left',
 			face: 'top'
@@ -391,12 +422,17 @@ describe('wider areas', () => {
 	it('offers the wider choices for a belly quarter and for a back part, and none elsewhere', () => {
 		const labels = (r: string, s: 'left' | 'right' | 'midline', o?: Parameters<typeof wideOptions>[1]) =>
 			wideOptions({ region: r, side: s }, o).map((x) => translate('en', x.key));
-		expect(labels('upper_belly', 'left')).toEqual([
+		expect(labels('upper_belly', 'left')).toEqual(['This quarter', 'Upper belly', 'Whole belly']);
+		expect(labels('lower_belly', 'right')).toEqual(['This quarter', 'Lower belly', 'Whole belly']);
+		// A wider area keeps the way back to the remembered quarter, and the options that contain it.
+		const upperQuarter = { region: 'upper_belly', side: 'left', u: 0.3, v: 0.4 } as const;
+		expect(labels('belly', 'midline', upperQuarter)).toEqual(['This quarter', 'Upper belly', 'Whole belly']);
+		expect(labels('upper_belly', 'midline', upperQuarter)).toEqual([
 			'This quarter',
 			'Upper belly',
-			'Lower belly',
 			'Whole belly'
 		]);
+		expect(labels('lower_belly', 'midline')).toEqual(['Lower belly', 'Whole belly']);
 		expect(wideOptions({ region: 'lower_belly', side: 'right' })[0]).toMatchObject({
 			id: 'this',
 			region: 'lower_belly',

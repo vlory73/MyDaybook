@@ -204,11 +204,11 @@ _Last updated: 2026-10-22, 0.5.0 released (body map); `feature/bodymap-zoom` (�
   intensity 0 to 10, up to 3 qualities, note, `+ Point`, `Save N points`; `LogSheet` got `dock`, `extra` and `saveLabel`); "Same as last
   time" and the "Still there?" card on Today (`src/lib/records/painEntry.ts`, dismissal = entry id in localStorage); screenshots in
   `docs/screenshots/bodymap-entry/`. Heat map, charts and PDF stay in M5.
-- **`feature/bodymap-zoom` (M4 branch 3, in review, → 0.6.0):** close-ups for head, hands and feet (`2d-head-v1`, `2d-hand-v1`, `2d-foot-v1`, 9 / 8 / 8 new regions with
+- **`feature/bodymap-zoom` (M4 branch 3, in review, → 0.6.0):** close-ups for head, hands and feet (`2d-head-v1`, `2d-hand-v1`, `2d-foot-v1`, 9 / 8 / 11 new regions with
   `parent` set; one hand or foot at a time with a Right / Left and Palm / Back or Top / Sole toggle; Head / Hands / Feet buttons and "Back to the body" in `BodyMapSheet.svelte`;
   Find lists them and opens the close-up), and wider areas (`belly`, `back`, and `upper_belly` / `lower_belly` on the midline; "This quarter · Upper belly · Lower belly · Whole belly"
   and "This part · Whole back" chips in the point panel; stored at the centre, drawn as a dot with the area softly highlighted). Catalogue now works with scenes
-  (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Screenshots in `docs/screenshots/bodymap-zoom/`.
+  (`mainScene`, `zoomScene`, `zoomFor`, `wideOptions`, `widen`); coordinate spaces documented in ARCHITECTURE §5. Foot: one footprint silhouette with five toes for both faces; count badges on the close-up buttons; belly width choices show only the half that holds the quarter. Screenshots in `docs/screenshots/bodymap-zoom/`.
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
