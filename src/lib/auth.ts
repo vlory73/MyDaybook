@@ -12,6 +12,7 @@ import {
 	deriveFromRecoveryKey,
 	rewrapForNewRecoveryKey,
 	rewrapForPassphrase,
+	unlockWithPassphrase,
 	unlockWithPwk,
 	unlockWithRecoveryKey,
 	wipe
@@ -157,6 +158,23 @@ export async function changePassphrase(current: string, next: string): Promise<v
 		kdfParams: fresh.kdfParams,
 		wrappedMkByPassphrase: fresh.wrappedMkByPassphrase
 	});
+}
+
+/**
+ * Checks the passphrase on this device only, by unwrapping the master key with it (nothing is sent). For actions
+ * that keep a copy of the diary outside the app, such as the data export. Returns false for a wrong passphrase.
+ */
+export async function verifyPassphrase(passphrase: string): Promise<boolean> {
+	const identity = session.identity;
+	if (!identity) throw new Error('no session');
+	await initCrypto();
+	await nextFrame();
+	try {
+		wipe(unlockWithPassphrase(identity.userId, passphrase, getBundle()));
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /** Erases the account on the server. Throws ApiError 401 (wrong passphrase) or 409 `last_guardian`. */

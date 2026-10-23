@@ -52,6 +52,15 @@ export async function deleteAttachment(id: string): Promise<boolean> {
 
 export const attachmentIds = (refs: AttachmentRef[]): string[] => refs.flatMap((r) => [r.id, r.thumbId]);
 
+/**
+ * Downloads and decrypts the full-size photo, for the data export. The bytes stay in memory only (no object URL, no
+ * cache). Throws when it cannot be fetched or does not decrypt.
+ */
+export async function downloadPhoto(ref: AttachmentRef): Promise<Uint8Array> {
+	await initCrypto();
+	return decryptAttachment(fromB64(ref.key), await apiGetBytes(path(ref.id)));
+}
+
 // ---- Viewing ----
 
 export type PhotoKind = 'thumb' | 'full';
