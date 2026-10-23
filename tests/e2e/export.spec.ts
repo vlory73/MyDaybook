@@ -123,7 +123,7 @@ test('the Delete account card points to the export, and the export can include p
 	await expect(sheet(page)).toBeHidden();
 
 	await page.getByRole('link', { name: 'Me', exact: true }).click();
-	const danger = page.locator('.danger');
+	const danger = page.locator('div.danger');
 	await expect(danger.getByText('Download a copy of your diary first.')).toBeVisible();
 	await danger.getByRole('link', { name: 'Download my data' }).click();
 	await expect(page.getByRole('heading', { name: 'Download my data', level: 1 })).toBeVisible();
