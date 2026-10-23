@@ -13,7 +13,7 @@ import type { MessageKey } from '$lib/i18n/en';
 import type { StoredRecord } from '$lib/records/codec';
 import { mlToCl } from '$lib/records/drinks';
 import { episodeViews, overlapping } from '$lib/records/episodes';
-import { WEIGHT_ID } from '$lib/records/log';
+import { BLOOD_PRESSURE_ID, PULSE_ID, WEIGHT_ID } from '$lib/records/log';
 import { dayKey, instant, timeOf } from '$lib/records/time';
 import type { DosePayload, MedicationPayload } from '$lib/records/types';
 import { scheduleSummary } from '$lib/meds/schedule';
@@ -103,6 +103,9 @@ export function doctorOverview(records: Iterable<Rec>, days: readonly string[], 
 	const pain = painSeries(all, days);
 	const feeling = feelingSeries(all, days);
 	const weight = measurementSeries(all, days, WEIGHT_ID);
+	const bp = measurementSeries(all, days, BLOOD_PRESSURE_ID, 0);
+	const bpLow = measurementSeries(all, days, BLOOD_PRESSURE_ID, 1);
+	const pulse = measurementSeries(all, days, PULSE_ID);
 	const own = measurementTypesWithData(all, days);
 	const gutRecords = all.filter(
 		(r) => r.payload.type === 'gut' && days.includes(dayKey(r.payload.at))
@@ -120,6 +123,8 @@ export function doctorOverview(records: Iterable<Rec>, days: readonly string[], 
 		sleep: present(sleepSeries(all, days).minutes).length,
 		measurements:
 			present(weight.values).length +
+			Math.max(present(bp.values).length, present(bpLow.values).length) +
+			present(pulse.values).length +
 			own.reduce((n, m) => n + present(measurementSeries(all, days, m.id).values).length, 0),
 		fluids: present(fluidSeries(all, days).totalMl).length,
 		bowel: bowelDots(all, days).length,
@@ -400,6 +405,36 @@ export function buildDoctorReport(
 		};
 		const w = measurementSeries(all, days, WEIGHT_ID);
 		if (hasAny(w.values)) line('weight', tr('trends.weight.title'), w.unit || 'kg', w.values);
+		const up = measurementSeries(all, days, BLOOD_PRESSURE_ID, 0);
+		const low = measurementSeries(all, days, BLOOD_PRESSURE_ID, 1);
+		if (hasAny(up.values) || hasAny(low.values)) {
+			const r = span([...up.values, ...low.values]);
+			const unit = up.unit || 'mmHg';
+			charts.push({
+				id: 'bp',
+				title: tr('measure.bp'),
+				sub: tr('dr.measure.sub', {
+					entries: plural('dr.entries', Math.max(present(up.values).length, present(low.values).length)),
+					value: [present(up.values).at(-1), present(low.values).at(-1)]
+						.map((v) => (v === undefined ? '–' : nf.format(v)))
+						.join('/'),
+					unit
+				}),
+				kind: 'lines',
+				days: [...days],
+				yMin: r.min,
+				yMax: r.max,
+				yTicks: ticks(r.min, r.max),
+				yUnit: unit,
+				legend: true,
+				series: [
+					{ key: 'upper', label: tr('measure.bp.upper'), color: LINE_COLOR, values: up.values },
+					{ key: 'lower', label: tr('measure.bp.lower'), color: BAR_COLOR, values: low.values }
+				]
+			});
+		}
+		const pu = measurementSeries(all, days, PULSE_ID);
+		if (hasAny(pu.values)) line('pulse', tr('measure.pulse'), pu.unit || 'bpm', pu.values);
 		for (const m of measurementTypesWithData(all, days)) {
 			line(`m-${m.id}`, m.name, m.unit, measurementSeries(all, days, m.id).values);
 		}

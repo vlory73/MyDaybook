@@ -3,6 +3,8 @@ import type { StoredRecord } from './codec';
 import {
 	againOptions,
 	againPayload,
+	BUILT_IN_MEASURES,
+	isBuiltInMeasure,
 	lastMeasurement,
 	lastUsedMeasureType,
 	median,
@@ -133,8 +135,8 @@ describe('last values and Again?', () => {
 		expect(lastMeasurement(records, 'weight')?.values).toEqual([72.4]);
 		expect(lastMeasurement(records, 'nope')).toBeUndefined();
 	});
-	it('opens the Measure tile on the last non-weight type, else weight', () => {
-		expect(lastUsedMeasureType(records)).toBe('weight');
+	it('opens the Measure tile on the last non-weight type, else blood pressure', () => {
+		expect(lastUsedMeasureType(records)).toBe('blood_pressure');
 		const bp: MeasurementPayload = {
 			...weight('2026-10-15T08:00:00+02:00', 120),
 			typeId: 'bp-id',
@@ -193,5 +195,36 @@ describe('payloads from the sheets', () => {
 			})
 		).not.toBeNull();
 		expect(parsePayload({ v: 1, type: 'bowel', at, bristol: 8, flags: [] })).toBeNull();
+	});
+});
+
+describe('built-in measures', () => {
+	const at = '2026-10-18T08:10:00+02:00';
+	const m = (typeId: string, values: number[], unit: string) =>
+		parsePayload({ v: 1, type: 'measurement', at, typeId, values, unit, context: [] });
+	it('lists blood pressure (2 values, mmHg) and pulse (1 value, bpm), never weight', () => {
+		expect(BUILT_IN_MEASURES.map((b) => [b.id, b.valueCount, b.unit])).toEqual([
+			['blood_pressure', 2, 'mmHg'],
+			['pulse', 1, 'bpm']
+		]);
+		expect(isBuiltInMeasure('weight')).toBe(false);
+	});
+	it('takes exactly two numbers for blood pressure and one for pulse', () => {
+		expect(m('blood_pressure', [128, 82], 'mmHg')).not.toBeNull();
+		expect(m('blood_pressure', [128], 'mmHg')).toBeNull();
+		expect(m('blood_pressure', [128, 82, 70], 'mmHg')).toBeNull();
+		expect(m('pulse', [64], 'bpm')).not.toBeNull();
+		expect(m('pulse', [64, 70], 'bpm')).toBeNull();
+	});
+	it('only stops typos: no medical range, whole numbers up to the input bound', () => {
+		expect(m('pulse', [30], 'bpm')).not.toBeNull();
+		expect(m('pulse', [190], 'bpm')).not.toBeNull();
+		expect(m('pulse', [0], 'bpm')).toBeNull();
+		expect(m('pulse', [4000], 'bpm')).toBeNull();
+		expect(m('pulse', [64.5], 'bpm')).toBeNull();
+	});
+	it('keeps old entries and an own "Blood pressure" type working', () => {
+		expect(m('weight', [72.4], 'kg')).not.toBeNull();
+		expect(m('some-record-id', [120, 80], 'mmHg')).not.toBeNull();
 	});
 });

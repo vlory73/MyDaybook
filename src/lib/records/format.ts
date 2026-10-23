@@ -8,7 +8,7 @@ import type { MessageKey } from '$lib/i18n/en';
 import { categories } from '$lib/components/categories';
 import { mlToCl, storedLabel } from './drinks';
 import { painSummary } from './painEntry';
-import { BUILT_IN_CONTEXT } from './log';
+import { BUILT_IN_CONTEXT, BUILT_IN_MEASURES } from './log';
 import { minutesBetween } from './time';
 import { exposureTags, inline, suggestionId } from './watch';
 import { store } from './store.svelte';
@@ -94,7 +94,12 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 			};
 		case 'measurement': {
 			const isWeight = p.typeId === 'weight';
-			const name = isWeight ? t('cat.weight') : (typeName(p.typeId) ?? t('cat.measure'));
+			const builtIn = BUILT_IN_MEASURES.find((b) => b.id === p.typeId);
+			const name = isWeight
+				? t('cat.weight')
+				: builtIn
+					? t(builtIn.key)
+					: (typeName(p.typeId) ?? t('cat.measure'));
 			const values = p.values.map((v) => new Intl.NumberFormat().format(v)).join('/');
 			return {
 				category: isWeight ? 'weight' : 'measure',

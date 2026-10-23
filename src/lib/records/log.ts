@@ -98,7 +98,16 @@ export const formatNumber = (n: number, decimals: number): string => n.toFixed(d
 // ---- Measurement types ----
 
 export const WEIGHT_ID = 'weight';
+export const BLOOD_PRESSURE_ID = 'blood_pressure';
+export const PULSE_ID = 'pulse';
 export type TypeInfo = { id: string; name: string; unit: string; valueCount: number; decimals: number };
+/** Built-in types of the Measure tile (weight has its own tile). Names are translated where they are shown. */
+export const BUILT_IN_MEASURES = [
+	{ id: BLOOD_PRESSURE_ID, key: 'measure.bp', unit: 'mmHg', valueCount: 2, decimals: 0 },
+	{ id: PULSE_ID, key: 'measure.pulse', unit: 'bpm', valueCount: 1, decimals: 0 }
+] as const;
+export const isBuiltInMeasure = (id: string): boolean => BUILT_IN_MEASURES.some((b) => b.id === id);
+export { BUILT_IN_MAX } from './types';
 /** Built-in context chips; they are stored as these keys and shown translated. */
 export const BUILT_IN_CONTEXT = ['morning', 'beforeBreakfast', 'afterExercise'] as const;
 
@@ -116,12 +125,12 @@ export function lastMeasurement(all: Iterable<Rec>, typeId: string): Measurement
 		.sort(newestFirst)[0];
 }
 
-/** The type of the newest non-weight measurement, or weight when there is none. */
+/** The type of the newest non-weight measurement, or blood pressure when there is none. */
 export function lastUsedMeasureType(all: Iterable<Rec>): string {
 	const newest = payloads(all, 'measurement')
 		.filter((m) => m.typeId !== WEIGHT_ID)
 		.sort(newestFirst)[0];
-	return newest?.typeId ?? WEIGHT_ID;
+	return newest?.typeId ?? BLOOD_PRESSURE_ID;
 }
 
 export function lastFeeling(all: Iterable<Rec>, field: 'mood' | 'energy' | 'stress'): number | undefined {

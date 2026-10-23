@@ -186,6 +186,19 @@ describe('measurements', () => {
 		expect(s.values[6]).toBe(72.9);
 		expect(s.unit).toBe('kg');
 	});
+	it('follows the upper and the lower blood pressure value as two lines', () => {
+		const recs = [
+			m('blood_pressure', '2026-10-21T08:00:00+02:00', [128, 82], 'mmHg'),
+			m('blood_pressure', '2026-10-22T08:00:00+02:00', [126, 80], 'mmHg'),
+			m('pulse', '2026-10-22T08:00:00+02:00', [64], 'bpm')
+		];
+		const up = measurementSeries(recs, days, 'blood_pressure', 0);
+		const low = measurementSeries(recs, days, 'blood_pressure', 1);
+		expect(up.values.slice(-2)).toEqual([128, 126]);
+		expect(low.values.slice(-2)).toEqual([82, 80]);
+		expect(up.unit).toBe('mmHg');
+		expect(measurementSeries(recs, days, 'pulse').values[6]).toBe(64);
+	});
 	it('lists own types that have data in the period', () => {
 		const used = rec({
 			v: 1,
