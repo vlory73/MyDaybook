@@ -36,7 +36,7 @@ The full self-hosting guide (`docs/SELF_HOSTING.md`) arrives in M7. The home set
 mkdir -p ~/mydaybook/data ~/mydaybook/backup && cd ~/mydaybook
 sudo chown 1000:1000 data backup                 # the container runs as uid:gid 1000:1000 (PUID/PGID in .env if different)
 # copy compose.yaml and .env.example (as .env) from this repo at the release tag, then edit PUBLIC_URL, VAPID_SUBJECT etc. in .env
-docker run --rm ghcr.io/vlory73/mydaybook:0.8.0 gen-secrets >> .env   # appends the session secret and VAPID key pair without printing them
+docker run --rm ghcr.io/vlory73/mydaybook:0.9.0 gen-secrets >> .env   # appends the session secret and VAPID key pair without printing them
 chmod 600 .env
 docker compose up -d
 curl -s http://127.0.0.1:8090/healthz            # {"status":"ok"}
