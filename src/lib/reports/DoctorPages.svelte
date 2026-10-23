@@ -685,8 +685,12 @@
 	}
 	.figs {
 		display: flex;
-		gap: 6px;
+		gap: 22px;
 		flex: none;
+	}
+	/* Smaller side labels with room between the figures, so "Left" of one never runs into the next. */
+	.figs :global(.edge) {
+		font-size: 9px;
 	}
 	.figs figure {
 		width: 150px;
