@@ -185,12 +185,22 @@
 	</div>
 </Card>
 
+<Card title={t('me.export.heading')}>
+	<p class="small muted hint">{t('me.export.lead')}</p>
+	<a class="drow" href={resolve('/me/export')} data-testid="export-link">
+		<span>{t('me.export.open')}</span><Icon name="chevron-right" size={20} />
+	</a>
+</Card>
+
 <div class="danger">
 	<Card title={t('me.danger.heading')}>
 		<div class="about">
 			<p>{t('me.danger.lead')}</p>
 			<p class="small muted">{t('me.danger.backups')}</p>
-			<p class="small muted">{t('me.danger.export')}</p>
+			<p class="small muted">
+				{t('me.danger.export')}
+				<a class="inline-link" href={resolve('/me/export')}>{t('me.danger.exportLink')}</a>
+			</p>
 			<p class="small muted">{t('me.danger.withdraw')}</p>
 			<Button variant="danger" onclick={() => (deleteOpen = true)}>{t('me.danger.open')}</Button>
 		</div>
@@ -268,6 +278,32 @@
 	}
 	.hint {
 		margin: var(--sp-2) 0 var(--sp-3);
+	}
+	.drow {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		min-height: var(--tap);
+		padding: 0 var(--sp-4);
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		color: var(--text);
+		font-weight: var(--fw-semibold);
+		text-decoration: none;
+	}
+	.drow :global(.icon) {
+		color: var(--text-3);
+	}
+	.drow:focus-visible,
+	.inline-link:focus-visible {
+		outline: 3px solid var(--focus);
+		outline-offset: 2px;
+	}
+	.inline-link {
+		color: var(--primary-press);
+		font-weight: var(--fw-semibold);
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 	.danger {
 		margin-top: var(--sp-6);
