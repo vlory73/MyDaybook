@@ -66,7 +66,8 @@ export function rollKey(p: Pick<PainPoint, 'region' | 'side' | 'space'>): string
 	if (view === 'head' || view === 'head_back' || p.region === 'head' || p.region === 'back_of_head')
 		return heatKey('head', 'midline');
 	if (view === 'hand' || p.region === 'hand') return heatKey('hand', p.side);
-	if (view === 'foot' || p.region === 'foot') return heatKey('foot', p.side);
+	// The heel on the back view is part of the foot as well (the back view has no foot shape of its own).
+	if (view === 'foot' || p.region === 'foot' || p.region === 'heel') return heatKey('foot', p.side);
 	return null;
 }
 

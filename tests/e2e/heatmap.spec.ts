@@ -80,6 +80,12 @@ test('heat map: colours, list, close-ups and the timeline thumbnail', async ({ p
 	await expect(rows.first()).toContainText('1 day');
 	await card.getByRole('button', { name: 'Back to the body' }).click();
 
+	// The back view draws the feet as heels; a heel opens the foot close-up on the sole (#73).
+	await card.getByRole('radio', { name: 'Back', exact: true }).click();
+	await figure.getByRole('button', { name: 'Look closer: Your left foot' }).click();
+	await expect(card.getByRole('button', { name: 'Back to the body' })).toBeVisible();
+	await card.getByRole('button', { name: 'Back to the body' }).click();
+
 	// Today: one small body per pain entry; two views share one box.
 	await page.goto('/');
 	await expect(page.getByRole('heading', { name: 'Your diary is locked' })).toBeVisible();
