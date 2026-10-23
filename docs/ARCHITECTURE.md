@@ -481,7 +481,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `sensitivity` ★ | the user's own watch list: label, icon, kind (`intolerance`, `allergen`, `other`) and order. Suggestions cover the 14 EU allergens (Reg. 1169/2011 Annex II: gluten cereals, milk, eggs, nuts, peanuts, soy, fish, crustaceans, molluscs, celery, mustard, sesame, sulphites, lupin), plus lactose, fructose, FODMAP, histamine, sorbitol, caffeine and alcohol | Only watched items appear on the meal sheet, so most people see 2–3 rows |
 | `saved_meal` ★ | name, meal type, text, tags, exposures | |
 | `feeling` | mood, energy and stress (1–5), symptom tags with severity, note | One tap from Today |
-| `sleep` | fell asleep, woke up (both full timestamps, so midnight is handled), quality 1–5, awakenings (0–3+), naps, note | Pre-filled from the user's usual times; "Usual night" one-tap repeat |
+| `sleep` | fell asleep, woke up (both full timestamps, so midnight is handled), quality 1–5, awakenings (0–3+), optional `kind` (`main` or `nap`; absent = main), note. A nap is its own `sleep` record with `kind: 'nap'` (no awakenings, no `naps`); the old `naps` list inside a main sleep is still read but never written, and each device converts it quietly into separate nap records with deterministic ids (SHA-256 of `<id>:nap:<index>` in UUID v4 form; `src/lib/records/naps.ts`) | Main sleep pre-filled from the user's usual times (main sleeps only); "Usual night" one-tap repeat; the sheet starts on Nap between 10:00 and 19:59 |
 | `measurement` | measurement type id, value(s), unit, context chips (morning, before breakfast, …), note | **Built-in types (no record, no migration), by `typeId`:** `weight` (kg, own quick-log tile, weight only ★, ±0.1 steppers), `blood_pressure` (two whole numbers, upper then lower, mmHg) and `pulse` (one whole number, bpm); the last two are listed on the Measure tile before the person's own types. Their values must be exactly 2 / 1 whole numbers from 1 to 400, only to stop typos (no medical ranges). Any other `typeId` is a `measurement_type` record id; an own type named "Blood pressure" stays as it is. Trends and the doctor report draw blood pressure as one chart with two lines and pulse as its own chart |
 | `measurement_type` | name, unit(s), number of values (e.g. 2 for blood pressure), decimals | |
 | `bowel` ★ | time, type 1–7 (Bristol Stool Form Scale, own illustrations and wording), flags (urgent, straining, pain, not finished, blood seen, mucus), note | 2 taps + Save |
@@ -584,6 +584,15 @@ outbound request is not subject to it. The server never sends pushes based on me
   `security_events` rows**. `admin_audit` rows are kept for accountability (D23). Afterwards it removes `<DATA_DIR>/blobs/<userId>/`
   and runs `PRAGMA wal_checkpoint(TRUNCATE)`. Deletion is refused with 409 `last_guardian` when the user is the only guardian of a
   dependent (D12). `VACUUM` is left to the maintenance work in the Docker branch.
+- **Data export (`/me/export`, `src/lib/export/`):** built entirely on the device, no server endpoint. The person re-types the passphrase
+  (checked locally by unwrapping the master key, `verifyPassphrase`), then `buildExport` takes the decrypted records from memory and writes
+  one .zip with `fflate` (MIT, ~30 KB minified): `mydaybook.json` (`format: "mydaybook-export"`, `version: 1`, `exportedAt`, app version and every
+  live record as `{ id, updatedAt, payload }`; photo keys are never exported, `attachments` becomes `photos` file names or `photoCount`), one
+  CSV per kind of entry that has data (`tables.ts`: English column names, UTF-8 BOM, CRLF, RFC 4180 quoting, lists joined with "; ", `at`
+  kept as stored with its UTC offset, one row per pain point), `photos/<date>_<hhmm>_<id8>.jpg` (decrypted, only when the toggle is on;
+  fetched one at a time from `/api/attachments`) and a `README.txt` in the app language. The file is not encrypted (the screen and the
+  README say so). The result stays in memory; it is handed to the share sheet (`navigator.share({ files })`) or an `<a download>` blob URL
+  (revoked afterwards) and dropped on Done, on leaving the page and on lock.
 - **Withdrawing consent** goes through the same flow (export offered, then deletion).
 - An adult with dependents can delete their account as long as every dependent still has at least one other guardian. Their
   guardianship rows are simply removed. Deletion is blocked only when it would leave a dependent with no guardian; the user is

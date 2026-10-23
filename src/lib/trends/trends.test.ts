@@ -167,6 +167,29 @@ describe('sleep', () => {
 	});
 	it('has no average without nights', () => {
 		expect(sleepSeries([], days).averageMinutes).toBeNull();
+		expect(sleepSeries([], days).napAverageMinutes).toBeNull();
+	});
+	it('keeps naps out of the night figures and adds them per day', () => {
+		const nap = (at: string, asleepAt: string) => rec({ v: 1, type: 'sleep', kind: 'nap', at, asleepAt });
+		const s = sleepSeries(
+			[
+				night('2026-10-22T07:00:00+02:00', '2026-10-21T23:00:00+02:00', 4), // 8 h
+				nap('2026-10-22T14:05:00+02:00', '2026-10-22T13:20:00+02:00'), // 45 min
+				nap('2026-10-22T17:30:00+02:00', '2026-10-22T17:00:00+02:00'), // 30 min
+				nap('2026-10-20T15:00:00+02:00', '2026-10-20T14:00:00+02:00'), // 60 min, no night that day
+				nap('2026-09-01T15:00:00+02:00', '2026-09-01T14:00:00+02:00') // outside the period
+			],
+			days
+		);
+		expect(s.minutes[6]).toBe(480);
+		expect(s.napMinutes[6]).toBe(75);
+		expect(s.napMinutes[4]).toBe(60);
+		expect(s.minutes[4]).toBeNull();
+		expect(s.napMinutes[5]).toBeNull();
+		expect(s.averageMinutes).toBe(480);
+		expect(s.napCount).toBe(3);
+		expect(s.napAverageMinutes).toBeCloseTo((45 + 30 + 60) / 3);
+		expect(s.qualityCounts).toEqual([0, 0, 0, 1, 0]);
 	});
 });
 

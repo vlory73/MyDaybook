@@ -2,12 +2,12 @@
 	import Icon from './Icon.svelte';
 	import { categories, type Category } from './categories';
 
-	let { category, size = 40 }: { category: Category; size?: number } = $props();
+	let { category, size = 40, nap = false }: { category: Category; size?: number; nap?: boolean } = $props();
 	const c = $derived(categories[category]);
 </script>
 
-<span class="badge tint-{c.tint}" style:width="{size}px" style:height="{size}px">
-	<Icon name={c.icon} size={Math.round(size * 0.55)} />
+<span class="badge tint-{c.tint}" class:nap style:width="{size}px" style:height="{size}px">
+	<Icon name={nap ? 'nap' : c.icon} size={Math.round(size * 0.55)} />
 </span>
 
 <style>
@@ -28,6 +28,10 @@
 	.tint-sleep {
 		background: var(--sleep-tint);
 		color: var(--sleep-ink);
+	}
+	/* A nap: the sleep tile, a little lighter. */
+	.nap.tint-sleep {
+		background: color-mix(in srgb, var(--sleep-tint) 55%, var(--surface));
 	}
 	.tint-pain {
 		background: var(--pain-tint);

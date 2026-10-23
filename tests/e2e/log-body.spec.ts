@@ -86,6 +86,8 @@ test('sleep across midnight shows the right duration; Usual night repeats it in 
 	await signUpAndSignIn(page);
 	// Last night ended yesterday, so "Usual night" is offered today.
 	await openTile(page, 'Sleep');
+	// The sheet starts on Main sleep or Nap depending on the time of day; pick it explicitly.
+	await page.getByRole('radio', { name: 'Main sleep' }).click();
 	await page.getByLabel('Fell asleep', { exact: true }).fill(`${day(-2)}T23:50`);
 	await page.getByLabel('Woke up', { exact: true }).fill(`${day(-1)}T07:10`);
 	await expect(page.getByTestId('sleep-duration')).toHaveText('7 h 20 min');
@@ -97,8 +99,6 @@ test('sleep across midnight shows the right duration; Usual night repeats it in 
 		.getByRole('radiogroup', { name: 'Woke up during the night' })
 		.getByRole('radio', { name: '1' })
 		.click();
-	await page.getByRole('button', { name: 'Nap' }).click();
-	await page.getByLabel('Nap ended').fill(`${day(-1)}T13:45`);
 	await save(page);
 	await expect(toast(page, 'Saved')).toBeVisible();
 
@@ -126,6 +126,7 @@ test('sleep across midnight shows the right duration; Usual night repeats it in 
 test('sleep refuses waking before falling asleep', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openTile(page, 'Sleep');
+	await page.getByRole('radio', { name: 'Main sleep' }).click();
 	await page.getByLabel('Woke up', { exact: true }).fill(`${day(-1)}T03:00`);
 	await expect(page.getByText('Waking up must come after falling asleep, within a day.')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();

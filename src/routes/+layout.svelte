@@ -18,6 +18,7 @@
 	import { quickSave } from '$lib/records/quick';
 	import { watchedItems } from '$lib/records/watch';
 	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
+	import { convertLegacyNaps } from '$lib/records/napsConvert';
 	import { todayKey } from '$lib/records/time';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
@@ -118,6 +119,13 @@
 		};
 		document.addEventListener('visibilitychange', onVisible);
 		return () => document.removeEventListener('visibilitychange', onVisible);
+	});
+
+	// ---- Old nap lists become separate nap entries, quietly, once per finished sync pass ----
+	$effect(() => {
+		if (session.status === 'unlocked' && store.status === 'ready' && !store.syncing && !store.syncFailed) {
+			void convertLegacyNaps();
+		}
 	});
 
 	// ---- Reminders (D7): the schedule of fire times is computed here and uploaded only when it changed ----

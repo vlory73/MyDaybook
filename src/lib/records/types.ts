@@ -59,14 +59,20 @@ export type FeelingPayload = Timed<'feeling'> & {
 	symptoms: Symptom[];
 	note?: string;
 };
-/** `at` is the moment of waking, so the night belongs to the day it ended on. */
+/**
+ * `at` is the moment of waking, so the night belongs to the day it ended on. `kind` is absent for nights (old
+ * records); a nap is its own record with `kind: 'nap'` and has no awakenings. `naps` is the legacy list inside a
+ * night: it is still read, never written, and is turned into separate nap records on each device (naps.ts).
+ */
 export type SleepPayload = Timed<'sleep'> & {
+	kind?: 'main' | 'nap';
 	asleepAt: string;
 	quality?: number;
 	awakenings?: number;
 	naps?: { from: string; to: string }[];
 	note?: string;
 };
+export const isNap = (p: SleepPayload): boolean => p.kind === 'nap';
 export type MeasurementPayload = Timed<'measurement'> & {
 	/** `weight`, `blood_pressure` (upper, lower) or `pulse` for the built-in types, otherwise the record id of a `measurement_type`. */
 	typeId: string;
@@ -418,6 +424,8 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	sleep: (o) =>
 		isTimed(o) &&
 		isAt(o.asleepAt) &&
+		(o.kind === undefined || o.kind === 'main' || o.kind === 'nap') &&
+		(o.kind !== 'nap' || (o.naps === undefined && o.awakenings === undefined)) &&
 		optInt(o.quality, 1, 5) &&
 		optInt(o.awakenings, 0, 3) &&
 		(o.naps === undefined ||

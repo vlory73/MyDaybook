@@ -87,6 +87,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
 			// Sleep (usual times, quality and one awakening)
 			await open('Sleep');
+			await sheet.getByRole('radio', { name: 'Main sleep' }).click();
 			await sheet
 				.getByRole('radiogroup', { name: 'How did you sleep?' })
 				.getByRole('radio', { name: '4/5' })
@@ -1604,6 +1605,173 @@ for (const scheme of ['light', 'dark'] as const) {
 			};
 			await shoot('English', 'report-en', false);
 			await shoot('Dansk', 'report-da', true);
+		});
+		test(`export ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'export', 'export screenshots only');
+			await prepare(page, scheme);
+			await page.addInitScript(() => {
+				Object.defineProperty(navigator, 'canShare', { value: () => false, configurable: true });
+			});
+			const user = await signUpAndSignIn(page);
+			const dialog = page.getByRole('dialog');
+			// A note, a weight and three meals with a synthetic photo each.
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Note', exact: true }).click();
+			await page.getByLabel('Note text').fill('Slept well, short walk after lunch');
+			await page.getByRole('button', { name: 'Save' }).click();
+			await expect(dialog).toBeHidden();
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Weight', exact: true }).click();
+			await page.getByLabel('Value', { exact: true }).fill('72.4');
+			await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+			await expect(dialog).toBeHidden();
+			const png = await page.evaluate(async () => {
+				const canvas = document.createElement('canvas');
+				canvas.width = 1200;
+				canvas.height = 900;
+				const ctx = canvas.getContext('2d')!;
+				ctx.fillStyle = '#e8c9a8';
+				ctx.fillRect(0, 0, 1200, 900);
+				ctx.fillStyle = '#6b8f71';
+				ctx.beginPath();
+				ctx.arc(600, 450, 260, 0, Math.PI * 2);
+				ctx.fill();
+				const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), 'image/png'));
+				return Array.from(new Uint8Array(await blob.arrayBuffer()));
+			});
+			for (const text of ['Porridge with berries', 'Soup and bread', 'Apple']) {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: 'Meal', exact: true }).click();
+				await page.getByLabel('What did you have?').fill(text);
+				await dialog.locator('input[type=file]').setInputFiles({
+					name: 'synthetic.png',
+					mimeType: 'image/png',
+					buffer: Buffer.from(png)
+				});
+				await expect(dialog.getByRole('img', { name: 'Photo attached to this entry' })).toBeVisible();
+				await page.getByRole('button', { name: 'Save', exact: true }).click();
+				await expect(page.getByRole('status').getByText('Saved', { exact: true })).toBeVisible({
+					timeout: 15_000
+				});
+				await expect(dialog).toBeHidden();
+			}
+
+			// Let the last "Saved" toast go away before taking pictures.
+			await expect(page.getByRole('status').getByText('Saved', { exact: true })).toBeHidden({
+				timeout: 15_000
+			});
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			const card = page.locator('section.card').filter({
+				has: page.getByRole('heading', { name: 'Your data', exact: true })
+			});
+			await card.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+			await page.waitForTimeout(300);
+			await snap(page, 'me-your-data', scheme);
+			await page.evaluate(() => document.querySelector('div.danger')!.scrollIntoView({ block: 'center' }));
+			await page.waitForTimeout(300);
+			await snap(page, 'me-delete-account', scheme);
+
+			await page.getByTestId('export-link').click();
+			await expect(page.getByRole('heading', { name: 'Download my data', level: 1 })).toBeVisible();
+			await snap(page, 'export-page', scheme, true);
+
+			await page.getByRole('button', { name: 'Prepare download' }).click();
+			await dialog.getByLabel('Passphrase').fill(user.passphrase);
+			await page.waitForTimeout(400);
+			await snap(page, 'export-passphrase', scheme);
+
+			// Slow the photo downloads a little so the progress state can be captured.
+			await page.route('**/api/attachments/*', async (route) => {
+				await new Promise((r) => setTimeout(r, 2500));
+				await route.continue();
+			});
+			await dialog.getByRole('button', { name: 'Continue' }).click();
+			await expect(page.getByText(/Preparing… [12] of 3 photos/)).toBeVisible({ timeout: 20_000 });
+			await snap(page, 'export-preparing', scheme, true);
+			await expect(page.getByRole('heading', { name: 'Your file is ready' })).toBeVisible({
+				timeout: 30_000
+			});
+			await snap(page, 'export-ready', scheme, true);
+		});
+	});
+}
+
+// Naps as separate sleep entries (SCREENSHOTS=naps): sheets, timeline, Trends sleep card, doctor report.
+for (const scheme of ['light', 'dark'] as const) {
+	test(`naps ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'naps', 'naps screenshots only');
+		await prepare(page, scheme);
+		await page.goto('/'); // the server creates its database on the first request
+		const account = await signUpApiAccount(page.request);
+		const records: object[] = [];
+		for (let d = 0; d <= 24; d++) {
+			records.push({
+				v: 1,
+				type: 'sleep',
+				asleepAt: at(d + 1, 23, 20 + ((d * 7) % 50)),
+				at: at(d, 6, 40 + ((d * 5) % 40)),
+				...(d % 3 === 0 ? { quality: 3 + (d % 3) } : {})
+			});
+			if (d % 4 === 1 || d === 0)
+				records.push({
+					v: 1,
+					type: 'sleep',
+					kind: 'nap',
+					asleepAt: at(d, 13, 20),
+					at: at(d, 13, 20 + 30 + ((d * 5) % 40))
+				});
+		}
+		await seedRecords(page.request, account, records);
+		await page.goto('/');
+		await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+		await unlockWith(page, account.passphrase);
+		await page
+			.getByText('Nap 45 min')
+			.or(page.getByText(/^Nap \d/))
+			.first()
+			.waitFor({ timeout: 20_000 });
+		await page.waitForTimeout(400);
+		await snap(page, 'timeline', scheme);
+
+		const sheet = page.getByRole('dialog');
+		await page.getByRole('button', { name: 'Log something' }).click();
+		await page.getByRole('button', { name: 'Sleep', exact: true }).click();
+		await sheet.getByRole('radio', { name: 'Main sleep' }).click();
+		await sheet
+			.getByRole('radiogroup', { name: 'How did you sleep?' })
+			.getByRole('radio', { name: '4/5' })
+			.click();
+		await page.waitForTimeout(400);
+		await snap(page, 'sheet-main', scheme);
+		await sheet.getByRole('radio', { name: 'Nap', exact: true }).click();
+		await page.waitForTimeout(400);
+		await snap(page, 'sheet-nap', scheme);
+		await page.getByRole('button', { name: 'Close' }).click();
+
+		await page.getByRole('link', { name: 'Trends', exact: true }).click();
+		const card = page.locator('section.card').filter({
+			has: page.getByRole('heading', { name: 'Sleep', exact: true })
+		});
+		await card.waitFor({ timeout: 20_000 });
+		await card.scrollIntoViewIfNeeded();
+		await page.waitForTimeout(400);
+		await snap(page, 'trends-sleep', scheme);
+
+		await page.getByRole('link', { name: 'Reports' }).click();
+		await page.getByTestId('report-doctor').click();
+		await page.getByRole('heading', { name: 'Doctor visit', level: 1 }).waitFor({ timeout: 20_000 });
+		await page.getByLabel('Name on the report').fill('Sam Example');
+		await page.getByRole('button', { name: 'Preview report' }).click();
+		await page.getByTestId('doctor-page').first().waitFor();
+		await page.emulateMedia({ media: 'print', colorScheme: scheme });
+		await page.setViewportSize({ width: 794, height: 1123 });
+		await page.waitForTimeout(300);
+		const sheetEl = page.locator('.dsheet, .report-sheet').filter({ hasText: 'Main sleep' }).first();
+		const box = (await sheetEl.boundingBox())!;
+		await page.screenshot({
+			path: `docs/screenshots/${folder}/doctor-report-sleep-${scheme}.png`,
+			fullPage: true,
+			clip: { x: box.x, y: box.y, width: box.width, height: box.height }
 		});
 	});
 }

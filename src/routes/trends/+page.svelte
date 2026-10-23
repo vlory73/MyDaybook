@@ -93,7 +93,7 @@
 	);
 
 	const showFeeling = $derived(hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress));
-	const showSleep = $derived(hasAny(sleep.minutes));
+	const showSleep = $derived(hasAny(sleep.minutes) || hasAny(sleep.napMinutes));
 	const showWeight = $derived(hasAny(weight.values));
 	const showBp = $derived(hasAny(bpUpper.values) || hasAny(bpLower.values));
 	const showPulse = $derived(hasAny(pulse.values));
@@ -123,7 +123,10 @@
 	const hours = (minutes: number) => minutes / 60;
 	const niceTop = (value: number, step: number, min: number) => Math.max(min, Math.ceil(value / step) * step);
 
-	const sleepTop = $derived(niceTop(Math.max(...present(sleep.minutes).map(hours), 0), 2, 8));
+	/** Night plus nap per day, so the stacked bars fit. */
+	const sleepDayMinutes = $derived(sleep.minutes.map((m, i) => (m ?? 0) + (sleep.napMinutes[i] ?? 0)));
+	const sleepTop = $derived(niceTop(Math.max(...sleepDayMinutes.map(hours), 0), 2, 8));
+	const hasNaps = $derived(sleep.napCount > 0);
 	const showBadges = $derived(days.length <= 14);
 	const fluidTop = $derived(niceTop(Math.max(...present(fluids.totalMl).map(mlToCl), 0), 50, 50));
 	const doseTop = $derived(Math.max(...doses.days.map((d) => d.taken + d.late + d.skipped), 1));
@@ -320,20 +323,23 @@
 
 		{#if showSleep}
 			<Card title={t('trends.sleep.title')}>
-				<p class="sub">
-					{t('trends.sleep.sub', { avg: formatDuration(Math.round(sleep.averageMinutes ?? 0)) })}
-				</p>
+				{#if sleep.averageMinutes !== null}
+					<p class="sub">
+						{t('trends.sleep.sub', { avg: formatDuration(Math.round(sleep.averageMinutes)) })}
+					</p>
+				{/if}
 				<TrendChart
 					{days}
 					yMin={0}
 					yMax={sleepTop}
 					yTicks={[0, sleepTop / 2, sleepTop]}
 					yFormat={(n) => t('trends.sleep.hours', { h: n })}
-					label={aria('trends.sleep.aria')}
+					label={aria(hasNaps ? 'trends.sleep.aria.naps' : 'trends.sleep.aria')}
 					padBottom={showBadges ? 42 : 22}
 				>
 					{#snippet layers(s)}
 						{#each sleep.minutes as m, i (i)}
+							{@const nap = sleep.napMinutes[i] ?? null}
 							{#if m !== null}
 								<rect
 									class="sbar"
@@ -341,6 +347,18 @@
 									y={s.y(hours(m))}
 									width={bw(s)}
 									height={Math.max(0, s.bottom - s.y(hours(m)))}
+									rx="2"
+								/>
+							{/if}
+							{#if nap !== null}
+								{@const top = s.y(hours((m ?? 0) + nap))}
+								{@const low = s.y(hours(m ?? 0))}
+								<rect
+									class="nbar"
+									x={s.x(i) - bw(s) / 2}
+									y={top}
+									width={bw(s)}
+									height={Math.max(1, low - top - (m !== null ? 1 : 0))}
 									rx="2"
 								/>
 							{/if}
@@ -353,6 +371,19 @@
 						{/each}
 					{/snippet}
 				</TrendChart>
+				{#if hasNaps}
+					<p class="key" aria-hidden="true">
+						<span><i class="sw sbar"></i>{t('trends.sleep.legend.main')}</span>
+						<span><i class="sw nbar"></i>{t('trends.sleep.legend.nap')}</span>
+					</p>
+					<p class="napsum">
+						<Icon name="nap" size={18} />
+						{t('trends.sleep.naps', {
+							count: sleep.napCount,
+							avg: formatDuration(Math.round(sleep.napAverageMinutes ?? 0))
+						})}
+					</p>
+				{/if}
 				{#if hasQuality}
 					<p class="hint">
 						{showBadges ? t('trends.sleep.quality.row') : t('trends.sleep.quality.summary')} ({t(
@@ -771,6 +802,45 @@
 	.sbar {
 		fill: var(--sleep-ink);
 		opacity: 0.85;
+	}
+	/* The nap on top of the night: the same hue, lighter. Also told apart by position and the 1 px gap. */
+	.nbar {
+		fill: var(--sleep-ink);
+		opacity: 0.4;
+	}
+	.key {
+		display: flex;
+		gap: var(--sp-4);
+		margin: var(--sp-2) 0 0;
+		font-size: var(--fs-footnote);
+		color: var(--text-2);
+	}
+	.key span {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.sw {
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
+		background: var(--sleep-ink);
+	}
+	.sw.sbar {
+		opacity: 0.85;
+	}
+	.sw.nbar {
+		opacity: 0.4;
+	}
+	.napsum {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: var(--sp-3) 0 0;
+		padding-top: var(--sp-3);
+		border-top: 1px solid var(--line);
+		font-size: var(--fs-callout);
+		color: var(--text);
 	}
 	.badge {
 		fill: var(--sleep-tint);

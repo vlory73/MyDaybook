@@ -43,6 +43,26 @@
 				: x(i);
 	const bw = $derived(Math.min(16, Math.max(1.5, slot * 0.7)));
 	const dots = $derived(spec.days.length <= 45);
+	/** Bars: side by side from the baseline, or (stacked) each series on top of the ones before it with a 1 px gap. */
+	const bars = $derived.by(() => {
+		if (spec.kind !== 'bars') return [];
+		const out: { key: string; x: number; y: number; h: number; color: string; stacked: boolean }[] = [];
+		const stacked = !!spec.stacked && spec.series.length > 1;
+		for (let i = 0; i < spec.days.length; i++) {
+			let base = 0;
+			for (const s of spec.series) {
+				const v = s.values[i];
+				if (v === null || v === undefined) continue;
+				const hi = stacked ? base + v : v;
+				const lo = stacked ? base : 0;
+				const gap = stacked && lo > 0 ? 1 : 0;
+				const h = Math.max(0, y(lo) - y(hi) - gap);
+				out.push({ key: `${s.key}-${i}`, x: x(i) - bw / 2, y: y(hi), h, color: s.color, stacked });
+				if (stacked) base = hi;
+			}
+		}
+		return out;
+	});
 
 	const lastIndex = (values: (number | null)[]) => values.findLastIndex((v) => v !== null);
 	/** Letters at the end of each line, kept apart from each other. */
@@ -67,19 +87,17 @@
 		<text class="ax" x={left - 6} y={y(v) + 3.5} text-anchor="end">{nf.format(v)}</text>
 	{/each}
 	{#if spec.kind === 'bars'}
-		{#each spec.series as s (s.key)}
-			{#each s.values as v, i (i)}
-				{#if v !== null}
-					<rect
-						x={x(i) - bw / 2}
-						y={y(v)}
-						width={bw}
-						height={Math.max(0, y(spec.yMin) - y(v))}
-						fill={s.color}
-						rx="1.5"
-					/>
-				{/if}
-			{/each}
+		{#each bars as b (b.key)}
+			<rect
+				x={b.x}
+				y={b.y}
+				width={bw}
+				height={b.h}
+				fill={b.color}
+				stroke={b.stacked ? '#333' : undefined}
+				stroke-width={b.stacked ? 0.6 : undefined}
+				rx="1.5"
+			/>
 		{/each}
 	{:else}
 		{#each spec.series as s, k (s.key)}
