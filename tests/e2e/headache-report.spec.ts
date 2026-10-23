@@ -127,7 +127,9 @@ test('the report shows the right columns and values in both layouts and in Danis
 	await expect(page.locator('.report-sheet')).toHaveCount(1);
 	await expect(page.locator('thead th[scope=col]')).toHaveCount(7);
 	await expect(page.locator('tbody tr')).toHaveCount(12);
-	await expect(page.locator('td.none')).toHaveCount(5);
+	// The night that ran past midnight also marks the next day ("continued from"), so one fewer empty day.
+	await expect(page.locator('td.none')).toHaveCount(4);
+	await expect(page.getByText(/^continued from /)).toHaveCount(1);
 	await expect(row(page, 'Started')).toContainText('21:00');
 	await expect(row(page, 'Started')).toContainText('08:00');
 	await expect(row(page, 'Stopped')).toContainText('02:00');
@@ -159,10 +161,11 @@ test('the report shows the right columns and values in both layouts and in Danis
 	await page.getByRole('radio', { name: /Like the paper form/ }).click();
 	await makeReport(page);
 	await expect(page.getByRole('heading', { name: 'Headache diary — form layout', level: 1 })).toBeVisible();
-	await expect(page.locator('td.empty')).toHaveCount(13 * 5);
+	await expect(page.locator('td.empty')).toHaveCount(13 * 4); // 3 columns: two headache days and the day the night continued into
 	await expect(row(page, 'Date')).toContainText(dm(4));
+	await expect(row(page, 'Date')).toContainText(dm(3));
 	await expect(row(page, 'Date')).toContainText(dm(2));
-	await expect(page.locator('.bx.x')).toHaveCount(12);
+	await expect(page.locator('.bx.x')).toHaveCount(13); // +1: nausea "none" on the continued day
 	await expect(page.locator('.report-sheet')).not.toContainText('Daily vitamin');
 	await expect(page.locator('.report-sheet')).toContainText('Paracetamol');
 
