@@ -98,6 +98,7 @@ export const en = {
 		'It is not a medical device. It gives no advice, no diagnosis, no dose calculations and no alerts based on your values. Talk to a doctor or pharmacist about anything that worries you.',
 	'me.about.privacy':
 		'Everything you write is encrypted on your device before it is saved. Nobody else can read it, including the person who runs the server.',
+	'me.about.version': 'Version {version}',
 	'me.about.licence': 'Licensed under the PolyForm Noncommercial License 1.0.0.',
 	'me.theme.heading': 'Appearance',
 	'me.theme.system': 'Automatic',
