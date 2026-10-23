@@ -298,6 +298,7 @@ _Last updated: 2026-10-23. Released: **0.7.0** (on the Pi; headache report print
   (`openNauseaFromPain` / `leaveSheet` in `editor.svelte.ts`; the draft is parked in memory) with "Nausea: none / mild / moderate / severe";
   mild / moderate / severe labels under the 0-10 scale; pure helpers for the report in `src/lib/records/headache.ts` (`isHeadacheEntry`,
   `dailySeverity`, `headacheSides`, `pulsatingOrConstant`, `nauseaLevel`). The report itself is the next branch. Screenshots in `docs/screenshots/headache-details/`.
+- **`feature/meal-fixes` (in review):** #61 meal places "Work" / "School" (`WHERE` in `src/lib/records/types.ts`, old values still parse); #62 "Set up your watch list" now opens `WatchListSheet.svelte` (reuses `WatchList` with `bare`) on top of the meal sheet, so the draft is kept and new items are ready to tick; `tests/e2e/meal-fixes.spec.ts`; screenshots in `docs/screenshots/meal-fixes/`. Next: `feature/display-name` (#64).
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
 - **Not yet written (later milestones):** `docs/gdpr/*`, `docs/SELF_HOSTING.md`.
