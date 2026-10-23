@@ -6,6 +6,8 @@
 	import { i18n, t, type Locale, type MessageKey } from '$lib/i18n/index.svelte';
 	import { periodLabel, type ReportLayout } from '$lib/reports/headache';
 	import { getReportRequest, loadLayout, saveLayout, setReportRequest } from '$lib/reports/state';
+	import { findProfile, reportName } from '$lib/records/profile';
+	import { allRecords } from '$lib/records/store.svelte';
 	import { session } from '$lib/session.svelte';
 	import { todayKey } from '$lib/records/time';
 	import { customRange, dayRange, lastDays } from '$lib/trends/range';
@@ -23,7 +25,19 @@
 	let language = $state<Locale>(previous?.locale ?? i18n.locale);
 	let layout = $state<ReportLayout>(previous?.layout ?? 'table');
 	// What the app already knows about the account; editable, optional, and never saved or sent anywhere.
-	let name = $state(previous?.name ?? session.identity?.username ?? '');
+	const knownName = $derived(
+		reportName(findProfile(allRecords())?.payload, session.identity?.username ?? '')
+	);
+	// Shows the saved name (or login name) until the person types; then what they typed.
+	let typedName = $state<string | undefined>(previous?.name);
+	const name = {
+		get value() {
+			return typedName ?? knownName;
+		},
+		set value(v: string) {
+			typedName = v;
+		}
+	};
 	let ready = $state(false);
 
 	onMount(() => {
@@ -40,7 +54,7 @@
 
 	function make() {
 		if (days.length === 0) return;
-		setReportRequest({ from: days[0]!, to: days.at(-1)!, locale: language, layout, name: name.trim() });
+		setReportRequest({ from: days[0]!, to: days.at(-1)!, locale: language, layout, name: name.value.trim() });
 		void goto(resolve('/reports/headache/print'));
 	}
 </script>
@@ -118,7 +132,7 @@
 	<TextField
 		label={t('reports.name')}
 		hint={t('reports.name.hint')}
-		bind:value={name}
+		bind:value={name.value}
 		autocomplete="off"
 		maxlength={80}
 	/>
