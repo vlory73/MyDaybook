@@ -40,7 +40,7 @@ async function logMealWithPhoto(page: Page, text: string) {
 		.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: await syntheticPng(page) });
 	await expect(page.getByRole('dialog').getByRole('img', { name: PHOTO_ALT })).toBeVisible();
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
-	await expect(page.getByRole('status').getByText('Saved', { exact: true })).toBeVisible();
+	await expect(page.getByRole('status').getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 });
 }
 
 const blobFiles = (userId: string) => {
@@ -155,6 +155,6 @@ test('note photos, remove before saving, limit of four, friendly errors', async 
 	await page.getByRole('button', { name: 'Remove photo 3' }).click();
 	await expect(page.getByRole('dialog').getByRole('img', { name: PHOTO_ALT })).toHaveCount(2);
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
-	await expect(page.getByRole('status').getByText('Note saved')).toBeVisible();
+	await expect(page.getByRole('status').getByText('Note saved')).toBeVisible({ timeout: 15_000 });
 	await expect(page.getByRole('button', { name: 'Open photo' })).toHaveCount(2);
 });

@@ -58,6 +58,7 @@ test('a head point shows the section; every field is saved and shown again', asy
 	await group(page, 'Sensitive to sound?').getByRole('button', { name: 'No' }).click();
 	await sheet(page).getByLabel('Possible trigger').fill('skipped lunch');
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left temple 6', { exact: true })).toBeVisible();
 
 	await timeline(page).getByText('Your left temple 6', { exact: true }).click();
@@ -89,14 +90,17 @@ test('"Still going" replaces the stop time; an entry with no details opens colla
 	await button(page, 'Still going').click();
 	await expect(sheet(page).getByLabel('Hour Stopped')).toBeDisabled();
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 3', { exact: true }).click();
 	await expect(button(page, 'Still going')).toHaveAttribute('aria-pressed', 'true');
 
 	// A second entry without any answer is saved without details and reopens collapsed.
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await openSheet(page);
 	await templePoint(page, 2);
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 2', { exact: true }).click();
 	await expect(details(page)).toHaveAttribute('aria-expanded', 'false');
 	await expect(sheet(page).getByLabel('Hour Started')).toBeHidden();
@@ -112,6 +116,7 @@ test('"This is a headache" shows the section without a point on the head', async
 	await expect(details(page)).toBeVisible();
 	await sheet(page).getByLabel('Hour Started').selectOption('09');
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your right knee 4', { exact: true }).click();
 	await expect(sheet(page).getByLabel('This is a headache')).toBeChecked();
 	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
@@ -153,6 +158,7 @@ test('"Log nausea" returns to the Pain sheet with the draft, which then shows th
 	await expect(sheet(page)).toBeVisible();
 	await expect(sheet(page).getByLabel('Possible trigger')).toHaveValue('bright screen');
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left temple 5', { exact: true })).toBeVisible();
 	await expect(timeline(page).getByText('Nausea 3/5', { exact: true })).toBeVisible();
 });
@@ -174,6 +180,7 @@ test('headache details survive reload and unlock, and the server only sees ciphe
 	await button(page, 'Vision').click();
 	await sheet(page).getByLabel('Possible trigger').fill(trigger);
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	const line = timeline(page).getByText('Your left temple 7', { exact: true });
 	await expect(line).toBeVisible();
 
@@ -261,6 +268,7 @@ test('every head zone and wider head area shows the section, and it goes with th
 	await group(page, 'How wide an area').getByRole('button', { name: 'Whole head', exact: true }).click();
 	await expect(details(page)).toBeVisible();
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Whole head 4', { exact: true })).toBeVisible();
 });
 

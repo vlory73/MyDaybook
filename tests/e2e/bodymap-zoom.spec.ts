@@ -37,6 +37,7 @@ test('head close-up: tap a temple, save, and see it on the timeline', async ({ p
 	await expect(sheet(page).getByRole('heading', { name: 'Your left temple' })).toBeVisible();
 	await intensity(page, 4).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left temple 4', { exact: true })).toBeVisible();
 });
 
@@ -63,6 +64,7 @@ test('hands: switch hand and palm or back, tap a finger', async ({ page }) => {
 	await radio(page, 'Palm').click();
 	await expect(figure(page).getByRole('button', { name: 'Your left index finger' })).toBeVisible();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left index finger 5', { exact: true })).toBeVisible();
 });
 
@@ -78,6 +80,7 @@ test('feet: tap the sole, and Back returns to the body', async ({ page }) => {
 	await button(page, 'Back to the body').click();
 	await expect(figure(page).getByRole('button', { name: 'Your right knee', exact: true })).toBeVisible();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Sole of your right foot 2', { exact: true })).toBeVisible();
 });
 
@@ -110,6 +113,7 @@ test('foot close-up: five toes, top of foot and ankles on the top, sole parts on
 	await part('Your right fourth toe').click();
 	await intensity(page, 5).click();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(
 		timeline(page).getByText('Top of your right foot 2 · Your right fourth toe 5', { exact: true })
 	).toBeVisible();
@@ -148,6 +152,7 @@ test('the whole hand on the main map is still a valid choice', async ({ page }) 
 	await tap(page, 'Your right hand');
 	await intensity(page, 3).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your right hand 3', { exact: true })).toBeVisible();
 });
 
@@ -171,6 +176,7 @@ test('a belly quarter can be widened to the whole belly', async ({ page }) => {
 	await group.getByRole('button', { name: 'Whole belly', exact: true }).click();
 	await intensity(page, 5).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Whole belly 5', { exact: true })).toBeVisible();
 });
 
@@ -184,6 +190,7 @@ test('a back part can be widened to the whole back', async ({ page }) => {
 	await group.getByRole('button', { name: 'Whole back', exact: true }).click();
 	await intensity(page, 3).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Whole back 3', { exact: true })).toBeVisible();
 });
 
@@ -209,6 +216,7 @@ test('Find lists the close-up parts and the wider areas', async ({ page }) => {
 	await expect(sheet(page).getByRole('heading', { name: 'Whole back' })).toBeVisible();
 	await intensity(page, 2).click();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your right thumb 6 · Whole back 2', { exact: true })).toBeVisible();
 });
 
@@ -280,6 +288,7 @@ test('head zones: tap the right temple, widen to "This side", save, see it on th
 	await wide(page).getByRole('button', { name: 'This side', exact: true }).click();
 	await intensity(page, 5).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Right side of your head 5', { exact: true })).toBeVisible();
 });
 
@@ -314,6 +323,7 @@ test('head zones: the back view has the top, back and neck, and a band around th
 	await button(page, 'Back to the body').click();
 	await expect(button(page, 'Head, close-up, 2 points')).toBeVisible();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(
 		timeline(page).getByText('Band around the head 3 · Top of your head 2', { exact: true })
 	).toBeVisible();
@@ -330,6 +340,7 @@ test('head zones: behind the eye is its own zone inside the eye area', async ({ 
 	await expect(sheet(page).getByRole('heading', { name: 'Behind your right eye' })).toBeVisible();
 	await intensity(page, 6).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Behind your right eye 6', { exact: true })).toBeVisible();
 	// No separate nose, mouth, chin or ear zones.
 	await timeline(page).getByText('Behind your right eye 6', { exact: true }).click();
@@ -439,6 +450,7 @@ test('head zones: a band chosen on the back is drawn on the front too, and the c
 	).toBeVisible();
 	await intensity(page, 2).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(
 		timeline(page).getByText('Back of the right side of your head 2', { exact: true })
 	).toBeVisible();
