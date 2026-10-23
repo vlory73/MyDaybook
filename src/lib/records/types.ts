@@ -205,6 +205,9 @@ export type DrinkPreset = { id: string; name?: string; hidden?: boolean; sizeId?
 export type SizePreset = { id: string; name?: string; ml?: number; hidden?: boolean };
 /** All of the person's drink choices in one record, so they sync between devices. Missing record = the defaults. */
 export type DrinkPresetsPayload = Base<'drink_presets'> & { drinks: DrinkPreset[]; sizes: SizePreset[] };
+/** The person's own name, one record per person (ARCHITECTURE §5). Both parts optional; trimmed, at most 60 characters each. */
+export type ProfilePayload = Base<'profile'> & { firstName?: string; lastName?: string };
+export const MAX_NAME_LENGTH = 60;
 export type SettingsPayload = Base<'settings'> & { values: Record<string, string | number | boolean> };
 export type TagPayload = Base<'tag'> & { name: string };
 
@@ -225,6 +228,7 @@ export type Payload =
 	| DrinkPresetsPayload
 	| PainPayload
 	| PainEpisodePayload
+	| ProfilePayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -375,6 +379,10 @@ function isDrinkPresets(o: Obj): boolean {
 	);
 }
 
+function optName(x: unknown): boolean {
+	return x === undefined || (isStr(x, MAX_NAME_LENGTH) && x === x.trim() && x !== '');
+}
+
 function isTimed(o: Obj): boolean {
 	return isAt(o.at);
 }
@@ -451,6 +459,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	drink_presets: isDrinkPresets,
 	pain: isPainPayload,
 	pain_episode: isPainEpisodePayload,
+	profile: (o) => optName(o.firstName) && optName(o.lastName),
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),

@@ -5,6 +5,7 @@
 		Button,
 		Card,
 		Icon,
+		NameCard,
 		Notice,
 		PassphraseFields,
 		RemindersCard,
@@ -142,6 +143,7 @@
 		<Button variant="quiet" onclick={doSignOut}>{t('me.account.signOut')}</Button>
 	</div>
 </Card>
+<NameCard />
 {#if session.identity?.role === 'admin'}
 	<Card title={t('me.admin.heading')}>
 		<p class="small muted hint">{t('me.admin.lead')}</p>

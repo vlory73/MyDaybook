@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { previousStepCode } from './totp-code';
 import { addMedWithReminder, endpointOf, stubPush } from './push-stub';
 import {
@@ -1105,6 +1105,23 @@ for (const scheme of ['light', 'dark'] as const) {
 			await episode.waitFor();
 			await page.waitForTimeout(400);
 			await snap(page, 'episode-sheet-ended', scheme);
+		});
+
+		test(`display name ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/me');
+			await page.getByTestId('name-edit').click();
+			await page.getByLabel('First name').fill('Ada');
+			await page.getByLabel('Last name').fill('Example');
+			await page.waitForTimeout(400);
+			await snap(page, 'name-editor', scheme);
+			await page.getByRole('button', { name: 'Save name' }).click();
+			await expect(page.getByTestId('profile-name')).toHaveText('Ada Example');
+			await expect(page.getByText('Name saved')).toBeHidden({ timeout: 15_000 });
+			await snap(page, 'me-name', scheme);
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await expect(page.getByRole('heading', { level: 1, name: /, Ada$/ })).toBeVisible();
+			await snap(page, 'today-greeting', scheme);
 		});
 
 		test(`trends empty ${scheme}`, async ({ page }) => {

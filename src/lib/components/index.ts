@@ -46,6 +46,7 @@ export { default as TabBar } from './TabBar.svelte';
 export { default as TextField } from './TextField.svelte';
 export { default as ToastHost } from './ToastHost.svelte';
 export { default as Toggle } from './Toggle.svelte';
+export { default as NameCard } from './NameCard.svelte';
 export { default as WatchList } from './WatchList.svelte';
 export { default as WeekStrip } from './WeekStrip.svelte';
 export { default as TotpCard } from './TotpCard.svelte';
