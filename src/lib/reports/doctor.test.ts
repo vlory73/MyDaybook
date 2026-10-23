@@ -148,6 +148,24 @@ describe('buildDoctorReport', () => {
 		} as Payload),
 		rec({
 			v: 1,
+			type: 'measurement',
+			at: '2026-10-10T08:00:00+02:00',
+			typeId: 'blood_pressure',
+			unit: 'mmHg',
+			values: [128, 82],
+			context: []
+		} as Payload),
+		rec({
+			v: 1,
+			type: 'measurement',
+			at: '2026-10-11T08:00:00+02:00',
+			typeId: 'pulse',
+			unit: 'bpm',
+			values: [64],
+			context: []
+		} as Payload),
+		rec({
+			v: 1,
 			type: 'bowel',
 			at: '2026-10-10T09:00:00+02:00',
 			bristol: 4
@@ -171,6 +189,20 @@ describe('buildDoctorReport', () => {
 		expect(r.pain!.days).toBe(2);
 		expect(r.pain!.rows[0]).toMatchObject({ days: 2, avg: 5 });
 		expect(r.pain!.rows.length).toBeLessThanOrEqual(8);
+	});
+	it('draws blood pressure as one chart with two lines and pulse as its own chart', () => {
+		const r = build({});
+		const bp = r.charts.find((c) => c.id === 'bp')!;
+		expect(bp.series.map((s) => s.key)).toEqual(['upper', 'lower']);
+		expect(bp.legend).toBe(true);
+		expect(bp.yUnit).toBe('mmHg');
+		expect(bp.yMin).toBeLessThan(82);
+		expect(bp.yMax).toBeGreaterThan(128);
+		expect(bp.series[0]!.values.filter((v) => v !== null)).toEqual([128]);
+		expect(bp.series[1]!.values.filter((v) => v !== null)).toEqual([82]);
+		const pulse = r.charts.find((c) => c.id === 'pulse')!;
+		expect(pulse.yUnit).toBe('bpm');
+		expect(pulse.series).toHaveLength(1);
 	});
 	it('charts have value axes and keep days without an entry blank', () => {
 		const r = build({});

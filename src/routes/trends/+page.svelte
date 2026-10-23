@@ -17,7 +17,7 @@
 	import { openEpisode } from '$lib/records/editor.svelte';
 	import { episodeRange, episodeViews, overlapping } from '$lib/records/episodes';
 	import { dayDate, todayKey } from '$lib/records/time';
-	import { WEIGHT_ID } from '$lib/records/log';
+	import { BLOOD_PRESSURE_ID, PULSE_ID, WEIGHT_ID } from '$lib/records/log';
 	import { mlToCl } from '$lib/records/drinks';
 	import { bandPath, linePath, runs, spread } from '$lib/trends/paths';
 	import { customRange, DEFAULT_PERIOD, lastDays, parsePeriod } from '$lib/trends/range';
@@ -79,6 +79,9 @@
 	const feeling = $derived(feelingSeries(recs, days));
 	const sleep = $derived(sleepSeries(recs, days));
 	const weight = $derived(measurementSeries(recs, days, WEIGHT_ID));
+	const bpUpper = $derived(measurementSeries(recs, days, BLOOD_PRESSURE_ID, 0));
+	const bpLower = $derived(measurementSeries(recs, days, BLOOD_PRESSURE_ID, 1));
+	const pulse = $derived(measurementSeries(recs, days, PULSE_ID));
 	const own = $derived(measurementTypesWithData(recs, days));
 	const fluids = $derived(fluidSeries(recs, days));
 	const doses = $derived(doseSeries(recs, days));
@@ -92,12 +95,16 @@
 	const showFeeling = $derived(hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress));
 	const showSleep = $derived(hasAny(sleep.minutes));
 	const showWeight = $derived(hasAny(weight.values));
+	const showBp = $derived(hasAny(bpUpper.values) || hasAny(bpLower.values));
+	const showPulse = $derived(hasAny(pulse.values));
 	const showFluids = $derived(hasAny(fluids.totalMl));
 	const showGut = $derived(hasAny(gut.nausea) || hasAny(gut.heartburn));
 	const anything = $derived(
 		showFeeling ||
 			showSleep ||
 			showWeight ||
+			showBp ||
+			showPulse ||
 			own.length > 0 ||
 			showFluids ||
 			doses.any ||
@@ -151,6 +158,48 @@
 			<circle class={`${cls}-dot`} cx={s.x(run.start)} cy={s.y(run.items[0]!)} r="2.5" />
 		{/if}
 	{/each}
+{/snippet}
+
+{#snippet bpCard()}
+	{@const both = [...bpUpper.values, ...bpLower.values]}
+	{@const r = span(both)}
+	{@const unit = bpUpper.unit || 'mmHg'}
+	<Card title={t('measure.bp')}>
+		<p class="sub">{t('trends.bp.sub', { unit })}</p>
+		<TrendChart
+			{days}
+			yMin={r.min}
+			yMax={r.max}
+			yTicks={[r.min, r.max]}
+			label={aria('trends.bp.aria')}
+			padRight={16}
+		>
+			{#snippet layers(s)}
+				{@render line(s, bpUpper.values, 'wl')}
+				{@render line(s, bpLower.values, 'wl2')}
+				{#each [{ v: bpUpper.values, k: 'measure.bp.upper' }, { v: bpLower.values, k: 'measure.bp.lower' }] as e (e.k)}
+					{@const li = lastIndex(e.v)}
+					{#if li >= 0}
+						<text class="val" x={Math.min(s.x(li), s.right)} y={s.y(e.v[li]!) - 8} text-anchor="end"
+							>{num(e.v[li]!)}</text
+						>
+					{/if}
+				{/each}
+			{/snippet}
+		</TrendChart>
+		<ul class="legend">
+			<li>
+				<svg width="26" height="8" aria-hidden="true"><path class="wl" d="M1 4h24" /></svg>{t(
+					'measure.bp.upper'
+				)}
+			</li>
+			<li>
+				<svg width="26" height="8" aria-hidden="true"><path class="wl2" d="M1 4h24" /></svg>{t(
+					'measure.bp.lower'
+				)}
+			</li>
+		</ul>
+	</Card>
 {/snippet}
 
 {#snippet measureCard(title: string, unit: string, values: Series)}
@@ -329,6 +378,12 @@
 
 		{#if showWeight}
 			{@render measureCard(t('trends.weight.title'), weight.unit, weight.values)}
+		{/if}
+		{#if showBp}
+			{@render bpCard()}
+		{/if}
+		{#if showPulse}
+			{@render measureCard(t('measure.pulse'), pulse.unit || 'bpm', pulse.values)}
 		{/if}
 		{#each own as type (type.id)}
 			{@render measureCard(type.name, type.unit, measurementSeries(recs, days, type.id).values)}
@@ -674,6 +729,7 @@
 	.f2,
 	.f3,
 	.wl,
+	.wl2,
 	.pline {
 		fill: none;
 		stroke-width: 2.5;
@@ -756,6 +812,15 @@
 	}
 	.wl {
 		stroke: var(--measure-ink);
+	}
+	.wl2 {
+		stroke: var(--measure-ink);
+		stroke-dasharray: 7 4;
+	}
+	.wl2-dot {
+		fill: var(--surface);
+		stroke: var(--measure-ink);
+		stroke-width: 2;
 	}
 	.wl-dot {
 		fill: var(--surface);

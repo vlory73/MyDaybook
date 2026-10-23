@@ -236,7 +236,13 @@
 					<DoctorChart spec={c} {locale} w={two ? 338 : 698} h={c.id === 'feeling' ? 132 : 108} />
 					{#if c.legend}
 						<div class="key">
-							{#each c.series as s (s.key)}<span><i style:background={s.color}></i>{s.label}</span>{/each}
+							{#each c.series as s, k (s.key)}<span
+									><i
+										style:background={c.id === 'bp' && k === 1
+											? `repeating-linear-gradient(90deg, ${s.color} 0 5px, transparent 5px 8px)`
+											: s.color}
+									></i>{s.label}</span
+								>{/each}
 						</div>
 					{/if}
 				</div>

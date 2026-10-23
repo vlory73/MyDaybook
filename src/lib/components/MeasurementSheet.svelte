@@ -7,8 +7,12 @@
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import {
+		BLOOD_PRESSURE_ID,
 		BUILT_IN_CONTEXT,
+		BUILT_IN_MAX,
+		BUILT_IN_MEASURES,
 		WEIGHT_ID,
+		isBuiltInMeasure,
 		formatNumber,
 		lastMeasurement,
 		parseNumber,
@@ -39,15 +43,27 @@
 		valueCount: 1,
 		decimals: 1
 	});
-	const types = $derived.by(() => {
+	const builtIn = $derived<TypeInfo[]>(
+		BUILT_IN_MEASURES.map((b) => ({
+			id: b.id,
+			name: t(b.key),
+			unit: b.unit,
+			valueCount: b.valueCount,
+			decimals: b.decimals
+		}))
+	);
+	const own = $derived.by(() => {
 		const custom: TypeInfo[] = [];
 		for (const r of allRecords()) {
 			if (r.payload.type === 'measurement_type') custom.push({ id: r.id, ...r.payload });
 		}
-		custom.sort((a, b) => a.name.localeCompare(b.name));
-		return [weight, ...custom];
+		return custom.sort((a, b) => a.name.localeCompare(b.name));
 	});
-	const info = $derived(types.find((x) => x.id === typeId) ?? weight);
+	/** Weight has its own tile, so it is in this list only when an old weight entry is being edited. */
+	const isWeight = $derived(typeId === WEIGHT_ID);
+	const types = $derived([...builtIn, ...own]);
+	const info = $derived(isWeight ? weight : (types.find((x) => x.id === typeId) ?? builtIn[0]!));
+	const upperLower = $derived(typeId === BLOOD_PRESSURE_ID);
 	const last = $derived(lastMeasurement(allRecords(), typeId));
 	const lastText = $derived.by(() => {
 		if (!last) return '';
@@ -75,7 +91,7 @@
 
 	function selectType(id: string) {
 		typeId = id;
-		const x = types.find((y) => y.id === id) ?? weight;
+		const x = id === WEIGHT_ID ? weight : (types.find((y) => y.id === id) ?? builtIn[0]!);
 		values = defaultsFor(id, x.decimals, x.valueCount);
 	}
 
@@ -91,10 +107,12 @@
 		newDecimals = '1';
 		if (m) {
 			typeId = m.typeId;
-			const x = types.find((y) => y.id === m.typeId) ?? weight;
+			const x = m.typeId === WEIGHT_ID ? weight : (types.find((y) => y.id === m.typeId) ?? builtIn[0]!);
 			values = m.values.map((v) => formatNumber(v, x.decimals));
 		} else {
-			selectType(wanted && types.some((y) => y.id === wanted) ? wanted : WEIGHT_ID);
+			selectType(
+				wanted === WEIGHT_ID || (wanted && types.some((y) => y.id === wanted)) ? wanted! : BLOOD_PRESSURE_ID
+			);
 		}
 	}
 
@@ -138,8 +156,14 @@
 	}
 
 	const parsed = $derived(values.map(parseNumber));
+	// Built-in types only stop typos (1 to 400); there is no medical range and no message about a value.
 	const valid = $derived(
-		parsed.length === info.valueCount && parsed.every((v) => v !== null) && fromLocalInput(time) !== null
+		parsed.length === info.valueCount &&
+			parsed.every(
+				(v) =>
+					v !== null && (!isBuiltInMeasure(typeId) || (Number.isInteger(v) && v >= 1 && v <= BUILT_IN_MAX))
+			) &&
+			fromLocalInput(time) !== null
 	);
 
 	function payload(): Payload | null {
@@ -172,20 +196,22 @@
 
 <LogSheet
 	kind="measurement"
-	title={typeId === WEIGHT_ID ? t('cat.weight') : t('measure.title')}
+	title={isWeight ? t('cat.weight') : t('measure.title')}
 	{valid}
 	{payload}
 	{onopen}
 	bind:time
 >
-	<div class="chip-row" role="group" aria-label={t('measure.type')}>
-		{#each types as x (x.id)}
-			<Chip selected={x.id === typeId} onclick={() => selectType(x.id)}>{x.name}</Chip>
-		{/each}
-		<Chip onclick={() => (creating = !creating)}><Icon name="plus" size={16} />{t('measure.newType')}</Chip>
-	</div>
+	{#if !isWeight}
+		<div class="chip-row" role="group" aria-label={t('measure.type')}>
+			{#each types as x (x.id)}
+				<Chip selected={x.id === typeId} onclick={() => selectType(x.id)}>{x.name}</Chip>
+			{/each}
+			<Chip onclick={() => (creating = !creating)}><Icon name="plus" size={16} />{t('measure.newType')}</Chip>
+		</div>
+	{/if}
 
-	{#if creating}
+	{#if creating && !isWeight}
 		<form
 			class="new"
 			onsubmit={(e) => {
@@ -214,7 +240,8 @@
 	{/if}
 
 	{#each values.map((_, i) => i) as i (i)}
-		<div class="value">
+		{#if upperLower}<p class="label cap">{t(i === 0 ? 'measure.bp.upper' : 'measure.bp.lower')}</p>{/if}
+		<div class="value" class:first={upperLower && i === 0}>
 			<button type="button" class="step" aria-label={t('measure.minus')} onclick={() => step(i, -1)}
 				><Icon name="minus" size={26} /></button
 			>
@@ -222,11 +249,15 @@
 				<input
 					inputmode="decimal"
 					autocomplete="off"
-					aria-label={info.valueCount > 1 ? t('measure.valueN', { n: i + 1 }) : t('measure.value')}
+					aria-label={upperLower
+						? t(i === 0 ? 'measure.bp.upper' : 'measure.bp.lower')
+						: info.valueCount > 1
+							? t('measure.valueN', { n: i + 1 })
+							: t('measure.value')}
 					placeholder={formatNumber(0, info.decimals)}
 					bind:value={values[i]}
 				/>
-				{#if i === values.length - 1 && info.unit}<small>{info.unit}</small>{/if}
+				{#if (upperLower || i === values.length - 1) && info.unit}<small>{info.unit}</small>{/if}
 			</div>
 			<button type="button" class="step" aria-label={t('measure.plus')} onclick={() => step(i, 1)}
 				><Icon name="plus" size={26} /></button
@@ -274,6 +305,13 @@
 		justify-content: space-between;
 		gap: var(--sp-2);
 		margin-top: var(--sp-3);
+	}
+	.cap {
+		margin: var(--sp-3) 0 0;
+	}
+	.value.first,
+	.cap + .value {
+		margin-top: var(--sp-1);
 	}
 	.num {
 		flex: 1;
