@@ -14,8 +14,10 @@
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { formatDuration } from '$lib/records/format';
 	import { allRecords, store } from '$lib/records/store.svelte';
+	import { openEpisode } from '$lib/records/editor.svelte';
+	import { episodeRange, episodeViews, overlapping } from '$lib/records/episodes';
 	import { dayDate, todayKey } from '$lib/records/time';
-	import { WEIGHT_ID } from '$lib/records/log';
+	import { BLOOD_PRESSURE_ID, PULSE_ID, WEIGHT_ID } from '$lib/records/log';
 	import { mlToCl } from '$lib/records/drinks';
 	import { bandPath, linePath, runs, spread } from '$lib/trends/paths';
 	import { customRange, DEFAULT_PERIOD, lastDays, parsePeriod } from '$lib/trends/range';
@@ -77,22 +79,32 @@
 	const feeling = $derived(feelingSeries(recs, days));
 	const sleep = $derived(sleepSeries(recs, days));
 	const weight = $derived(measurementSeries(recs, days, WEIGHT_ID));
+	const bpUpper = $derived(measurementSeries(recs, days, BLOOD_PRESSURE_ID, 0));
+	const bpLower = $derived(measurementSeries(recs, days, BLOOD_PRESSURE_ID, 1));
+	const pulse = $derived(measurementSeries(recs, days, PULSE_ID));
 	const own = $derived(measurementTypesWithData(recs, days));
 	const fluids = $derived(fluidSeries(recs, days));
 	const doses = $derived(doseSeries(recs, days));
 	const bowel = $derived(bowelDots(recs, days));
 	const gut = $derived(gutSeries(recs, days));
 	const pain = $derived(painSeries(recs, days));
+	const episodes = $derived(
+		days.length > 0 ? overlapping(episodeViews(recs, i18n.locale, today), days[0]!, days.at(-1)!) : []
+	);
 
 	const showFeeling = $derived(hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress));
 	const showSleep = $derived(hasAny(sleep.minutes));
 	const showWeight = $derived(hasAny(weight.values));
+	const showBp = $derived(hasAny(bpUpper.values) || hasAny(bpLower.values));
+	const showPulse = $derived(hasAny(pulse.values));
 	const showFluids = $derived(hasAny(fluids.totalMl));
 	const showGut = $derived(hasAny(gut.nausea) || hasAny(gut.heartburn));
 	const anything = $derived(
 		showFeeling ||
 			showSleep ||
 			showWeight ||
+			showBp ||
+			showPulse ||
 			own.length > 0 ||
 			showFluids ||
 			doses.any ||
@@ -148,6 +160,48 @@
 	{/each}
 {/snippet}
 
+{#snippet bpCard()}
+	{@const both = [...bpUpper.values, ...bpLower.values]}
+	{@const r = span(both)}
+	{@const unit = bpUpper.unit || 'mmHg'}
+	<Card title={t('measure.bp')}>
+		<p class="sub">{t('trends.bp.sub', { unit })}</p>
+		<TrendChart
+			{days}
+			yMin={r.min}
+			yMax={r.max}
+			yTicks={[r.min, r.max]}
+			label={aria('trends.bp.aria')}
+			padRight={16}
+		>
+			{#snippet layers(s)}
+				{@render line(s, bpUpper.values, 'wl')}
+				{@render line(s, bpLower.values, 'wl2')}
+				{#each [{ v: bpUpper.values, k: 'measure.bp.upper' }, { v: bpLower.values, k: 'measure.bp.lower' }] as e (e.k)}
+					{@const li = lastIndex(e.v)}
+					{#if li >= 0}
+						<text class="val" x={Math.min(s.x(li), s.right)} y={s.y(e.v[li]!) - 8} text-anchor="end"
+							>{num(e.v[li]!)}</text
+						>
+					{/if}
+				{/each}
+			{/snippet}
+		</TrendChart>
+		<ul class="legend">
+			<li>
+				<svg width="26" height="8" aria-hidden="true"><path class="wl" d="M1 4h24" /></svg>{t(
+					'measure.bp.upper'
+				)}
+			</li>
+			<li>
+				<svg width="26" height="8" aria-hidden="true"><path class="wl2" d="M1 4h24" /></svg>{t(
+					'measure.bp.lower'
+				)}
+			</li>
+		</ul>
+	</Card>
+{/snippet}
+
 {#snippet measureCard(title: string, unit: string, values: Series)}
 	{@const r = span(values)}
 	{@const fi = firstIndex(values)}
@@ -181,8 +235,7 @@
 
 <header class="page-head">
 	<h1 class="large-title">{t('trends.title')}</h1>
-	<a class="reports-link" href={resolve('/reports/headache')}
-		><Icon name="printer" size={18} />{t('reports.button')}</a
+	<a class="reports-link" href={resolve('/reports')}><Icon name="printer" size={18} />{t('reports.button')}</a
 	>
 </header>
 
@@ -325,6 +378,12 @@
 
 		{#if showWeight}
 			{@render measureCard(t('trends.weight.title'), weight.unit, weight.values)}
+		{/if}
+		{#if showBp}
+			{@render bpCard()}
+		{/if}
+		{#if showPulse}
+			{@render measureCard(t('measure.pulse'), pulse.unit || 'bpm', pulse.values)}
 		{/if}
 		{#each own as type (type.id)}
 			{@render measureCard(type.name, type.unit, measurementSeries(recs, days, type.id).values)}
@@ -521,6 +580,29 @@
 			</Card>
 		{/if}
 
+		{#if episodes.length > 0}
+			<Card title={t('trends.episodes.title')}>
+				<p class="sub">{t('trends.episodes.sub')}</p>
+				<ul class="eps">
+					{#each episodes as ep (ep.id)}
+						<li>
+							<button type="button" onclick={() => openEpisode(ep.id)}>
+								<span class="en">{ep.name}</span>
+								<span class="em"
+									>{t('trends.episodes.line', {
+										range: episodeRange(i18n.locale, ep),
+										days: tn('trends.days', ep.spanDays),
+										avg: ep.average === null ? '–' : num(Math.round(ep.average))
+									})}</span
+								>
+							</button>
+						</li>
+					{/each}
+				</ul>
+				<p class="hint">{t('trends.episodes.foot')}</p>
+			</Card>
+		{/if}
+
 		<HeatMapCard {days} />
 
 		<AfterMeals {days} />
@@ -528,6 +610,33 @@
 {/if}
 
 <style>
+	.eps {
+		list-style: none;
+		margin: var(--sp-2) 0 0;
+		padding: 0;
+	}
+	.eps li {
+		border-top: 1px solid var(--line);
+	}
+	.eps li:first-child {
+		border-top: 0;
+	}
+	.eps button {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		width: 100%;
+		padding: var(--sp-3) 0;
+		text-align: left;
+	}
+	.en {
+		font-weight: var(--fw-semibold);
+		overflow-wrap: anywhere;
+	}
+	.em {
+		font-size: var(--fs-callout);
+		color: var(--text-2);
+	}
 	.reports-link {
 		display: inline-flex;
 		align-items: center;
@@ -620,6 +729,7 @@
 	.f2,
 	.f3,
 	.wl,
+	.wl2,
 	.pline {
 		fill: none;
 		stroke-width: 2.5;
@@ -702,6 +812,15 @@
 	}
 	.wl {
 		stroke: var(--measure-ink);
+	}
+	.wl2 {
+		stroke: var(--measure-ink);
+		stroke-dasharray: 7 4;
+	}
+	.wl2-dot {
+		fill: var(--surface);
+		stroke: var(--measure-ink);
+		stroke-width: 2;
 	}
 	.wl-dot {
 		fill: var(--surface);

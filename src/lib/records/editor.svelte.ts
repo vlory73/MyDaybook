@@ -29,7 +29,18 @@ export const editor = $state<{
 	adhoc: boolean;
 	/** Read-only detail of an entry whose sheet does not exist yet. */
 	detail: string | null;
-}>({ note: null, log: null, med: null, dose: null, adhoc: false, detail: null, backToPain: null });
+	/** The pain episode sheet: the id of the episode. */
+	episode: string | null;
+}>({
+	note: null,
+	log: null,
+	med: null,
+	dose: null,
+	adhoc: false,
+	detail: null,
+	backToPain: null,
+	episode: null
+});
 
 export const openNote = (id: string | null = null) => {
 	editor.note = { id };
@@ -59,6 +70,9 @@ export const openAdhocDose = () => {
 export const openDetail = (id: string) => {
 	editor.detail = id;
 };
+export const openEpisode = (id: string) => {
+	editor.episode = id;
+};
 /** From the Pain sheet: opens a new nausea entry at `at`; leaving it returns to the Pain sheet with `draft`. */
 export const openNauseaFromPain = (back: { id: string | null; draft: unknown }, at: string) => {
 	editor.backToPain = back;
@@ -81,4 +95,5 @@ export const closeEditors = () => {
 	editor.dose = null;
 	editor.adhoc = false;
 	editor.detail = null;
+	editor.episode = null;
 };

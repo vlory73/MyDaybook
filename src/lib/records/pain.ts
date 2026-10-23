@@ -45,6 +45,8 @@ export type PainPayload = {
 	note?: string;
 	/** Optional headache details for the whole entry (ARCHITECTURE §5). */
 	headache?: HeadacheDetails;
+	/** Id of the `pain_episode` record this entry belongs to (at most one). Old entries have none. */
+	episode?: string;
 	attachments?: AttachmentRef[];
 };
 
@@ -84,6 +86,8 @@ export function isPainPayload(o: unknown): o is PainPayload {
 		o.points.every(isPainPoint) &&
 		(o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_PAIN_NOTE)) &&
 		(o.headache === undefined || isHeadacheDetails(o.headache)) &&
+		(o.episode === undefined ||
+			(typeof o.episode === 'string' && o.episode !== '' && o.episode.length <= 100)) &&
 		isAttachments(o.attachments)
 	);
 }
@@ -100,4 +104,33 @@ export function heatStep(intensity: number): number {
 	if (intensity === 7) return 4;
 	if (intensity <= 9) return 5;
 	return 6;
+}
+
+export const MAX_EPISODE_NAME = 60;
+
+/**
+ * The `pain_episode` record (ARCHITECTURE §5): pain entries the person linked into one stretch of days. `name` is
+ * only stored when the person renamed it (otherwise the app names it after the place logged most often). `started`
+ * is the time of the first linked entry when it was made; `ended` is set by "It's gone" and cleared by "Not gone yet".
+ */
+export type PainEpisodePayload = {
+	v: 1;
+	type: 'pain_episode';
+	name?: string;
+	started: string;
+	ended?: string;
+	attachments?: AttachmentRef[];
+};
+
+export function isPainEpisodePayload(o: unknown): o is PainEpisodePayload {
+	return (
+		isObj(o) &&
+		o.v === 1 &&
+		o.type === 'pain_episode' &&
+		isAt(o.started) &&
+		(o.ended === undefined || isAt(o.ended)) &&
+		(o.name === undefined ||
+			(typeof o.name === 'string' && o.name.trim() !== '' && o.name.length <= MAX_EPISODE_NAME)) &&
+		isAttachments(o.attachments)
+	);
 }

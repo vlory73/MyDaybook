@@ -6,12 +6,12 @@
  * Validators are small and hand-written: a payload that fails them is skipped, never trusted.
  */
 
-import { isPainPayload, type PainPayload } from './pain';
+import { isPainEpisodePayload, isPainPayload, type PainEpisodePayload, type PainPayload } from './pain';
 
 export const PAYLOAD_VERSION = 1;
 
 export const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
-export const WHERE = ['home', 'out', 'takeaway'] as const;
+export const WHERE = ['home', 'out', 'takeaway', 'work', 'school'] as const;
 export const EXPOSURE_STATES = ['no', 'unsure', 'yes'] as const;
 export const SENSITIVITY_KINDS = ['intolerance', 'allergen', 'other'] as const;
 export const BOWEL_FLAGS = ['urgent', 'straining', 'pain', 'notFinished', 'blood', 'mucus'] as const;
@@ -68,7 +68,7 @@ export type SleepPayload = Timed<'sleep'> & {
 	note?: string;
 };
 export type MeasurementPayload = Timed<'measurement'> & {
-	/** `weight` for the built-in type, otherwise the record id of a `measurement_type`. */
+	/** `weight`, `blood_pressure` (upper, lower) or `pulse` for the built-in types, otherwise the record id of a `measurement_type`. */
 	typeId: string;
 	values: number[];
 	unit: string;
@@ -205,6 +205,9 @@ export type DrinkPreset = { id: string; name?: string; hidden?: boolean; sizeId?
 export type SizePreset = { id: string; name?: string; ml?: number; hidden?: boolean };
 /** All of the person's drink choices in one record, so they sync between devices. Missing record = the defaults. */
 export type DrinkPresetsPayload = Base<'drink_presets'> & { drinks: DrinkPreset[]; sizes: SizePreset[] };
+/** The person's own name, one record per person (ARCHITECTURE §5). Both parts optional; trimmed, at most 60 characters each. */
+export type ProfilePayload = Base<'profile'> & { firstName?: string; lastName?: string };
+export const MAX_NAME_LENGTH = 60;
 export type SettingsPayload = Base<'settings'> & { values: Record<string, string | number | boolean> };
 export type TagPayload = Base<'tag'> & { name: string };
 
@@ -224,6 +227,8 @@ export type Payload =
 	| DrinkPayload
 	| DrinkPresetsPayload
 	| PainPayload
+	| PainEpisodePayload
+	| ProfilePayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -374,9 +379,24 @@ function isDrinkPresets(o: Obj): boolean {
 	);
 }
 
+function optName(x: unknown): boolean {
+	return x === undefined || (isStr(x, MAX_NAME_LENGTH) && x === x.trim() && x !== '');
+}
+
 function isTimed(o: Obj): boolean {
 	return isAt(o.at);
 }
+
+/** Largest number accepted for a built-in measure value: it only stops typos and is not a medical range. */
+export const BUILT_IN_MAX = 400;
+/** Blood pressure takes exactly two numbers, pulse exactly one; other types are checked by the caller. */
+const builtInValues = (typeId: string, values: number[]): boolean => {
+	const count = typeId === 'blood_pressure' ? 2 : typeId === 'pulse' ? 1 : 0;
+	return (
+		count === 0 ||
+		(values.length === count && values.every((n) => Number.isInteger(n) && n >= 1 && n <= BUILT_IN_MAX))
+	);
+};
 
 const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	food: (o) =>
@@ -412,6 +432,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		o.values.length >= 1 &&
 		o.values.length <= 3 &&
 		o.values.every((n) => typeof n === 'number' && Number.isFinite(n)) &&
+		builtInValues(o.typeId as string, o.values as number[]) &&
 		isStr(o.unit, 40) &&
 		strList(o.context) &&
 		optStr(o.note),
@@ -449,6 +470,8 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	drink: isDrink,
 	drink_presets: isDrinkPresets,
 	pain: isPainPayload,
+	pain_episode: isPainEpisodePayload,
+	profile: (o) => optName(o.firstName) && optName(o.lastName),
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),

@@ -336,7 +336,7 @@ children's outline (decided); the same regions and spaces serve every profile.
 
 | Space | Drawing | viewBox | Regions |
 | --- | --- | --- | --- |
-| `2d-front-v1` | main front view, mirrors the person | 200 x 440 | head, neck, arm parts, chest, belly quarters, hip and groin, leg parts, foot |
+| `2d-front-v1` | main front view, mirrors the person | 200 x 440 | head, neck, arm parts, chest, belly quarters, hip and groin, leg parts, foot; wider areas `belly`, `whole_arm`, `whole_leg` |
 | `2d-back-v1` | main back view, does not mirror | 200 x 440 | back of head and neck, the three back parts, buttock, leg parts, heel |
 | `2d-head-front-v2` | head close-up, front: faces the person (mirrors like the front view) | 200 x 240 | per side: `forehead`, `temple`, `around_eye`, `behind_eye` (drawn inside `around_eye`), `cheek` (cheek and sinus), `jaw` (jaw, in front of the ear); wider areas `head_front_side`, `head_side`, `whole_head`, `head_band` |
 | `2d-head-back-v2` | head close-up, back (does not mirror) | 200 x 240 | `top_of_head` (one zone, midline), per side `rear_head` and `rear_neck`; wider areas `head_back_side`, `head_side`, `whole_head`, `head_band` |
@@ -360,6 +360,12 @@ centre (`u = v = 0.5`) of the area's bounding box; it is drawn as a dot at that 
 highlighted. The entry sheet offers the choice for a point on a belly quarter ("This quarter", "Upper belly", "Lower
 belly", "Whole belly") or a back part ("This part", "Whole back") and remembers the original quarter in the draft only, so
 "This quarter" puts the point back where it was; nothing else is stored. The chest is not widened (decided).
+
+*Whole arm and whole leg.* `whole_arm` (upper arm, elbow, forearm, wrist; not shoulder or hand) and `whole_leg` (thigh, back of
+thigh, knee, shin, calf, ankle; not hip, buttock, heel or foot) are paired wider areas (`left` / `right`, valid on both main
+views, no tap shape). A point on one of those parts is offered "This part" and "Whole arm" / "Whole leg" on the same side; the
+point is stored at the centre of the area's box, drawn as a dot with the whole limb softly highlighted, and the heat map
+counts it towards each part (`partsOf`; a whole leg counts its front and back parts, so a day shows on both views).
 
 *Head zones.* The head close-up has two drawings with a Front / Back toggle (the sheet's `headFace`); `2d-head-front-v2` and
 `2d-head-back-v2` replace the first head close-up (`2d-head-v1`, with nose, mouth, chin and ear zones), which was never
@@ -387,6 +393,18 @@ draw):
 
 `headacheSides` reads a sided zone or area as that side; the top of the head, the whole head and the band count as both
 sides, and mixed points as both. Nothing here names a headache type (not a medical device).
+
+*Pain episodes.* A `pain_episode` record (payload v1: `started` ISO time, optional `ended` ISO time, optional `name`) groups pain
+entries over several days. A `pain` entry carries an optional `episode` (the episode record's id, at most one); old entries
+simply have none, so there is no migration. The name is stored only when the person renamed it; otherwise it is the place
+logged most often across the episode's entries (ties: first placed). The start shown is the earliest linked entry (or the stored
+`started` when earlier); `ended` is set by "It's gone" and cleared by "Not gone yet". Nothing ends an episode by itself; an
+ongoing episode whose last entry is more than 14 days old shows "last logged <date>". "Same as last time" and "Log today" join
+the previous entry's episode (creating one from it when it has none); the normal way never joins automatically. "Unlink all"
+deletes the episode record and clears the link on its entries; an episode left without entries is ignored by the app. The
+episode average is the mean of the daily averages used by the Trends pain line (`painSeries`); the day dots show each day's
+highest intensity. Pure rules: `src/lib/records/episodes.ts`; store writes: `episodeActions.ts`; `EpisodeSheet.svelte`. The heat
+map and the headache report ignore episodes.
 
 ### 5.1 Sync and client storage
 
@@ -459,20 +477,22 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 
 | Type | Fields (inside the ciphertext) | Fast path |
 | --- | --- | --- |
-| `food` | meal type, time, text, tags, `where` (home / out / takeaway) ★, `exposures` ★: one entry per watched item, each `no / unsure / yes`, attachments | **Saved meals** ★ fill in everything with one tap; "Again?" repeats the last meal |
+| `food` | meal type, time, text, tags, `where` (home / out / takeaway / work / school) ★, `exposures` ★: one entry per watched item, each `no / unsure / yes`, attachments | **Saved meals** ★ fill in everything with one tap; "Again?" repeats the last meal |
 | `sensitivity` ★ | the user's own watch list: label, icon, kind (`intolerance`, `allergen`, `other`) and order. Suggestions cover the 14 EU allergens (Reg. 1169/2011 Annex II: gluten cereals, milk, eggs, nuts, peanuts, soy, fish, crustaceans, molluscs, celery, mustard, sesame, sulphites, lupin), plus lactose, fructose, FODMAP, histamine, sorbitol, caffeine and alcohol | Only watched items appear on the meal sheet, so most people see 2–3 rows |
 | `saved_meal` ★ | name, meal type, text, tags, exposures | |
 | `feeling` | mood, energy and stress (1–5), symptom tags with severity, note | One tap from Today |
 | `sleep` | fell asleep, woke up (both full timestamps, so midnight is handled), quality 1–5, awakenings (0–3+), naps, note | Pre-filled from the user's usual times; "Usual night" one-tap repeat |
-| `measurement` | measurement type id, value(s), unit, context chips (morning, before breakfast, …), note | **Weight is a built-in type and its own quick-log tile** ★. The last value is the default, with ±0.1 steppers |
+| `measurement` | measurement type id, value(s), unit, context chips (morning, before breakfast, …), note | **Built-in types (no record, no migration), by `typeId`:** `weight` (kg, own quick-log tile, weight only ★, ±0.1 steppers), `blood_pressure` (two whole numbers, upper then lower, mmHg) and `pulse` (one whole number, bpm); the last two are listed on the Measure tile before the person's own types. Their values must be exactly 2 / 1 whole numbers from 1 to 400, only to stop typos (no medical ranges). Any other `typeId` is a `measurement_type` record id; an own type named "Blood pressure" stays as it is. Trends and the doctor report draw blood pressure as one chart with two lines and pulse as its own chart |
 | `measurement_type` | name, unit(s), number of values (e.g. 2 for blood pressure), decimals | |
 | `bowel` ★ | time, type 1–7 (Bristol Stool Form Scale, own illustrations and wording), flags (urgent, straining, pain, not finished, blood seen, mucus), note | 2 taps + Save |
 | `gut` ★ | time, symptoms (1–2 of `nausea` / `heartburn`, each with intensity 1–5), context flags (vomited, after a meal, lying down, at night; `vomited` only with nausea), note. Records only: a flag never triggers a message or alert (MDR), as for bowel | 2 taps + Save |
 | `drink` ★ | time, drink (`def:<id>` for a built-in, else the name), size name (snapshot), size in ml, count 1–10, total in ml, note. Stored in whole ml, shown in cl. Later preset edits never change an entry. Descriptive only: a plain daily sum, no goals, nudges, warnings or caffeine / alcohol calculations (D19) | Drink tile: water in 2 taps; "Same again" repeats the last drink |
 | `drink_presets` ★ | ONE record per person: drinks (built-in overrides, hidden flag, own drinks, order, usual size) and sizes (built-in overrides, hidden flag, own sizes). No record = the built-in defaults (names from i18n) | |
 | `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, constant, aching, tingling, numb, itchy; note ≤ 500); optional `headache` details (§5). The UI calls it "Pain" / "Smerter"; the map says "Where do you feel it?" | §5 |
+| `pain_episode` | optional name ≤ 60; `started`; optional `ended`; entries point at it with `pain.episode` (§5) | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
 | `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm. A medicine not in the list can be logged from the Medicine sheet ("Log another medicine"); it is saved as a "when needed" medication (archived when "Keep in my medicines" is off), so every dose still links to a medication. The time of a taken dose can be set or corrected in the dose sheet; an as-needed dose can be moved to another medicine |
+| `profile` ★ | ONE record per person: optional `firstName` and `lastName` (trimmed, at most 60 characters each). Used only on the device: the Today greeting (first name, else the login name) and the prefilled name on reports ("First Last", else the login name; still editable there and never saved with a report). Encrypted like every record, so the server never sees it; the login name is unchanged. Latest change wins between devices; clearing both parts deletes the record | Me → "Your name" |
 | `note` | free text, tags | |
 | `settings`, `tag` | client settings, tag definitions | |
 
@@ -491,6 +511,8 @@ that worries you") lives on the About page, never as a reaction to an entry.
 **Trends (M5):** `src/lib/trends/` holds pure, unit-tested aggregation on the device: `range.ts` (7/30/90 days or a custom range of at most 366 days, DST-safe day keys), `series.ts` (per-day series aligned with the day list, `null` = no data so charts leave a gap, never a zero), `afterMeals.ts` (the side-by-side meal view, windows 6/24/48 h by real elapsed time) and `paths.ts` (runs and SVG path text). Charts are hand-built SVG (`TrendChart.svelte` frame + layers in the page); no chart library, no thresholds or reference ranges.
 
 **Headache report (M5):** `src/lib/reports/headache.ts` is the pure, unit-tested builder (records + days + layout into pages of 7 columns, one column per day the headache started; the Medicine row holds only as-needed and one-off doses) and the report-language date formatting; `ReportPages.svelte` draws the A4 sheets (clean table, landscape; paper-form layout, portrait) with the chosen locale via `translate(locale, ...)`, independent of the app language. The choices (including the optional name) pass through the in-memory `state.ts`, never the URL or storage (only the layout is remembered on the device). Routes: `/reports/headache` (choices) and `/reports/headache/print` (preview scaled to the phone, `window.print()`; named `@page` rules in `report.css` set the paper). No new dependencies.
+
+**Reports landing and Doctor visit report (M5):** `/reports` lists the two reports (Trends → Reports opens it; the headache report's Back returns to it). `/reports/doctor` collects period (7/30/90/custom, default 30), report language, an optional name and "questions for your doctor" (both memory-only in `state.ts` as `DoctorRequest`, never in a URL or storage) and an Include checklist with counts of what the period holds (`doctorOverview`; empty sections are disabled, Notes and the headache pages start unticked). `/reports/doctor/print` shows A4 portrait sheets. `src/lib/reports/doctor.ts` is the pure, unit-tested builder (medicines counted like Trends by dose day, as-needed table, heat-map data with the app's own `heatmap()` and legend, episodes, chart specs with value axes, counts, notes) plus `unitsOf` (the content as a flat list of headings, table rows, charts) and `paginate` (fills sheets from measured heights, never cuts a row or chart, repeats a table header on a continued table). `DoctorPages.svelte` draws every unit once out of sight to measure it, paginates, then renders the sheets (header with a large name and one "CPR: ___" line, footer with the disclaimer and "Page N of M"); `DoctorChart.svelte` draws the small SVG charts in fixed print colours. The Pain section reuses `BodyMap` in a light, fixed token scope. When "Add the Headache diary pages" is ticked, the headache sheets (the device's remembered layout, same period and language) follow the doctor sheets with their own page numbering. No new dependencies.
 **Heat map (M5):** `src/lib/trends/heatmap.ts` counts DAYS per place (distinct local days with a point there, not entries) and averages the intensities of those points; a wider area counts towards each of its parts (`partsOf` in the catalogue) and a close-up point also towards the whole head, hand or foot of the main body (`roll`). The five legend steps come from the period's maximum (1 · 2–3 · 4–6 · 7–9 · 10+ up to 11 days, scaled above, fewer steps below 10). `HeatMapCard.svelte` reuses `BodyMap` in a read-only `heat` mode (`--heat-1..5`, per-step `--on-heat-N` number colours, numbers only on shapes that fit); `PainThumb.svelte` draws the small combined front/back body on Today.
 
 ## 6. Medication reminders (Web Push)
@@ -597,7 +619,9 @@ Service workers, PWA install, Web Push and `crypto.subtle` all need a secure con
 
 **Chosen (D3): option A, using the reverse proxy you already run.** The Home Assistant stack's Caddy already holds a valid
 certificate for `lory-home.duckdns.org`, which resolves to the Pi's LAN IP. Caddy serves the app at
-`https://lory-home.duckdns.org:8444` and forwards it to the app on port 8090. Nothing is opened on the router. Remote use goes
+`https://myday.lory-home.duckdns.org` (its own name on port 443 since 2026-10-23, so password managers and later passkeys
+keep it apart from other apps on the Pi; it was `https://lory-home.duckdns.org:8444` before) and forwards it to the app on
+port 8090. Nothing is opened on the router. Remote use goes
 through the router VPN (Synology VPN Plus) today, and Tailscale later. The same URL must keep working over Tailscale (Pi as a
 subnet router, or DNS pointing there), because a PWA's identity is its origin: changing the URL means reinstalling and logging
 in again (no data is lost; the local cache holds only ciphertext). For self-hosters, A/B/C above remain the documented options.

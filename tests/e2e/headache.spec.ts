@@ -58,6 +58,7 @@ test('a head point shows the section; every field is saved and shown again', asy
 	await group(page, 'Sensitive to sound?').getByRole('button', { name: 'No' }).click();
 	await sheet(page).getByLabel('Possible trigger').fill('skipped lunch');
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left temple 6', { exact: true })).toBeVisible();
 
 	await timeline(page).getByText('Your left temple 6', { exact: true }).click();
@@ -89,14 +90,17 @@ test('"Still going" replaces the stop time; an entry with no details opens colla
 	await button(page, 'Still going').click();
 	await expect(sheet(page).getByLabel('Hour Stopped')).toBeDisabled();
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 3', { exact: true }).click();
 	await expect(button(page, 'Still going')).toHaveAttribute('aria-pressed', 'true');
 
 	// A second entry without any answer is saved without details and reopens collapsed.
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await openSheet(page);
 	await templePoint(page, 2);
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 2', { exact: true }).click();
 	await expect(details(page)).toHaveAttribute('aria-expanded', 'false');
 	await expect(sheet(page).getByLabel('Hour Started')).toBeHidden();
@@ -105,15 +109,24 @@ test('"Still going" replaces the stop time; an entry with no details opens colla
 test('"This is a headache" shows the section without a point on the head', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openSheet(page);
-	await figure(page).getByRole('button', { name: 'Your right knee', exact: true }).click();
+	// A neck-only point in the head close-up: the tick is there, the section is not.
+	await button(page, 'Head, close-up').click();
+	await sheet(page).getByRole('radio', { name: 'Back', exact: true }).click();
+	await figure(page).getByRole('button', { name: 'Right side of your neck', exact: true }).click();
 	await intensity(page, 4).click();
 	await expect(details(page)).toBeHidden();
 	await sheet(page).getByLabel('This is a headache').check();
 	await expect(details(page)).toBeVisible();
 	await sheet(page).getByLabel('Hour Started').selectOption('09');
+	// Back on the body the tick is gone but what was entered stays.
+	await button(page, 'Back to the body').click();
+	await expect(sheet(page).getByLabel('This is a headache')).toBeHidden();
+	await expect(details(page)).toBeVisible();
+	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
 	await button(page, 'Save 1 point').click();
-	await timeline(page).getByText('Your right knee 4', { exact: true }).click();
-	await expect(sheet(page).getByLabel('This is a headache')).toBeChecked();
+	await expect(sheet(page)).toBeHidden();
+	await timeline(page).getByText('Right side of your neck 4', { exact: true }).click();
+	await expect(details(page)).toBeVisible();
 	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
 });
 
@@ -153,6 +166,7 @@ test('"Log nausea" returns to the Pain sheet with the draft, which then shows th
 	await expect(sheet(page)).toBeVisible();
 	await expect(sheet(page).getByLabel('Possible trigger')).toHaveValue('bright screen');
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left temple 5', { exact: true })).toBeVisible();
 	await expect(timeline(page).getByText('Nausea 3/5', { exact: true })).toBeVisible();
 });
@@ -174,6 +188,7 @@ test('headache details survive reload and unlock, and the server only sees ciphe
 	await button(page, 'Vision').click();
 	await sheet(page).getByLabel('Possible trigger').fill(trigger);
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	const line = timeline(page).getByText('Your left temple 7', { exact: true });
 	await expect(line).toBeVisible();
 
@@ -211,6 +226,7 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
 	const dialog = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
 	await dialog.getByRole('button', { name: 'Hoved, tæt på' }).click();
+	await expect(dialog.getByLabel('Det er hovedpine')).toBeVisible();
 	await dialog
 		.locator('svg[role=group]')
 		.getByRole('button', { name: 'Din venstre tinding', exact: true })
@@ -222,7 +238,7 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	for (const zone of ['let', 'middel', 'svær'])
 		await expect(dialog.getByText(zone, { exact: true })).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Konstant', exact: true })).toBeVisible();
-	await expect(dialog.getByLabel('Det er hovedpine')).toBeChecked();
+	await expect(dialog.getByLabel('Det er hovedpine')).toBeHidden();
 	await expect(dialog.getByRole('button', { name: 'Detaljer om hovedpinen' })).toBeVisible();
 	await expect(dialog.getByText('Lige før den startede, mærkede du ændringer i:')).toBeVisible();
 	await expect(dialog.getByRole('group', { name: 'Lysfølsom?' })).toBeVisible();
@@ -261,6 +277,7 @@ test('every head zone and wider head area shows the section, and it goes with th
 	await group(page, 'How wide an area').getByRole('button', { name: 'Whole head', exact: true }).click();
 	await expect(details(page)).toBeVisible();
 	await button(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Whole head 4', { exact: true })).toBeVisible();
 });
 

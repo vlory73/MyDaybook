@@ -95,17 +95,19 @@ export function sleepSeries(all: Iterable<Rec>, days: readonly string[]): SleepS
 
 export type MeasurementSeries = { values: Series; unit: string };
 
-/** The day's last value of a measurement type (the first number when it has several). Unit: from the newest entry. */
+/** The day's last value of a measurement type (the first number, or value `index`, when it has several). Unit: from the newest entry. */
 export function measurementSeries(
 	all: Iterable<Rec>,
 	days: readonly string[],
-	typeId: string
+	typeId: string,
+	/** Which of the entry's values to follow (0 = first; blood pressure: 0 upper, 1 lower). */
+	index = 0
 ): MeasurementSeries {
 	const mine = ofType(all, 'measurement').filter((m) => m.typeId === typeId);
 	const map = byDay(mine, (p) => p.at, days);
 	const values = perDay(map, days, (items) => {
 		const last = items.reduce((a, b) => (instant(b.at) >= instant(a.at) ? b : a));
-		return last.values[0] ?? null;
+		return last.values[index] ?? null;
 	});
 	let unit = '';
 	let newest = -Infinity;

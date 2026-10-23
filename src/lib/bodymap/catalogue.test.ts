@@ -16,6 +16,8 @@ import {
 	isRegionId,
 	regionKey,
 	regionName,
+	reportRegionKey,
+	reportRegionName,
 	shapesOf,
 	sidesOf,
 	spaceOf,
@@ -43,7 +45,7 @@ describe('catalogue', () => {
 		const main = REGIONS.filter((r) => r.views.some((v) => v === 'front' || v === 'back'));
 		expect(main.length).toBeGreaterThanOrEqual(24);
 		expect(main.length).toBeLessThanOrEqual(32);
-		expect(REGION_IDS.length).toBeLessThanOrEqual(60);
+		expect(REGION_IDS.length).toBeLessThanOrEqual(64);
 		for (const id of REGION_IDS) expect(id).toMatch(/^[a-z]+(_[a-z]+)*$/);
 	});
 
@@ -458,9 +460,52 @@ describe('wider areas', () => {
 		expect(translate('da', 'bodymap.wide.whole_back')).toBe('Hele ryggen');
 		// A wider area that was not widened from a quarter has no "this quarter".
 		expect(labels('belly', 'midline')).toEqual(['Upper belly', 'Lower belly', 'Whole belly']);
-		expect(wideOptions({ region: 'knee', side: 'left' })).toEqual([]);
 		expect(wideOptions({ region: 'chest', side: 'left' })).toEqual([]);
 		expect(wideOptions({ region: 'head', side: 'midline' })).toEqual([]);
+	});
+
+	it('offers Whole arm and Whole leg on the same side, and widens to the centre', () => {
+		const labels = (r: string, s: 'left' | 'right') =>
+			wideOptions({ region: r, side: s }).map((x) => translate('en', x.key));
+		for (const r of ['upper_arm', 'elbow', 'forearm', 'wrist'])
+			expect(labels(r, 'right'), r).toEqual(['This part', 'Whole arm']);
+		for (const r of ['thigh', 'back_of_thigh', 'knee', 'shin', 'calf', 'ankle'])
+			expect(labels(r, 'left'), r).toEqual(['This part', 'Whole leg']);
+		// Not the shoulder, hand, hip, buttock, heel or foot.
+		for (const r of ['shoulder', 'hand', 'hip_groin', 'buttock', 'heel', 'foot'])
+			expect(wideOptions({ region: r, side: 'left' }), r).toEqual([]);
+		expect(translate('da', 'bodymap.wide.whole_arm')).toBe('Hele armen');
+		expect(translate('da', 'bodymap.wide.whole_leg')).toBe('Hele benet');
+		for (const side of ['left', 'right'] as const) {
+			const thigh = { region: 'thigh', side, u: 0.3, v: 0.2 } as const;
+			const whole = wideOptions(thigh).find((o) => o.id === 'whole_leg')!;
+			const w = widen(thigh, whole);
+			expect(w.place).toEqual({ region: 'whole_leg', side, u: 0.5, v: 0.5 });
+			expect(w.origin).toEqual(thigh);
+			expect(isPlace('whole_leg', side, '2d-front-v1')).toBe(true);
+			expect(isPlace('whole_leg', side, '2d-back-v1')).toBe(true);
+			expect(isPlace('whole_arm', side, '2d-back-v1')).toBe(true);
+			expect(activeWide(w.place, wideOptions(w.place, w.origin))).toBe('whole_leg');
+			const home = wideOptions(w.place, w.origin).find((o) => o.id === 'this')!;
+			expect(widen(w.place, home, w.origin)).toEqual({ place: thigh, origin: undefined });
+		}
+		// Drawn as a highlight on both main views, one per side, and not tappable.
+		for (const view of ['front', 'back'] as const) {
+			const scene = mainScene(view);
+			for (const id of ['whole_arm', 'whole_leg'] as const) {
+				expect(
+					scene.wide
+						.filter((x) => x.region === id)
+						.map((x) => x.side)
+						.sort()
+				).toEqual(['left', 'right']);
+				expect(scene.shapes.some((x) => x.region === id)).toBe(false);
+			}
+		}
+		expect(findRegions('whole', 'en').map((c) => c.name)).toEqual(
+			expect.arrayContaining(['Your right arm (whole)', 'Your left leg (whole)'])
+		);
+		expect(findRegions('hele benet', 'da').length + findRegions('hele dit', 'da').length).toBeGreaterThan(0);
 	});
 
 	it('widens to the centre of the wider area and puts the quarter back', () => {
@@ -814,5 +859,29 @@ describe('head areas seen from the other drawing', () => {
 		expect(isPlace(front.place.region, front.place.side, front.place.space!)).toBe(true);
 		const home = wideOptions(front.place, front.origin, 'front').find((o) => o.id === 'this')!;
 		expect(widen(front.place, home, front.origin).place).toEqual(tap);
+	});
+});
+
+describe('report place names', () => {
+	it('has a neutral name for every region and side in en and da', () => {
+		for (const def of REGIONS) {
+			for (const side of sidesOf(def.id as RegionId)) {
+				const key = reportRegionKey(def.id as RegionId, side);
+				expect(en, key).toHaveProperty([key]);
+				expect(da, key).toHaveProperty([key]);
+				const nameEn = reportRegionName('en', def.id as RegionId, side);
+				const nameDa = reportRegionName('da', def.id as RegionId, side);
+				expect(nameEn.length, key).toBeGreaterThan(2);
+				expect(nameDa.length, key).toBeGreaterThan(2);
+				expect(nameEn, key).not.toMatch(/\byour\b/i);
+				expect(nameDa, key).not.toMatch(/\b(din|dit|dine)\b/i);
+			}
+		}
+	});
+	it('reads naturally', () => {
+		expect(reportRegionName('en', 'knee', 'right')).toBe('Right knee');
+		expect(reportRegionName('en', 'whole_arm', 'right')).toBe('Whole right arm');
+		expect(reportRegionName('da', 'forehead', 'right')).toBe('Højre side af panden');
+		expect(reportRegionName('da', 'lower_back', 'midline')).toBe('Lænd');
 	});
 });

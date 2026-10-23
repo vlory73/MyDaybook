@@ -54,10 +54,12 @@ test('meals with exposures, saved meals, Again? and edit; delete with undo', asy
 	await page.getByRole('button', { name: 'Gluten', exact: true }).click();
 	await page.getByRole('button', { name: 'Lactose', exact: true }).click();
 	await expect.poll(() => names(page)).toEqual(['Gluten', 'Lactose']);
-	await page.getByRole('link', { name: 'Today', exact: true }).click();
+	await page
+		.getByRole('dialog', { name: 'What I watch in food' })
+		.getByRole('button', { name: 'Close' })
+		.click();
 
-	// Log a meal with exposures and keep it as a meal eaten often.
-	await openMeal(page);
+	// Back in the same meal: log it with exposures and keep it as a meal eaten often.
 	await page.getByRole('button', { name: 'Breakfast', exact: true }).click();
 	await page.getByLabel('What did you have?').fill('Oatmeal with berries and yoghurt');
 	await page

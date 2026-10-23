@@ -90,6 +90,7 @@ async function seed(page: Page) {
 
 const openReports = async (page: Page) => {
 	await page.getByRole('link', { name: 'Reports' }).click();
+	await page.getByTestId('report-headache').click();
 	await expect(page.getByRole('heading', { name: 'Headache diary', level: 1 })).toBeVisible();
 };
 const makeReport = async (page: Page) => {

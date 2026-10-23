@@ -57,6 +57,24 @@ describe('partsOf', () => {
 		expect(keys('upper_belly', 'midline')).toEqual(['upper_belly:left', 'upper_belly:right']);
 		expect(keys('back', 'midline')).toEqual(['lower_back:midline', 'mid_back:midline', 'upper_back:midline']);
 	});
+	it('whole arm and whole leg count towards each of their parts, on their own side', () => {
+		expect(keys('whole_arm', 'left')).toEqual(['elbow:left', 'forearm:left', 'upper_arm:left', 'wrist:left']);
+		expect(keys('whole_arm', 'right')).toEqual([
+			'elbow:right',
+			'forearm:right',
+			'upper_arm:right',
+			'wrist:right'
+		]);
+		expect(keys('whole_leg', 'right')).toEqual([
+			'ankle:right',
+			'back_of_thigh:right',
+			'calf:right',
+			'knee:right',
+			'shin:right',
+			'thigh:right'
+		]);
+		expect(keys('whole_leg', 'left')).toContain('calf:left');
+	});
 	it('head areas', () => {
 		expect(keys('head_front_side', 'right')).toEqual([
 			'around_eye:right',
@@ -111,6 +129,14 @@ describe('heatmap', () => {
 		expect(h.places.get(heatKey('lower_back', 'midline'))).toMatchObject({ days: 2, avg: 4 });
 		expect(h.places.get(heatKey('upper_back', 'midline'))).toMatchObject({ days: 1, avg: 6 });
 		expect(h.places.has(heatKey('back', 'midline'))).toBe(false);
+	});
+	it('a heel on the back view counts for the whole foot, like a point in the foot close-up', () => {
+		const h = heatmap(
+			[rec(at(20), pt('heel', 'left', B, 4)), rec(at(21), pt('big_toe', 'left', '2d-foot-v1', 6))],
+			days
+		);
+		expect(h.roll.get(heatKey('foot', 'left'))).toMatchObject({ days: 2, avg: 5 });
+		expect(h.places.get(heatKey('heel', 'left'))!.days).toBe(1);
 	});
 	it('a close-up point counts for the whole head, hand or foot on the body', () => {
 		const h = heatmap(

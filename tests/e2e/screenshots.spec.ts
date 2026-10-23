@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { previousStepCode } from './totp-code';
 import { addMedWithReminder, endpointOf, stubPush } from './push-stub';
 import {
@@ -14,6 +14,7 @@ import {
 	unlockWith
 } from './helpers';
 import { at, heartRateType, heatSet, month, watchRecord, watchRecord2 } from './trends-data';
+import { addDays, todayKey } from '../../src/lib/records/time';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
 // Opt-in: SCREENSHOTS=<folder name> npx playwright test screenshots --project=phone-chromium
@@ -129,7 +130,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			// A custom measurement type with two values
 			await open('Measure');
 			await sheet.getByRole('button', { name: 'New type' }).click();
-			await sheet.getByLabel('Name, for example Blood pressure').fill('Blood pressure');
+			await sheet.getByLabel('Name, for example Temperature').fill('Ankle width');
 			await sheet.getByLabel('Unit, for example mmHg').fill('mmHg');
 			await sheet
 				.getByRole('radiogroup', { name: 'Number of values' })
@@ -184,6 +185,38 @@ for (const scheme of ['light', 'dark'] as const) {
 			await sheet.getByRole('button', { name: 'Close' }).click();
 			await page.waitForTimeout(300);
 			await snap(page, 'today-meal', scheme);
+		});
+
+		test(`meal fixes places and watch list on top ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'meal-fixes', 'meal-fixes screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			const sheet = page.getByRole('dialog', { name: 'Meal' });
+			await sheet.getByRole('button', { name: 'Lunch', exact: true }).click();
+			await sheet.getByLabel('What did you have?').fill('Packed lunch: rye bread and cheese');
+			await sheet.getByRole('button', { name: 'Work', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Work', exact: true }).scrollIntoViewIfNeeded();
+			await snap(page, 'meal-places', scheme);
+
+			await sheet.getByRole('button', { name: 'Set up your watch list' }).scrollIntoViewIfNeeded();
+			await sheet.getByRole('button', { name: 'Set up your watch list' }).click();
+			const watch = page.getByRole('dialog', { name: 'What I watch in food' });
+			await watch.getByRole('button', { name: 'Gluten', exact: true }).click();
+			await watch.getByRole('button', { name: 'Lactose', exact: true }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'watch-list-on-top', scheme);
+
+			await watch.getByRole('button', { name: 'Close' }).click();
+			await page.waitForTimeout(400);
+			await sheet.getByRole('radiogroup', { name: 'Gluten' }).scrollIntoViewIfNeeded();
+			await sheet
+				.getByRole('radiogroup', { name: 'Lactose' })
+				.getByRole('radio', { name: 'No', exact: true })
+				.click();
+			await snap(page, 'meal-after-return', scheme);
 		});
 
 		test(`log gut quick-log, sheet and today ${scheme}`, async ({ page }) => {
@@ -1010,6 +1043,168 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'pain-sheet', scheme);
 		});
 
+		test(`pain sheet fixes ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'pain-sheet-fixes', 'pain sheet fixes screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			const fig = sheet.locator('svg[role=group]');
+			const wide = sheet.getByRole('group', { name: 'How wide an area' });
+			const level = (n: number) =>
+				sheet
+					.getByRole('radiogroup', { name: /^Intensity/ })
+					.getByRole('radio', { name: String(n), exact: true })
+					.click();
+			// No headache tick on the main body.
+			await page.waitForTimeout(400);
+			await snap(page, 'main-body-no-tick', scheme);
+			await fig.getByRole('button', { name: 'Your right thigh', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole leg', exact: true }).click();
+			await level(6);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-leg', scheme);
+			// Taller than a phone, so the whole leg shows above the panel.
+			await page.setViewportSize({ width: 375, height: 1150 });
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-leg-tall', scheme);
+			await page.setViewportSize({ width: 375, height: 812 });
+			await fig.getByRole('button', { name: 'Your left forearm', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole arm', exact: true }).click();
+			await level(3);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-arm-front', scheme);
+			// Whole arm on the back view.
+			await sheet.getByRole('radio', { name: 'Back', exact: true }).click();
+			await fig.getByRole('button', { name: 'Your right forearm', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole arm', exact: true }).click();
+			await level(4);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-arm-back', scheme);
+			// Taller than a phone (as for the head zones) so the whole map and the tick show above the panel.
+			await page.setViewportSize({ width: 375, height: 1150 });
+			for (let i = 0; i < 3; i++) await sheet.getByRole('button', { name: 'Remove point' }).click();
+			await sheet.getByRole('radio', { name: 'Front', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'head-close-up-tick', scheme);
+		});
+
+		test(`pain episodes ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'pain-episodes', 'pain episodes screenshots only');
+			await prepare(page, scheme);
+			const pt = (region: string, side: string, intensity: number) => ({
+				region,
+				side,
+				space: region === 'lower_back' ? '2d-back-v1' : '2d-front-v1',
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: []
+			});
+			const knee = (intensity: number, side = 'right') => pt('knee', side, intensity);
+			const account = await signUpApiAccount(page.request);
+			const [ongoing, ended] = await seedRecords(page.request, account, [
+				{ v: 1, type: 'pain_episode', started: at(2, 9, 10) },
+				{ v: 1, type: 'pain_episode', started: at(24, 9), ended: at(18, 12) }
+			]);
+			const entry = (episode: string, daysAgo: number, hh: number, mm: number, points: object[]) => ({
+				v: 1,
+				type: 'pain',
+				at: at(daysAgo, hh, mm),
+				points,
+				episode
+			});
+			await seedRecords(page.request, account, [
+				entry(ongoing!, 2, 9, 10, [knee(4)]),
+				entry(ongoing!, 2, 21, 5, [knee(5)]),
+				entry(ongoing!, 1, 19, 40, [knee(6), knee(2, 'left')]),
+				entry(ended!, 24, 9, 0, [knee(4)]),
+				entry(ended!, 24, 21, 0, [knee(5)]),
+				entry(ended!, 23, 12, 0, [knee(6)]),
+				entry(ended!, 21, 8, 0, [knee(3)]),
+				entry(ended!, 20, 8, 0, [knee(2)]),
+				entry(ended!, 19, 8, 0, [knee(2)]),
+				entry(ended!, 18, 8, 0, [knee(1)])
+			]);
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			const card = page.getByRole('region', { name: 'Still there?' });
+			await card.waitFor({ timeout: 20_000 });
+			await snap(page, 'today-card', scheme);
+
+			await seedRecords(page.request, account, [
+				entry(ongoing!, 0, 0, 10, [knee(3)]),
+				{ v: 1, type: 'pain', at: at(0, 0, 15), points: [pt('lower_back', 'midline', 2)] }
+			]);
+			await page.reload();
+			await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+			await unlockWith(page, account.passphrase);
+			const chip = page.getByRole('button', { name: /^Open episode/ });
+			await chip.waitFor({ timeout: 20_000 });
+			await snap(page, 'timeline-chip', scheme, true);
+
+			await chip.click();
+			const episode = page.getByRole('dialog', { name: 'Your right knee' });
+			await episode.waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'episode-sheet-ongoing', scheme);
+			await page.keyboard.press('Escape');
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			await sheet
+				.locator('svg[role=group]')
+				.getByRole('button', { name: 'Your right knee', exact: true })
+				.click();
+			await sheet
+				.getByRole('radiogroup', { name: /^Intensity/ })
+				.getByRole('radio', { name: '5', exact: true })
+				.click();
+			const add = sheet.getByRole('button', { name: /^Add to / });
+			const toEnd = () => sheet.evaluate((d) => d.scrollTo(0, d.scrollHeight));
+			await toEnd();
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet-add', scheme);
+			await add.click();
+			await toEnd();
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet-linked', scheme);
+			await page.keyboard.press('Escape');
+
+			await page.getByRole('link', { name: 'Trends', exact: true }).click();
+			const episodes = page
+				.locator('section.card')
+				.filter({ has: page.getByRole('heading', { name: 'Episodes', exact: true }) });
+			await episodes.waitFor({ timeout: 20_000 });
+			await episodes.scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-episodes', scheme);
+			await episodes.getByRole('button').nth(1).click();
+			await episode.waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'episode-sheet-ended', scheme);
+		});
+
+		test(`display name ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await signUpAndSignIn(page, '/me');
+			await page.getByTestId('name-edit').click();
+			await page.getByLabel('First name').fill('Ada');
+			await page.getByLabel('Last name').fill('Example');
+			await page.waitForTimeout(400);
+			await snap(page, 'name-editor', scheme);
+			await page.getByRole('button', { name: 'Save name' }).click();
+			await expect(page.getByTestId('profile-name')).toHaveText('Ada Example');
+			await expect(page.getByText('Name saved')).toBeHidden({ timeout: 15_000 });
+			await snap(page, 'me-name', scheme);
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await expect(page.getByRole('heading', { level: 1, name: /, Ada$/ })).toBeVisible();
+			await snap(page, 'today-greeting', scheme);
+		});
+
 		test(`trends empty ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'trends', 'trends screenshots only');
 			await prepare(page, scheme);
@@ -1153,6 +1348,262 @@ for (const scheme of ['light', 'dark'] as const) {
 			await shoot(/Clean table/, 'Dansk', 'table-da', 2);
 			await shoot(/Like the paper form/, 'English', 'form-en', 2);
 			await shoot(/Like the paper form/, 'Dansk', 'form-da', 2);
+		});
+		test(`measure split ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'measure-split', 'measure-split screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const [heartRate] = await seedRecords(page.request, account, [heartRateType]);
+			void heartRate;
+			const bp = [];
+			for (let ago = 29; ago >= 0; ago -= 2) {
+				const wave = Math.sin(ago / 3);
+				bp.push({
+					v: 1,
+					type: 'measurement',
+					at: at(ago, 8),
+					typeId: 'blood_pressure',
+					values: [Math.round(126 + wave * 6), Math.round(81 + wave * 3)],
+					unit: 'mmHg',
+					context: ['morning']
+				});
+				bp.push({
+					v: 1,
+					type: 'measurement',
+					at: at(ago, 8, 5),
+					typeId: 'pulse',
+					values: [Math.round(66 + wave * 4)],
+					unit: 'bpm',
+					context: []
+				});
+			}
+			await seedRecords(page.request, account, bp);
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('button', { name: 'Log something' }).waitFor({ timeout: 20_000 });
+			const sheet = page.getByRole('dialog');
+			const open = async (tile: string) => {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: tile, exact: true }).click();
+				await page.waitForTimeout(500);
+			};
+
+			await open('Weight');
+			await sheet.getByLabel('Value', { exact: true }).fill('72.4');
+			await snap(page, 'sheet-weight', scheme);
+			await page.getByRole('button', { name: 'Close' }).click();
+
+			await open('Measure');
+			await sheet.getByRole('button', { name: 'Blood pressure', exact: true }).click();
+			await sheet.getByLabel('Upper', { exact: true }).fill('128');
+			await sheet.getByLabel('Lower', { exact: true }).fill('82');
+			await snap(page, 'sheet-measure-bp', scheme);
+			await sheet.getByRole('button', { name: 'Pulse', exact: true }).click();
+			await sheet.getByLabel('Value', { exact: true }).fill('64');
+			await snap(page, 'sheet-measure-type-list', scheme);
+			await page.getByRole('button', { name: 'Close' }).click();
+
+			await page.getByRole('link', { name: 'Trends', exact: true }).click();
+			const card = page.locator('section.card').filter({
+				has: page.getByRole('heading', { name: 'Blood pressure', exact: true })
+			});
+			await card.waitFor({ timeout: 20_000 });
+			await card.scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-blood-pressure', scheme);
+
+			if (scheme !== 'light') return;
+			await page.getByRole('link', { name: 'Reports' }).click();
+			await page.getByTestId('report-doctor').click();
+			await page.getByRole('heading', { name: 'Doctor visit', level: 1 }).waitFor({ timeout: 20_000 });
+			await page.getByLabel('Name on the report').fill('Sam Example');
+			await page.getByRole('button', { name: 'Preview report' }).click();
+			await page.getByTestId('doctor-page').first().waitFor();
+			await page.emulateMedia({ media: 'print', colorScheme: scheme });
+			await page.setViewportSize({ width: 794, height: 1123 });
+			await page.waitForTimeout(300);
+			const sheetEl = page.locator('.dsheet, .report-sheet').filter({ hasText: 'Blood pressure' }).first();
+			const box = (await sheetEl.boundingBox())!;
+			await page.screenshot({
+				path: `docs/screenshots/${folder}/doctor-report-bp.png`,
+				fullPage: true,
+				clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+			});
+		});
+
+		test(`doctor report ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'doctor-report', 'doctor report screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const start = addDays(todayKey(), -60);
+			const medBase = { v: 1, type: 'medication', times: [], start, reminders: false, archived: false };
+			const daily = (
+				name: string,
+				strength: number,
+				unit: string,
+				form: string,
+				time: string,
+				schedule: object
+			) => ({
+				...medBase,
+				name,
+				strength,
+				unit,
+				form,
+				schedule,
+				times: [{ time, amount: '1' }]
+			});
+			const [gluten, , heartRate, mg, vitD, omep, para, ibu] = await seedRecords(page.request, account, [
+				watchRecord,
+				watchRecord2,
+				heartRateType,
+				daily('Magnesium', 250, 'mg', 'tablet', '08:00', { kind: 'daily' }),
+				daily('Vitamin D', 20, 'µg', 'capsule', '08:00', { kind: 'daily' }),
+				daily('Omeprazole', 20, 'mg', 'capsule', '07:30', { kind: 'weekdays', days: [1, 3, 5] }),
+				{
+					...medBase,
+					name: 'Paracetamol',
+					strength: 500,
+					unit: 'mg',
+					form: 'tablet',
+					schedule: { kind: 'as_needed' }
+				},
+				{
+					...medBase,
+					name: 'Ibuprofen',
+					strength: 400,
+					unit: 'mg',
+					form: 'tablet',
+					schedule: { kind: 'as_needed' }
+				}
+			]);
+			const doses: object[] = [];
+			const slotDose = (id: string, ago: number, time: string, status: string) => {
+				const day = addDays(todayKey(), -ago);
+				doses.push({
+					v: 1,
+					type: 'dose',
+					at: at(ago, Number(time.slice(0, 2)), Number(time.slice(3)) + (status === 'late' ? 40 : 3)),
+					medicationId: id,
+					status,
+					amount: '1',
+					slot: { date: day, time }
+				});
+			};
+			for (let ago = 1; ago <= 29; ago++) {
+				slotDose(mg!, ago, '08:00', ago % 11 === 0 ? 'late' : 'taken');
+				slotDose(vitD!, ago, '08:00', ago === 7 || ago === 19 ? 'skipped' : ago === 12 ? 'late' : 'taken');
+				const weekday = new Date(addDays(todayKey(), -ago) + 'T12:00:00').getDay();
+				if ([1, 3, 5].includes(weekday)) slotDose(omep!, ago, '07:30', ago === 9 ? 'skipped' : 'taken');
+			}
+			for (const [id, ago, hh, mm, amount] of [
+				[para, 1, 22, 15, '500 mg'],
+				[para, 3, 21, 0, '500 mg'],
+				[para, 5, 12, 30, '1000 mg'],
+				[para, 8, 20, 10, '500 mg'],
+				[para, 11, 9, 45, '500 mg'],
+				[para, 13, 22, 0, '500 mg'],
+				[para, 16, 18, 20, '500 mg'],
+				[para, 20, 13, 0, '500 mg'],
+				[para, 24, 21, 40, '500 mg'],
+				[ibu, 6, 16, 0, '400 mg'],
+				[ibu, 14, 15, 30, '400 mg'],
+				[ibu, 18, 10, 0, '400 mg']
+			] as const) {
+				doses.push({ v: 1, type: 'dose', at: at(ago, hh, mm), medicationId: id, status: 'taken', amount });
+			}
+			const [kneeEp, backEp] = await seedRecords(page.request, account, [
+				{ v: 1, type: 'pain_episode', started: at(17, 9) },
+				{ v: 1, type: 'pain_episode', started: at(29, 9), ended: at(19, 12) }
+			]);
+			const spot = (region: string, side: string, space: string, intensity: number) => ({
+				region,
+				side,
+				space,
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: []
+			});
+			const episodes: object[] = [];
+			for (const ago of [17, 15, 12, 9, 6, 3]) {
+				episodes.push({
+					v: 1,
+					type: 'pain',
+					at: at(ago, 18),
+					points: [spot('knee', 'right', '2d-front-v1', 3 + (ago % 4))],
+					episode: kneeEp
+				});
+			}
+			for (const ago of [29, 27, 24, 21, 19]) {
+				episodes.push({
+					v: 1,
+					type: 'pain',
+					at: at(ago, 8),
+					points: [spot('lower_back', 'midline', '2d-back-v1', 4 + (ago % 3))],
+					episode: backEp
+				});
+			}
+			const notes = [
+				[2, 'Slept badly, woke twice. Knee stiff in the morning.'],
+				[9, 'Long walk with the dog, no problems afterwards.'],
+				[15, 'Started taking the vitamin with breakfast instead of lunch.']
+			].map(([ago, text]) => ({ v: 1, type: 'note', at: at(ago as number, 20), text, tags: [] }));
+			await seedRecords(page.request, account, [
+				...month(gluten!, heartRate!),
+				...heatSet(),
+				...doses,
+				...episodes,
+				...notes
+			]);
+
+			await page.goto('/reports');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('heading', { name: 'Reports', level: 1 }).waitFor({ timeout: 20_000 });
+			await snap(page, 'reports', scheme);
+
+			await page.getByTestId('report-doctor').click();
+			await page.getByRole('heading', { name: 'Doctor visit', level: 1 }).waitFor();
+			await page.getByLabel('Name on the report').fill('Sam Example');
+			await page
+				.getByLabel(/^Questions for your doctor/)
+				.fill('Is it worth changing when I take the omeprazole? The back pain is worse in the evenings.');
+			await page.getByText('3 notes').waitFor();
+			await page.setViewportSize({ width: 375, height: 1500 });
+			await snap(page, 'options', scheme, true);
+			await page.setViewportSize({ width: 375, height: 812 });
+			if (scheme !== 'light') return;
+
+			const shoot = async (language: string, file: string, headache: boolean) => {
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.getByRole('radio', { name: language }).click();
+				await page.getByRole('checkbox', { name: /^Notes/ }).setChecked(true);
+				await page.getByRole('checkbox', { name: /^Add the Headache diary pages/ }).setChecked(headache);
+				await page.getByRole('button', { name: 'Preview report' }).click();
+				await page.getByTestId('doctor-page').first().waitFor();
+				await page.emulateMedia({ media: 'print', colorScheme: scheme });
+				await page.setViewportSize({ width: 794, height: 1123 });
+				await page.waitForTimeout(300);
+				const sheets = page.locator('.dsheet, .report-sheet');
+				const total = await sheets.count();
+				console.log(`${file}: ${total} sheets`);
+				for (let i = 0; i < total; i++) {
+					await page.evaluate(() => window.scrollTo(0, 0));
+					const box = (await sheets.nth(i).boundingBox())!;
+					await page.screenshot({
+						path: `docs/screenshots/${folder}/${file}-page${i + 1}.png`,
+						fullPage: true,
+						clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+					});
+				}
+				await page.setViewportSize({ width: 375, height: 812 });
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.waitForTimeout(200);
+				if (file === 'report-en') await snap(page, 'preview', scheme);
+				await page.getByRole('button', { name: /^(Back|Tilbage)$/ }).click();
+			};
+			await shoot('English', 'report-en', false);
+			await shoot('Dansk', 'report-da', true);
 		});
 	});
 }

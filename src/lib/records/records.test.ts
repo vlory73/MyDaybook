@@ -191,3 +191,26 @@ describe('day selectors', () => {
 		expect(daysWithEntries(all, '2026-10-12', '2026-10-19').has('2026-10-19')).toBe(true);
 	});
 });
+
+describe('meal places', () => {
+	const at = '2026-10-18T12:30:00+02:00';
+	const meal = (where?: unknown) => ({
+		v: 1,
+		type: 'food',
+		at,
+		meal: 'lunch',
+		text: 'Soup',
+		tags: [],
+		where
+	});
+
+	it('accepts the old places and the new Work and School', () => {
+		for (const w of ['home', 'out', 'takeaway', 'work', 'school'])
+			expect(parsePayload(meal(w))?.type, w).toBe('food');
+		expect(parsePayload(meal(undefined))?.type).toBe('food');
+	});
+
+	it('refuses an unknown place', () => {
+		expect(parsePayload(meal('office'))).toBeNull();
+	});
+});

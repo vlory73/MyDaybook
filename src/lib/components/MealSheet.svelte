@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import Chip from './Chip.svelte';
 	import PhotoPicker from './PhotoPicker.svelte';
 	import Icon from './Icon.svelte';
 	import { iconNames, type IconName } from './icon-names';
 	import LogSheet from './LogSheet.svelte';
 	import Toggle from './Toggle.svelte';
+	import WatchListSheet from './WatchListSheet.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { PhotoDrafts } from '$lib/photos/drafts.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
-	import { closeEditors } from '$lib/records/editor.svelte';
 	import { sensitivityName } from '$lib/records/format';
 	import { allRecords, save } from '$lib/records/store.svelte';
 	import { fromLocalInput } from '$lib/records/time';
@@ -116,10 +114,8 @@
 		((iconNames as readonly string[]).includes(icon) ? icon : 'utensils') as IconName;
 	const stateLabel = (s: ExposureState) => t(`exposure.state.${s}` as MessageKey);
 
-	async function toWatchList() {
-		closeEditors();
-		await goto(resolve('/me'));
-	}
+	/** The watch list opens on top of the meal, so nothing typed is lost. */
+	let watchOpen = $state(false);
 </script>
 
 <LogSheet
@@ -185,7 +181,7 @@
 	{#if watched.length === 0}
 		<p class="muted small">
 			{t('meal.watch.none')}
-			<button type="button" class="link" onclick={toWatchList}>{t('meal.watch.setup')}</button>
+			<button type="button" class="link" onclick={() => (watchOpen = true)}>{t('meal.watch.setup')}</button>
 		</p>
 	{:else}
 		{#each watched as w (w.id)}
@@ -224,6 +220,8 @@
 		<Toggle bind:checked={saveAsMeal} label={t('meal.saveAs')} />
 	</div>
 </LogSheet>
+
+<WatchListSheet bind:open={watchOpen} />
 
 <style>
 	.inline {
