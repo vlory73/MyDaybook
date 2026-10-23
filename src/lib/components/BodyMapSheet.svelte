@@ -615,15 +615,16 @@
 
 {#snippet headache()}
 	<div class="hd">
-		<label class="tick">
-			<input
-				type="checkbox"
-				checked={hasHead || headacheTick}
-				disabled={hasHead}
-				onchange={(e) => (headacheTick = e.currentTarget.checked)}
-			/>
-			{t('headache.tick')}
-		</label>
+		{#if zoomKind === 'head' && !hasHead}
+			<label class="tick">
+				<input
+					type="checkbox"
+					checked={headacheTick}
+					onchange={(e) => (headacheTick = e.currentTarget.checked)}
+				/>
+				{t('headache.tick')}
+			</label>
+		{/if}
 		{#if showHeadache}
 			<button type="button" class="hd-head" aria-expanded={hOpen} onclick={() => (hOpen = !hOpen)}>
 				<span>{t('headache.title')}</span>

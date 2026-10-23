@@ -105,15 +105,23 @@ test('"Still going" replaces the stop time; an entry with no details opens colla
 test('"This is a headache" shows the section without a point on the head', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openSheet(page);
-	await figure(page).getByRole('button', { name: 'Your right knee', exact: true }).click();
+	// A neck-only point in the head close-up: the tick is there, the section is not.
+	await button(page, 'Head, close-up').click();
+	await sheet(page).getByRole('radio', { name: 'Back', exact: true }).click();
+	await figure(page).getByRole('button', { name: 'Right side of your neck', exact: true }).click();
 	await intensity(page, 4).click();
 	await expect(details(page)).toBeHidden();
 	await sheet(page).getByLabel('This is a headache').check();
 	await expect(details(page)).toBeVisible();
 	await sheet(page).getByLabel('Hour Started').selectOption('09');
+	// Back on the body the tick is gone but what was entered stays.
+	await button(page, 'Back to the body').click();
+	await expect(sheet(page).getByLabel('This is a headache')).toBeHidden();
+	await expect(details(page)).toBeVisible();
+	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
 	await button(page, 'Save 1 point').click();
-	await timeline(page).getByText('Your right knee 4', { exact: true }).click();
-	await expect(sheet(page).getByLabel('This is a headache')).toBeChecked();
+	await timeline(page).getByText('Right side of your neck 4', { exact: true }).click();
+	await expect(details(page)).toBeVisible();
 	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
 });
 
@@ -211,6 +219,7 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
 	const dialog = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
 	await dialog.getByRole('button', { name: 'Hoved, tæt på' }).click();
+	await expect(dialog.getByLabel('Det er hovedpine')).toBeVisible();
 	await dialog
 		.locator('svg[role=group]')
 		.getByRole('button', { name: 'Din venstre tinding', exact: true })
@@ -222,7 +231,7 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	for (const zone of ['let', 'middel', 'svær'])
 		await expect(dialog.getByText(zone, { exact: true })).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Konstant', exact: true })).toBeVisible();
-	await expect(dialog.getByLabel('Det er hovedpine')).toBeChecked();
+	await expect(dialog.getByLabel('Det er hovedpine')).toBeHidden();
 	await expect(dialog.getByRole('button', { name: 'Detaljer om hovedpinen' })).toBeVisible();
 	await expect(dialog.getByText('Lige før den startede, mærkede du ændringer i:')).toBeVisible();
 	await expect(dialog.getByRole('group', { name: 'Lysfølsom?' })).toBeVisible();
