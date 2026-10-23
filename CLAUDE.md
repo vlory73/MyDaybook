@@ -203,6 +203,7 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 | 2026-10-23 | #67 merged (`feature/display-name`, #64) with its 4 decisions as built: a last name alone is used in the greeting; "Signed in as" keeps the login name; clearing the name needs no confirmation; Danish first draft | Owner |
 | 2026-10-23 | #68 merged (`feature/meal-fixes`, #61/#62) with its 3 decisions as built: meal places are not shown on the timeline; no "go to Me" shortcut in the watch-list sheet; Danish "Arbejde"/"Skole" first drafts | Owner |
 | 2026-10-23 | CI e2e job runs in the official Playwright container (`mcr.microsoft.com/playwright:v1.56.1-noble`, Apache-2.0, CI only, D22 tooling scope) instead of installing browsers and system packages on each run; the image tag is bumped together with `@playwright/test`. Replaces re-running hung jobs by hand (#51) | Owner |
+| 2026-10-23 | #71 merged (`feature/e2e-flakes`) with its 2 decisions as recommended: no automatic retries on CI (`retries: 0` stays), and the default 5 s wait stays; flaky tests are fixed at their cause | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -306,7 +307,7 @@ _Last updated: 2026-10-23. Released: **0.7.0** (on the Pi; headache report print
   `dailySeverity`, `headacheSides`, `pulsatingOrConstant`, `nauseaLevel`). The report itself is the next branch. Screenshots in `docs/screenshots/headache-details/`.
 - **`feature/meal-fixes` (merged #68):** #61 meal places "Work" / "School" (`WHERE` in `src/lib/records/types.ts`, old values still parse); #62 "Set up your watch list" now opens `WatchListSheet.svelte` (reuses `WatchList` with `bare`) on top of the meal sheet, so the draft is kept and new items are ready to tick; `tests/e2e/meal-fixes.spec.ts`; screenshots in `docs/screenshots/meal-fixes/`.
 - **`feature/ci-browser-install` (merged #69):** the e2e job runs in the Playwright container (no browser install step).
-- **`feature/e2e-flakes` (in review):** pain-sheet specs wait for the sheet to close after Save; photo saves wait 15 s for the toast.
+- **`feature/e2e-flakes` (merged #71):** pain-sheet specs wait for the sheet to close after Save; photo saves wait 15 s for the toast. If develop CI still goes red at random, root-cause the failing test (the owner chose no automatic retries).
 - **`feature/pain-sheet-fixes` (in review):** #63 paired wider areas `whole_arm` (upper arm, elbow, forearm, wrist) and `whole_leg` (thigh, back of thigh, knee, shin, calf, ankle), offered as "This part · Whole arm / Whole leg" on the same side, one soft bar per limb on both views, heat map via `partsOf`; #66 the "This is a headache" tick shows only in the head close-up while the entry has no head point (a ticked entry keeps its Headache details); `tests/e2e/pain-sheet-fixes.spec.ts`; screenshots in `docs/screenshots/pain-sheet-fixes/` (head close-up shot at 375 x 1150).
 - **Promised to the owner:** report any change to the Pi agreement; ask about a staging copy on the Pi (Q4) only if it becomes
   relevant. The storage quota stays in the backlog ("much later").
