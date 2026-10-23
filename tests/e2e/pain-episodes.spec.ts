@@ -36,6 +36,7 @@ async function logKneeYesterday(page: Page, level = 6) {
 	await figure(page).getByRole('button', { name: 'Your right knee', exact: true }).click();
 	await intensity(page, level).click();
 	await sheet(page).getByRole('button', { name: 'Save 1 point' }).click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(toast(page, 'Saved')).toBeVisible();
 }
 
@@ -56,6 +57,7 @@ test('Same as last time starts an episode: chip, sheet, It’s gone, reopen, Unl
 	await expect(sheet(page).getByText(/^since .* · day 2$/)).toBeVisible();
 	await intensity(page, 4).click();
 	await sheet(page).getByRole('button', { name: 'Save 1 point' }).click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(toast(page, 'Saved')).toBeVisible();
 	await expect(chip(page, 2)).toBeVisible();
 
@@ -108,6 +110,7 @@ test('the normal way never joins; the sheet offers Add to the ongoing episode', 
 	await page.getByRole('region', { name: 'Still there?' }).getByRole('button', { name: 'Log today' }).click();
 	await expect(sheet(page).getByText(/^since .* · day 2$/)).toBeVisible();
 	await sheet(page).getByRole('button', { name: 'Save 1 point' }).click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(chip(page, 2)).toBeVisible();
 
 	// A new entry the normal way is not in the episode, but one tap adds it.
@@ -117,6 +120,7 @@ test('the normal way never joins; the sheet offers Add to the ongoing episode', 
 	await expect(sheet(page).getByRole('button', { name: 'Add to Your right knee (ongoing)' })).toBeVisible();
 	await expect(sheet(page).getByRole('button', { name: 'Choose episode…' })).toBeVisible();
 	await sheet(page).getByRole('button', { name: 'Save 1 point' }).click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your right knee 2', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: /Open episode/ })).toHaveCount(1);
 
@@ -126,6 +130,7 @@ test('the normal way never joins; the sheet offers Add to the ongoing episode', 
 	await expect(sheet(page).getByText(/^since .* · day 2$/)).toBeVisible();
 	await expect(sheet(page).getByRole('button', { name: 'Change' })).toBeVisible();
 	await sheet(page).getByRole('button', { name: 'Save 1 point' }).click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(page.getByRole('button', { name: /Open episode/ })).toHaveCount(2);
 
 	// Remove one entry from the episode in its sheet (it stays on the timeline).
