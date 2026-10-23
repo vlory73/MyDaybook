@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 (2026-10-23)
+
+### Features
+
+- **heatmap:** "Where it hurt" body heat map in Trends and timeline thumbnails (M5 branch 4) (#56)
+- **reports:** headache diary report, clean table and paper-form layouts (M5 branch 3) (#55)
+
 ## 0.6.0 (2026-10-22)
 
 ### Features
