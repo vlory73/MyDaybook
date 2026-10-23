@@ -710,12 +710,24 @@ function cached(key: string, make: () => Scene): Scene {
 	return scene;
 }
 
+/** A whole arm or leg is highlighted as the parts it stands for (so the highlight follows the limb); its box only places the dot. */
+function withLimbCovers(wide: Shape[], parts: readonly Shape[]): Shape[] {
+	return wide.map((w) => {
+		const names = w.region === 'whole_arm' ? ARM_PARTS : w.region === 'whole_leg' ? LEG_PARTS : null;
+		if (!names) return w;
+		return { ...w, cover: parts.filter((p) => p.side === w.side && names.includes(p.region)) };
+	});
+}
+
 export const mainScene = (view: View): Scene =>
 	cached(view, () => ({
 		space: spaceOf(view),
 		viewBox: VIEWBOXES[view],
 		shapes: build(view, view === 'front' ? FRONT : BACK),
-		wide: build(view, view === 'front' ? FRONT_WIDE : BACK_WIDE),
+		wide: withLimbCovers(
+			build(view, view === 'front' ? FRONT_WIDE : BACK_WIDE),
+			build(view, view === 'front' ? FRONT : BACK)
+		),
 		decor: [],
 		edges: edgeSides(view)
 	}));

@@ -1064,17 +1064,26 @@ for (const scheme of ['light', 'dark'] as const) {
 			await level(6);
 			await page.waitForTimeout(400);
 			await snap(page, 'whole-leg', scheme);
+			// Taller than a phone, so the whole leg shows above the panel.
+			await page.setViewportSize({ width: 375, height: 1150 });
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-leg-tall', scheme);
+			await page.setViewportSize({ width: 375, height: 812 });
+			await fig.getByRole('button', { name: 'Your left forearm', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole arm', exact: true }).click();
+			await level(3);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-arm-front', scheme);
 			// Whole arm on the back view.
 			await sheet.getByRole('radio', { name: 'Back', exact: true }).click();
-			await fig.getByRole('button', { name: 'Your left forearm', exact: true }).click();
+			await fig.getByRole('button', { name: 'Your right forearm', exact: true }).click();
 			await wide.getByRole('button', { name: 'Whole arm', exact: true }).click();
 			await level(4);
 			await page.waitForTimeout(400);
 			await snap(page, 'whole-arm-back', scheme);
 			// Taller than a phone (as for the head zones) so the whole map and the tick show above the panel.
 			await page.setViewportSize({ width: 375, height: 1150 });
-			await sheet.getByRole('button', { name: 'Remove point' }).click();
-			await sheet.getByRole('button', { name: 'Remove point' }).click();
+			for (let i = 0; i < 3; i++) await sheet.getByRole('button', { name: 'Remove point' }).click();
 			await sheet.getByRole('radio', { name: 'Front', exact: true }).click();
 			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
 			await page.waitForTimeout(400);
