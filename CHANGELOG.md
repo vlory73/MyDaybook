@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.0 (2026-10-23)
+
+### Features
+
+- **measure:** weight-only tile, built-in Blood pressure and Pulse (#78)
+- **reports:** Reports page and Doctor visit report (#76)
+- **bodymap:** whole arm and whole leg; headache tick only in the head close-up (#70)
+- **profile:** own name on Me, used in the greeting and prefilled on reports (#67)
+- **episodes:** link pain entries into episodes (#65)
+
+### Fixes
+
+- **trends:** heels on the back view open the foot close-up (#77)
+- **meals:** Work and School places; keep the meal while editing the watch list (#68)
+
+### Documentation
+
+- session handover (M5 done, 0.8.0 ready, own hostname, next: M6) (#79)
+- record the CI fixes (#69, #71) and their decisions in CLAUDE.md (#75)
+- session handover (0.7.0 released, #56 decisions, next steps, start-of-session checklist) (#60)
+
 ## 0.7.0 (2026-10-23)
 
 ### Features
