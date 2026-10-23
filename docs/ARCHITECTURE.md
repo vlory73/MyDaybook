@@ -619,7 +619,9 @@ Service workers, PWA install, Web Push and `crypto.subtle` all need a secure con
 
 **Chosen (D3): option A, using the reverse proxy you already run.** The Home Assistant stack's Caddy already holds a valid
 certificate for `lory-home.duckdns.org`, which resolves to the Pi's LAN IP. Caddy serves the app at
-`https://lory-home.duckdns.org:8444` and forwards it to the app on port 8090. Nothing is opened on the router. Remote use goes
+`https://myday.lory-home.duckdns.org` (its own name on port 443 since 2026-10-23, so password managers and later passkeys
+keep it apart from other apps on the Pi; it was `https://lory-home.duckdns.org:8444` before) and forwards it to the app on
+port 8090. Nothing is opened on the router. Remote use goes
 through the router VPN (Synology VPN Plus) today, and Tailscale later. The same URL must keep working over Tailscale (Pi as a
 subnet router, or DNS pointing there), because a PWA's identity is its origin: changing the URL means reinstalling and logging
 in again (no data is lost; the local cache holds only ciphertext). For self-hosters, A/B/C above remain the documented options.

@@ -28,14 +28,14 @@ APP INTEGRATION REQUEST
 
 These override the request above where they differ.
 
-1. **HTTPS:** Caddy serves `https://lory-home.duckdns.org:8444` and forwards to `127.0.0.1:8090`. Request bodies are allowed up to 15 MB.
+1. **HTTPS:** Caddy serves `https://myday.lory-home.duckdns.org` (port 443, chosen by name; until 2026-10-23 it was `https://lory-home.duckdns.org:8444`, see "Own hostname" below) and forwards to `127.0.0.1:8090`. Request bodies are allowed up to 15 MB.
    Caddy sends `X-Forwarded-For/-Proto/-Host` by default and writes no access log.
 2. **Port:** publish `"127.0.0.1:8090:8090"` only. There is no plain HTTP on the LAN. Health checks use `http://127.0.0.1:8090/healthz` on the Pi.
 3. **Network:** the Compose project gets a fixed subnet `172.30.90.0/24`, so `TRUSTED_PROXY=172.30.90.1` (the gateway Caddy's
    connections arrive from). The app logs the first proxy peer address it sees once at startup, so this can be verified.
 4. **HSTS:** every service on that name is HTTPS-only. Ramp up: `HSTS_MAX_AGE=86400` for the first weeks, then `31536000`.
    **No `includeSubDomains` and no `preload`** (duckdns.org is a shared domain).
-5. **Remote access:** VPN Plus now; later a Tailscale subnet router. The URL stays the same, so nobody reinstalls.
+5. **Remote access:** VPN Plus now; later a Tailscale subnet router. The URL stays the same, so nobody reinstalls (`myday.lory-home.duckdns.org` resolves to the same LAN IP, 192.168.10.52, so the subnet router covers it).
 6. **Backups:** the 04:30 job copies `~/mydaybook/backup/` to the NAS. `db/` dumps are kept 14 days, using the date in the file
    name. `blobs/` is mirrored, and deleted or changed files are kept 14 days in a dated side folder. A dump that is missing or older
    than 26 h fails the run and alerts the owner. **The file name pattern `db/app-<timestamp>.sqlite`, with the timestamp containing
@@ -68,6 +68,24 @@ peer, `172.30.90.1`, is trusted. The NAS copy of `~/mydaybook/backup/` runs at 0
 
 **Our follow-ups:** report any change to the above to the Home Assistant session, and ask the owner about a staging copy
 (question 4) only if it becomes relevant.
+
+## Own hostname (2026-10-23, #72): change to the agreement
+
+Password managers matched the app with every other app on `lory-home.duckdns.org`, so the app got its own name.
+Done and verified by the Home Assistant session:
+
+- **Address:** `https://myday.lory-home.duckdns.org` on port 443. Caddy picks the site by name (SNI) and shares 443 with Home
+  Assistant. Same settings as before: `X-Forwarded-For/-Proto/-Host` passed, bodies up to 15 MB, no access log, no HSTS from
+  Caddy (the app's own header stays, without `includeSubDomains` or `preload`). Backend unchanged: `127.0.0.1:8090`.
+- **Certificate:** its own Let's Encrypt certificate via the same DuckDNS DNS-01 challenge (nothing exposed inbound), renewed
+  automatically by Caddy.
+- **`.env`:** only `PUBLIC_URL=https://myday.lory-home.duckdns.org` changed. `TRUSTED_PROXY` stays `172.30.90.1`.
+- **Old address:** `https://lory-home.duckdns.org:8444` answers with a 308 redirect to the same path on the new name. It stays
+  until the owner says everyone has moved (about 2 weeks); then the HA session removes it and port 8444 is free. 8445 stays
+  reserved for a staging copy, if ever.
+- **For each person:** install the app again from the new address (Share → Add to Home Screen), sign in once, and switch
+  reminders on again on Me (push is bound to the address). Diary data on the server is not affected.
+- **Pi rule from now on:** new apps on the Pi get their own sub-name (`<app>.lory-home.duckdns.org`) instead of their own port.
 
 ## Reminders (0.3.0): change to the agreement
 
