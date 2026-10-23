@@ -12,6 +12,7 @@ export { default as DrinkSheet } from './DrinkSheet.svelte';
 export { default as DueDoses } from './DueDoses.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as EntryDetailSheet } from './EntryDetailSheet.svelte';
+export { default as EpisodeSheet } from './EpisodeSheet.svelte';
 export { default as FeelingSheet } from './FeelingSheet.svelte';
 export { default as GutSheet } from './GutSheet.svelte';
 export { default as HeatMapCard } from './HeatMapCard.svelte';

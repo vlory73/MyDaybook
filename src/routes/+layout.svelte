@@ -30,6 +30,7 @@
 		DoseSheet,
 		DrinkSheet,
 		EntryDetailSheet,
+		EpisodeSheet,
 		FeelingSheet,
 		Hero,
 		Icon,
@@ -262,6 +263,7 @@
 	<DrinkSheet />
 	<MealSheet />
 	<EntryDetailSheet />
+	<EpisodeSheet />
 	<PhotoViewer />
 {/if}
 
