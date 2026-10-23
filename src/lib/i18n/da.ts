@@ -101,6 +101,7 @@ export const da: Record<MessageKey, string> = {
 		'Den er ikke medicinsk udstyr. Den giver ingen råd, ingen diagnoser, ingen dosisberegninger og ingen advarsler ud fra dine værdier. Tal med en læge eller et apotek om alt, der bekymrer dig.',
 	'me.about.privacy':
 		'Alt, hvad du skriver, krypteres på din enhed, før det gemmes. Ingen andre kan læse det, heller ikke den, der driver serveren.',
+	'me.about.version': 'Version {version}',
 	'me.about.licence': 'Licenseret under PolyForm Noncommercial License 1.0.0.',
 	'me.theme.heading': 'Udseende',
 	'me.theme.system': 'Automatisk',
