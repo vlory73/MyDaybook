@@ -538,7 +538,7 @@
 									>{t('trends.episodes.line', {
 										range: episodeRange(i18n.locale, ep),
 										days: tn('trends.days', ep.spanDays),
-										avg: ep.average === null ? '–' : num(ep.average)
+										avg: ep.average === null ? '–' : num(Math.round(ep.average))
 									})}</span
 								>
 							</button>
