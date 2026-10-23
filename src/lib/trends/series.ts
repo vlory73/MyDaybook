@@ -5,7 +5,7 @@
  * A record belongs to the local day written in its `at`, as on the timeline; a night belongs to the wake-up day.
  */
 import type { StoredRecord } from '$lib/records/codec';
-import type { DosePayload, GutPayload, Payload } from '$lib/records/types';
+import { isNap, type DosePayload, type GutPayload, type Payload } from '$lib/records/types';
 import type { PainPayload } from '$lib/records/pain';
 import { dayKey, instant, minutesBetween } from '$lib/records/time';
 
@@ -64,31 +64,52 @@ export function feelingSeries(all: Iterable<Rec>, days: readonly string[]): Feel
 // ---- Sleep ----
 
 export type SleepSeries = {
-	/** Minutes slept per night, on the wake-up day (several sleeps on one day are added up). */
+	/** Minutes slept per main sleep, on the wake-up day (several main sleeps on one day are added up). Naps are not in here. */
 	minutes: Series;
-	/** Quality 1 to 5 of that night (the longest sleep that has one), or null. */
+	/** Minutes napped per day (the day of waking), or null. */
+	napMinutes: Series;
+	/** Quality 1 to 5 of that night (the longest night that has one), or null. */
 	quality: Series;
 	/** Average minutes over nights with data, or null. */
 	averageMinutes: number | null;
+	/** Number of naps in the period and their average length in minutes (null without naps). */
+	napCount: number;
+	napAverageMinutes: number | null;
 	/** Number of nights per quality 1 to 5. */
 	qualityCounts: [number, number, number, number, number];
 };
 
 export function sleepSeries(all: Iterable<Rec>, days: readonly string[]): SleepSeries {
-	const map = byDay(ofType(all, 'sleep'), (p) => p.at, days);
-	const minutes = perDay(map, days, (items) =>
-		items.reduce((sum, s) => sum + minutesBetween(s.asleepAt, s.at), 0)
+	const sleeps = ofType(all, 'sleep');
+	const nightMap = byDay(
+		sleeps.filter((p) => !isNap(p)),
+		(p) => p.at,
+		days
 	);
-	const quality = perDay(map, days, (items) => {
+	const napList = sleeps.filter(isNap);
+	const napMap = byDay(napList, (p) => p.at, days);
+	const length = (s: { asleepAt: string; at: string }) => minutesBetween(s.asleepAt, s.at);
+	const minutes = perDay(nightMap, days, (items) => items.reduce((sum, s) => sum + length(s), 0));
+	const napMinutes = perDay(napMap, days, (items) => items.reduce((sum, s) => sum + length(s), 0));
+	const quality = perDay(nightMap, days, (items) => {
 		const rated = items.filter((s) => s.quality !== undefined);
 		if (rated.length === 0) return null;
-		rated.sort((a, b) => minutesBetween(b.asleepAt, b.at) - minutesBetween(a.asleepAt, a.at));
+		rated.sort((a, b) => length(b) - length(a));
 		return rated[0]!.quality!;
 	});
 	const counts: [number, number, number, number, number] = [0, 0, 0, 0, 0];
 	for (const q of present(quality)) counts[q - 1]!++;
 	const nights = present(minutes);
-	return { minutes, quality, averageMinutes: nights.length > 0 ? mean(nights) : null, qualityCounts: counts };
+	const napsInPeriod = [...napMap.values()].flat();
+	return {
+		minutes,
+		napMinutes,
+		quality,
+		averageMinutes: nights.length > 0 ? mean(nights) : null,
+		napCount: napsInPeriod.length,
+		napAverageMinutes: napsInPeriod.length > 0 ? mean(napsInPeriod.map(length)) : null,
+		qualityCounts: counts
+	};
 }
 
 // ---- Measurements ----

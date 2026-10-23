@@ -15,7 +15,14 @@ import { store } from './store.svelte';
 import type { StoredRecord } from './codec';
 import type { TimedPayload } from './types';
 
-export type Described = { category: Category; title: string; summary: string; tags?: string[] };
+export type Described = {
+	category: Category;
+	title: string;
+	summary: string;
+	tags?: string[];
+	/** A nap: shown with the nap icon on a lighter sleep tile. */
+	nap?: boolean;
+};
 
 /** Resolves record ids to names: custom measurement types and watch-list items. */
 export type Names = {
@@ -81,6 +88,17 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 			};
 		}
 		case 'sleep':
+			if (p.kind === 'nap')
+				return {
+					category: 'sleep',
+					nap: true,
+					title: t('fmt.nap.title', { duration: formatDuration(minutesBetween(p.asleepAt, p.at)) }),
+					summary: join([
+						t('fmt.sleep.range', { from: clock(p.asleepAt), to: clock(p.at) }),
+						p.quality !== undefined && t('fmt.quality', { n: p.quality }),
+						p.note && firstLine(p.note)
+					])
+				};
 			return {
 				category: 'sleep',
 				title: t('fmt.sleep.title', { duration: formatDuration(minutesBetween(p.asleepAt, p.at)) }),

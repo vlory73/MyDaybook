@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Naps as separate entries: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+body.board { padding: 24px; min-height: 0; width: max-content; }
+.board-title { font-size: 22px; font-weight: var(--fw-bold); }
+.board-sub { color: var(--text-2); margin: 4px 0 24px; font-size: var(--fs-callout); }
+.row { display: flex; gap: 32px; align-items: flex-start; width: max-content; }
+.row + .row { margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--line); }
+.frame { margin: 0; width: 375px; }
+.phone-wrap { border-radius: 36px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), var(--shadow-2); background: var(--bg); }
+.frame figcaption { margin-top: 12px; font-size: var(--fs-footnote); color: var(--text-2); line-height: 1.4; }
+.frame figcaption b { color: var(--text); }
+.frame.dark figcaption { color: #5f5666; } .frame.dark figcaption b { color: #2a2430; }
+.frame.dark { color: var(--text); }
+.statusbar { position: relative; z-index: 60; }
+.hint { margin: var(--sp-2) 0 0; }
+.row2 { display: flex; gap: var(--sp-2); } .row2 .btn { flex: 1; }
+.sum { text-align: center; padding: var(--sp-3) 0 var(--sp-4); }
+.sum .big { font-size: var(--fs-display); font-weight: var(--fw-bold); line-height: 1.1; }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.tcard { background: var(--sleep-tint); color: var(--sleep-ink); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); }
+.tcard .v { font-size: var(--fs-title2); font-weight: var(--fw-bold); color: var(--text); }
+.tcard .k { display: flex; gap: 6px; align-items: center; font-size: var(--fs-footnote); font-weight: var(--fw-semibold); }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button { height: 46px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2); font-weight: var(--fw-semibold); }
+.scale button.on { background: var(--sleep-tint); color: var(--sleep-ink); box-shadow: inset 0 0 0 2px var(--sleep-ink); }
+.ends { display: flex; justify-content: space-between; font-size: var(--fs-caption); color: var(--text-3); margin-top: 4px; }
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl li { display: grid; grid-template-columns: 46px 40px 1fr; gap: var(--sp-3); align-items: start; padding: 10px 0; }
+.tl time { font-size: var(--fs-footnote); color: var(--text-2); padding-top: 10px; font-weight: var(--fw-medium); }
+.tl .t { font-weight: var(--fw-semibold); } .tl .s { font-size: var(--fs-callout); color: var(--text-2); }
+.cat-nap { background: color-mix(in srgb, var(--sleep-tint) 55%, var(--surface)); }
+.chart { display: block; width: 100%; height: auto; margin-top: var(--sp-3); overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .tick { stroke: var(--text-3); stroke-width: 1; }
+.chart .ax { font-size: 11px; fill: var(--text-2); font-family: var(--font-sans); }
+.chart .sbar { fill: var(--sleep-ink); opacity: .85; }
+.chart .ndot { fill: var(--surface); stroke: var(--sleep-ink); stroke-width: 2; }
+.napsum { display: flex; gap: var(--sp-3); align-items: center; margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--line); font-size: var(--fs-callout); }
+.dark {
+    --bg: #16131a;
+    --surface: #211d25;
+    --surface-2: #2a2530;
+    --surface-3: #352f3b;
+    --line: #3b3441;
+    --text: #f4eff2;
+    --text-2: #bdb3c1;
+    --text-3: #978c9b;
+    --primary: #f08f68;
+    --primary-press: #f6a585;
+    --on-primary: #2b1309;
+    --primary-soft: #43271d;
+    --focus: #8cbcf0;
+    --scrim: rgb(0 0 0 / 0.55);
+    --food-tint: #3b2a1b;  --food-ink: #f5c591;
+    --feel-tint: #2e2843;  --feel-ink: #cfc1f6;
+    --sleep-tint: #252c45; --sleep-ink: #b5c3f2;
+    --measure-tint: #1e3141; --measure-ink: #a8d2ef;
+    --pain-tint: #3e2329;  --pain-ink: #f5b0b6;
+    --meds-tint: #1f3329;  --meds-ink: #a9dabd;
+    --note-tint: #34301f;  --note-ink: #e4d4a7;
+    --gut-tint: #2b3120;   --gut-ink: #c9d89a;
+    --heat-0: #2a2530;
+    --heat-1: #4a3428;
+    --heat-2: #7a4a34;
+    --heat-3: #b0603f;
+    --heat-4: #dc7a5c;
+    --heat-5: #f0a07f;
+    --heat-6: #fbd0b3;
+    --on-heat-hi: #2b1309;
+    --on-heat-1: #f4eff2;
+    --on-heat-2: #f4eff2;
+    --on-heat-3: #ffffff;
+    --on-heat-4: #16101a;
+    --on-heat-5: #16101a;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-2: 0 6px 18px rgb(0 0 0 / 0.45);
+    --shadow-fab: 0 6px 18px rgb(240 143 104 / 0.25), 0 2px 4px rgb(0 0 0 / 0.4);
+}
+
+</style>
+</head>
+<body class="board">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="nap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="15" r="3.5"/><path d="M9 8.5v1"/><path d="M2.5 15h1"/><path d="M4.4 10.4l.7.7"/><path d="M4.4 19.6l.7-.7"/><path d="M9 21.5v-1"/><path d="M14 4h6l-6 7h6"/></symbol></svg>
+<h1 class="board-title">Naps as separate entries</h1>
+<p class="board-sub">Synthetic data. A nap becomes its own sleep entry instead of living inside the night. Light mode above, dark mode of frames 1 and 2 below.</p>
+<div class="row"><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-label="Sleep" style="top:52px; overflow:hidden"><div class="grabber"></div><div class="sheet-head" style="margin-bottom:var(--sp-3)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Sleep</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> Today 07:30</span></div>
+<div class="segmented" role="tablist" aria-label="Kind of sleep"><button role="tab" class="on">Night</button><button role="tab" class="">Nap</button></div><p class="small muted hint">Picked from the time. Tap to change.</p>
+<div class="sum"><div class="big">7 h 20 min</div><div class="muted small">Last night · filled in from your usual times</div></div>
+<div class="times">
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#moon"/></svg> Fell asleep</div><div class="v">23:50</div><div class="small">Saturday</div></div>
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sunrise"/></svg> Woke up</div><div class="v">07:10</div><div class="small">Sunday</div></div></div>
+<p class="label">How did you sleep?</p><div class="scale"><button class="" aria-label="Quality 1 of 5">1</button><button class="" aria-label="Quality 2 of 5">2</button><button class="" aria-label="Quality 3 of 5">3</button><button class="on" aria-label="Quality 4 of 5">4</button><button class="" aria-label="Quality 5 of 5">5</button></div><div class="ends"><span>Restless</span><span>Rested</span></div>
+<p class="label">Woke up during the night</p>
+<div class="segmented"><button>0</button><button class="on">1</button><button>2</button><button>3+</button></div>
+<div class="row2" style="margin-top:var(--sp-4)"><button class="btn btn-quiet"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg> Note</button></div>
+<button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save</button></section>
+<div class="home-indicator"></div></div></div><figcaption><b>1. Sleep sheet, Night.</b> Opened at 07:30. Night | Nap is picked from the time of day, and a tap changes it. Same fields as today, but no "+ Nap" button.</figcaption></figure><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-label="Sleep" style="top:52px; overflow:hidden"><div class="grabber"></div><div class="sheet-head" style="margin-bottom:var(--sp-3)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Sleep</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> Today 14:10</span></div>
+<div class="segmented" role="tablist" aria-label="Kind of sleep"><button role="tab" class="">Night</button><button role="tab" class="on">Nap</button></div><p class="small muted hint">Picked from the time. Tap to change.</p>
+<div class="sum"><div class="big">45 min</div><div class="muted small">A short sleep during the day</div></div>
+<div class="times">
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#moon"/></svg> Fell asleep</div><div class="v">13:20</div><div class="small">Today</div></div>
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sunrise"/></svg> Woke up</div><div class="v">14:05</div><div class="small">Today</div></div></div>
+<p class="label">How did you rest? <span class="hint">Optional</span></p><div class="scale"><button class="" aria-label="Quality 1 of 5">1</button><button class="" aria-label="Quality 2 of 5">2</button><button class="" aria-label="Quality 3 of 5">3</button><button class="" aria-label="Quality 4 of 5">4</button><button class="" aria-label="Quality 5 of 5">5</button></div><div class="ends"><span>Restless</span><span>Rested</span></div>
+<div class="row2" style="margin-top:var(--sp-4)"><button class="btn btn-quiet"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg> Note</button></div>
+<button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save nap</button></section>
+<div class="home-indicator"></div></div></div><figcaption><b>2. Sleep sheet, Nap.</b> Opened at 14:10. Fell asleep and woke up, duration, optional quality (can stay empty), note. No awakenings. The button says "Save nap".</figcaption></figure><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content">
+<header class="page-head"><div><p class="eyebrow">Sunday 18 October</p><h1 class="large-title">Good morning, Sam</h1></div></header>
+<h2 class="section-title">Today</h2>
+<ol class="tl">
+<li><time>07:10</time><span class="cat cat-sleep"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg></span><div><div class="t">Slept 7 h 20 min</div><div class="s">23:50 to 07:10 · rested</div></div></li>
+<li><time>08:10</time><span class="cat cat-food"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg></span><div><div class="t">Breakfast</div><div class="s">Oatmeal with berries</div></div></li>
+<li><time>12:30</time><span class="cat cat-food"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg></span><div><div class="t">Lunch</div><div class="s">Soup and rye bread</div></div></li>
+<li><time>14:05</time><span class="cat cat-sleep cat-nap"><svg class="i" aria-hidden="true"><use href="#nap"/></svg></span><div><div class="t">Nap 45 min</div><div class="s">13:20 to 14:05</div></div></li>
+</ol>
+<p class="small muted" style="margin-top:var(--sp-3)">Proposed nap icon: a small sun with a "z", in the same stroke style, on a lighter sleep tile.</p>
+</main><nav class="tabbar" aria-label="Main">
+<button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>3. Today timeline.</b> A night and a nap are two entries. Proposed nap icon: a small sun with a "z" (new, same stroke style; no existing icon fits). Alternative: reuse the bed icon.</figcaption></figure><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content">
+<header class="page-head"><h1 class="large-title">Trends</h1></header>
+<div class="segmented" style="margin-bottom:var(--sp-4)"><button>7 days</button><button class="on">30 days</button><button>90 days</button><button>Custom</button></div>
+<section class="card"><div class="card-title">Sleep</div><div class="card-sub">Average 7 h 19 min per night · hours per night</div>
+<svg class="chart" viewBox="0 0 311 192" role="img" aria-label="Hours of sleep per night over 30 days, between 6.5 and 8.2 hours. Small circles under the bars mark the 6 days with a nap."><line x1="30" x2="305" y1="140" y2="140" class="grid"/><text x="24" y="144" text-anchor="end" class="ax">0 h</text><line x1="30" x2="305" y1="85" y2="85" class="grid"/><text x="24" y="89" text-anchor="end" class="ax">5 h</text><line x1="30" x2="305" y1="30" y2="30" class="grid"/><text x="24" y="34" text-anchor="end" class="ax">10 h</text><rect x="35.2" y="58.6" width="5.6" height="81.4" rx="2" class="sbar"/><rect x="44.1" y="61.9" width="5.6" height="78.1" rx="2" class="sbar"/><rect x="53.0" y="65.2" width="5.6" height="74.8" rx="2" class="sbar"/><rect x="61.9" y="56.4" width="5.6" height="83.6" rx="2" class="sbar"/><rect x="70.8" y="52.0" width="5.6" height="88.0" rx="2" class="sbar"/><rect x="79.7" y="60.8" width="5.6" height="79.2" rx="2" class="sbar"/><rect x="88.6" y="68.5" width="5.6" height="71.5" rx="2" class="sbar"/><rect x="97.5" y="59.7" width="5.6" height="80.3" rx="2" class="sbar"/><rect x="106.4" y="57.5" width="5.6" height="82.5" rx="2" class="sbar"/><rect x="115.3" y="63.0" width="5.6" height="77.0" rx="2" class="sbar"/><rect x="124.2" y="50.9" width="5.6" height="89.1" rx="2" class="sbar"/><rect x="133.1" y="58.6" width="5.6" height="81.4" rx="2" class="sbar"/><rect x="142.0" y="64.1" width="5.6" height="75.9" rx="2" class="sbar"/><rect x="150.9" y="60.8" width="5.6" height="79.2" rx="2" class="sbar"/><rect x="159.8" y="55.3" width="5.6" height="84.7" rx="2" class="sbar"/><rect x="168.7" y="59.7" width="5.6" height="80.3" rx="2" class="sbar"/><rect x="177.6" y="67.4" width="5.6" height="72.6" rx="2" class="sbar"/><rect x="186.5" y="63.0" width="5.6" height="77.0" rx="2" class="sbar"/><rect x="195.4" y="54.2" width="5.6" height="85.8" rx="2" class="sbar"/><rect x="204.3" y="49.8" width="5.6" height="90.2" rx="2" class="sbar"/><rect x="213.2" y="61.9" width="5.6" height="78.1" rx="2" class="sbar"/><rect x="222.1" y="58.6" width="5.6" height="81.4" rx="2" class="sbar"/><rect x="231.0" y="57.5" width="5.6" height="82.5" rx="2" class="sbar"/><rect x="239.9" y="65.2" width="5.6" height="74.8" rx="2" class="sbar"/><rect x="248.8" y="60.8" width="5.6" height="79.2" rx="2" class="sbar"/><rect x="257.7" y="56.4" width="5.6" height="83.6" rx="2" class="sbar"/><rect x="266.6" y="59.7" width="5.6" height="80.3" rx="2" class="sbar"/><rect x="275.5" y="63.0" width="5.6" height="77.0" rx="2" class="sbar"/><rect x="284.4" y="53.1" width="5.6" height="86.9" rx="2" class="sbar"/><rect x="293.3" y="59.7" width="5.6" height="80.3" rx="2" class="sbar"/><text x="24" y="166" text-anchor="end" class="ax">Naps</text><circle cx="64.7" cy="162" r="3.5" class="ndot"/><circle cx="109.2" cy="162" r="3.5" class="ndot"/><circle cx="118.1" cy="162" r="3.5" class="ndot"/><circle cx="162.6" cy="162" r="3.5" class="ndot"/><circle cx="224.9" cy="162" r="3.5" class="ndot"/><circle cx="278.3" cy="162" r="3.5" class="ndot"/><line x1="38" x2="38" y1="140" y2="144" class="tick"/><text x="34" y="186" text-anchor="start" class="ax">23 Sep</text><line x1="127" x2="127" y1="140" y2="144" class="tick"/><text x="127" y="186" text-anchor="middle" class="ax">3 Oct</text><line x1="216" x2="216" y1="140" y2="144" class="tick"/><text x="216" y="186" text-anchor="middle" class="ax">13 Oct</text><line x1="296.1" x2="296.1" y1="140" y2="144" class="tick"/><text x="300.1" y="186" text-anchor="end" class="ax">22 Oct</text></svg>
+<div class="napsum"><span class="cat cat-sleep" style="width:28px;height:28px;border-radius:9px"><svg class="i i-sm" aria-hidden="true"><use href="#nap"/></svg></span><div><b>Naps: 6 in this period</b><div class="small muted">40 min on average</div></div></div>
+</section></main><nav class="tabbar" aria-label="Main">
+<button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>4. Trends, Sleep card.</b> Nights chart as today. Small circles under it mark days with a nap, and one plain row gives the count and average. No targets or judgements.</figcaption></figure><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content" style="opacity:.55">
+<header class="page-head"><div><p class="eyebrow">Sunday 18 October</p><h1 class="large-title">Good morning, Sam</h1></div></header>
+<h2 class="section-title">Today</h2>
+<ol class="tl"><li><time>07:10</time><span class="cat cat-sleep"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg></span><div><div class="t">Slept 7 h 20 min</div><div class="s">23:50 to 07:10 · rested</div></div></li>
+<li><time>14:05</time><span class="cat cat-sleep cat-nap"><svg class="i" aria-hidden="true"><use href="#nap"/></svg></span><div><div class="t">Nap 45 min</div><div class="s">13:20 to 14:05</div></div></li></ol></main>
+<div class="toast" role="status"><span class="grow">Your naps are now separate entries.</span><button><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#check"/></svg> OK</button></div>
+<nav class="tabbar" aria-label="Main">
+<button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>5. One-time notice (may be dropped).</b> Shown once after the update turns naps stored inside a night into their own entries.</figcaption></figure></div>
+<div class="row"><figure class="frame dark"><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-label="Sleep" style="top:52px; overflow:hidden"><div class="grabber"></div><div class="sheet-head" style="margin-bottom:var(--sp-3)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Sleep</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> Today 07:30</span></div>
+<div class="segmented" role="tablist" aria-label="Kind of sleep"><button role="tab" class="on">Night</button><button role="tab" class="">Nap</button></div><p class="small muted hint">Picked from the time. Tap to change.</p>
+<div class="sum"><div class="big">7 h 20 min</div><div class="muted small">Last night · filled in from your usual times</div></div>
+<div class="times">
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#moon"/></svg> Fell asleep</div><div class="v">23:50</div><div class="small">Saturday</div></div>
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sunrise"/></svg> Woke up</div><div class="v">07:10</div><div class="small">Sunday</div></div></div>
+<p class="label">How did you sleep?</p><div class="scale"><button class="" aria-label="Quality 1 of 5">1</button><button class="" aria-label="Quality 2 of 5">2</button><button class="" aria-label="Quality 3 of 5">3</button><button class="on" aria-label="Quality 4 of 5">4</button><button class="" aria-label="Quality 5 of 5">5</button></div><div class="ends"><span>Restless</span><span>Rested</span></div>
+<p class="label">Woke up during the night</p>
+<div class="segmented"><button>0</button><button class="on">1</button><button>2</button><button>3+</button></div>
+<div class="row2" style="margin-top:var(--sp-4)"><button class="btn btn-quiet"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg> Note</button></div>
+<button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save</button></section>
+<div class="home-indicator"></div></div></div><figcaption><b>1. Sleep sheet, Night.</b> Opened at 07:30. Night | Nap is picked from the time of day, and a tap changes it. Same fields as today, but no "+ Nap" button.</figcaption></figure><figure class="frame dark"><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div>
+<section class="sheet" role="dialog" aria-label="Sleep" style="top:52px; overflow:hidden"><div class="grabber"></div><div class="sheet-head" style="margin-bottom:var(--sp-3)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Sleep</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> Today 14:10</span></div>
+<div class="segmented" role="tablist" aria-label="Kind of sleep"><button role="tab" class="">Night</button><button role="tab" class="on">Nap</button></div><p class="small muted hint">Picked from the time. Tap to change.</p>
+<div class="sum"><div class="big">45 min</div><div class="muted small">A short sleep during the day</div></div>
+<div class="times">
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#moon"/></svg> Fell asleep</div><div class="v">13:20</div><div class="small">Today</div></div>
+<div class="tcard"><div class="k"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#sunrise"/></svg> Woke up</div><div class="v">14:05</div><div class="small">Today</div></div></div>
+<p class="label">How did you rest? <span class="hint">Optional</span></p><div class="scale"><button class="" aria-label="Quality 1 of 5">1</button><button class="" aria-label="Quality 2 of 5">2</button><button class="" aria-label="Quality 3 of 5">3</button><button class="" aria-label="Quality 4 of 5">4</button><button class="" aria-label="Quality 5 of 5">5</button></div><div class="ends"><span>Restless</span><span>Rested</span></div>
+<div class="row2" style="margin-top:var(--sp-4)"><button class="btn btn-quiet"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg> Note</button></div>
+<button class="btn btn-primary btn-block" style="margin-top:var(--sp-3)">Save nap</button></section>
+<div class="home-indicator"></div></div></div><figcaption><b>2. Sleep sheet, Nap.</b> Opened at 14:10. Fell asleep and woke up, duration, optional quality (can stay empty), note. No awakenings. The button says "Save nap".</figcaption></figure></div>
+</body>
+</html>

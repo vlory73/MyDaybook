@@ -140,10 +140,11 @@ const tables: { [K in Payload['type']]?: Builder<K> } = {
 	},
 	sleep: {
 		file: 'sleep.csv',
-		columns: ['id', 'woke_at', 'asleep_at', 'quality', 'awakenings', 'naps', 'note', 'photos'],
+		columns: ['id', 'kind', 'woke_at', 'asleep_at', 'quality', 'awakenings', 'naps', 'note', 'photos'],
 		rows: ({ id, payload: p }, _c, photos) => [
 			[
 				id,
+				p.kind ?? 'main',
 				p.at,
 				p.asleepAt,
 				p.quality,

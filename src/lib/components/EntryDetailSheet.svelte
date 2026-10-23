@@ -23,7 +23,7 @@
 >
 	{#if shown}
 		<div class="row">
-			<CategoryBadge category={shown.category} size={40} />
+			<CategoryBadge category={shown.category} nap={shown.nap} size={40} />
 			<div>
 				<p class="time">{timeOf(shown.at)}</p>
 				{#if shown.summary}<p class="summary">{shown.summary}</p>{/if}

@@ -10,6 +10,7 @@ import {
 	median,
 	nightFor,
 	parseNumber,
+	sleepKindByHour,
 	sleepProblem,
 	stepValue,
 	usualNight
@@ -226,5 +227,39 @@ describe('built-in measures', () => {
 	it('keeps old entries and an own "Blood pressure" type working', () => {
 		expect(m('weight', [72.4], 'kg')).not.toBeNull();
 		expect(m('some-record-id', [120, 80], 'mmHg')).not.toBeNull();
+	});
+});
+
+describe('night or nap from the time of day', () => {
+	it('picks Nap from 10:00 to 19:59 and Night otherwise', () => {
+		expect([0, 4, 9].map(sleepKindByHour)).toEqual(['main', 'main', 'main']);
+		expect([10, 13, 19].map(sleepKindByHour)).toEqual(['nap', 'nap', 'nap']);
+		expect([20, 23].map(sleepKindByHour)).toEqual(['main', 'main']);
+	});
+	it('leaves naps out of the usual night and the Last night option', () => {
+		const nap: SleepPayload = {
+			v: 1,
+			type: 'sleep',
+			kind: 'nap',
+			asleepAt: '2026-10-18T13:00:00+02:00',
+			at: '2026-10-18T13:45:00+02:00'
+		};
+		expect(usualNight([nap])).toEqual({ asleep: '23:00', wake: '07:00' });
+		const night = sleep('2026-10-17T23:30:00+02:00', '2026-10-18T07:30:00+02:00');
+		expect(usualNight([night, nap])).toEqual({ asleep: '23:30', wake: '07:30' });
+		const all = [
+			{ id: 'n', rev: 1, updatedAt: 1, payload: nap },
+			{ id: 'm', rev: 1, updatedAt: 1, payload: night }
+		];
+		// A nap today does not hide the option; a night ending today would.
+		expect(againOptions(all, new Date('2026-10-18T14:00:00+02:00')).some((o) => o.kind === 'sleep')).toBe(
+			false
+		);
+		expect(
+			againOptions([all[0]!], new Date('2026-10-18T14:00:00+02:00')).some((o) => o.kind === 'sleep')
+		).toBe(false);
+		expect(
+			againOptions([all[1]!], new Date('2026-10-19T14:00:00+02:00')).some((o) => o.kind === 'sleep')
+		).toBe(true);
 	});
 });
