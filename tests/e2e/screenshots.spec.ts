@@ -1608,3 +1608,83 @@ for (const scheme of ['light', 'dark'] as const) {
 		});
 	});
 }
+
+// Naps as separate sleep entries (SCREENSHOTS=naps): sheets, timeline, Trends sleep card, doctor report.
+for (const scheme of ['light', 'dark'] as const) {
+	test(`naps ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'naps', 'naps screenshots only');
+		await prepare(page, scheme);
+		await page.goto('/'); // the server creates its database on the first request
+		const account = await signUpApiAccount(page.request);
+		const records: object[] = [];
+		for (let d = 0; d <= 24; d++) {
+			records.push({
+				v: 1,
+				type: 'sleep',
+				asleepAt: at(d + 1, 23, 20 + ((d * 7) % 50)),
+				at: at(d, 6, 40 + ((d * 5) % 40)),
+				...(d % 3 === 0 ? { quality: 3 + (d % 3) } : {})
+			});
+			if (d % 4 === 1 || d === 0)
+				records.push({
+					v: 1,
+					type: 'sleep',
+					kind: 'nap',
+					asleepAt: at(d, 13, 20),
+					at: at(d, 13, 20 + 30 + ((d * 5) % 40))
+				});
+		}
+		await seedRecords(page.request, account, records);
+		await page.goto('/');
+		await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+		await unlockWith(page, account.passphrase);
+		await page
+			.getByText('Nap 45 min')
+			.or(page.getByText(/^Nap \d/))
+			.first()
+			.waitFor({ timeout: 20_000 });
+		await page.waitForTimeout(400);
+		await snap(page, 'timeline', scheme);
+
+		const sheet = page.getByRole('dialog');
+		await page.getByRole('button', { name: 'Log something' }).click();
+		await page.getByRole('button', { name: 'Sleep', exact: true }).click();
+		await sheet.getByRole('radio', { name: 'Main sleep' }).click();
+		await sheet
+			.getByRole('radiogroup', { name: 'How did you sleep?' })
+			.getByRole('radio', { name: '4/5' })
+			.click();
+		await page.waitForTimeout(400);
+		await snap(page, 'sheet-main', scheme);
+		await sheet.getByRole('radio', { name: 'Nap', exact: true }).click();
+		await page.waitForTimeout(400);
+		await snap(page, 'sheet-nap', scheme);
+		await page.getByRole('button', { name: 'Close' }).click();
+
+		await page.getByRole('link', { name: 'Trends', exact: true }).click();
+		const card = page.locator('section.card').filter({
+			has: page.getByRole('heading', { name: 'Sleep', exact: true })
+		});
+		await card.waitFor({ timeout: 20_000 });
+		await card.scrollIntoViewIfNeeded();
+		await page.waitForTimeout(400);
+		await snap(page, 'trends-sleep', scheme);
+
+		await page.getByRole('link', { name: 'Reports' }).click();
+		await page.getByTestId('report-doctor').click();
+		await page.getByRole('heading', { name: 'Doctor visit', level: 1 }).waitFor({ timeout: 20_000 });
+		await page.getByLabel('Name on the report').fill('Sam Example');
+		await page.getByRole('button', { name: 'Preview report' }).click();
+		await page.getByTestId('doctor-page').first().waitFor();
+		await page.emulateMedia({ media: 'print', colorScheme: scheme });
+		await page.setViewportSize({ width: 794, height: 1123 });
+		await page.waitForTimeout(300);
+		const sheetEl = page.locator('.dsheet, .report-sheet').filter({ hasText: 'Main sleep' }).first();
+		const box = (await sheetEl.boundingBox())!;
+		await page.screenshot({
+			path: `docs/screenshots/${folder}/doctor-report-sleep-${scheme}.png`,
+			fullPage: true,
+			clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+		});
+	});
+}
