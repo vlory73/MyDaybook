@@ -186,6 +186,38 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'today-meal', scheme);
 		});
 
+		test(`meal fixes places and watch list on top ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'meal-fixes', 'meal-fixes screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			const sheet = page.getByRole('dialog', { name: 'Meal' });
+			await sheet.getByRole('button', { name: 'Lunch', exact: true }).click();
+			await sheet.getByLabel('What did you have?').fill('Packed lunch: rye bread and cheese');
+			await sheet.getByRole('button', { name: 'Work', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Work', exact: true }).scrollIntoViewIfNeeded();
+			await snap(page, 'meal-places', scheme);
+
+			await sheet.getByRole('button', { name: 'Set up your watch list' }).scrollIntoViewIfNeeded();
+			await sheet.getByRole('button', { name: 'Set up your watch list' }).click();
+			const watch = page.getByRole('dialog', { name: 'What I watch in food' });
+			await watch.getByRole('button', { name: 'Gluten', exact: true }).click();
+			await watch.getByRole('button', { name: 'Lactose', exact: true }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'watch-list-on-top', scheme);
+
+			await watch.getByRole('button', { name: 'Close' }).click();
+			await page.waitForTimeout(400);
+			await sheet.getByRole('radiogroup', { name: 'Gluten' }).scrollIntoViewIfNeeded();
+			await sheet
+				.getByRole('radiogroup', { name: 'Lactose' })
+				.getByRole('radio', { name: 'No', exact: true })
+				.click();
+			await snap(page, 'meal-after-return', scheme);
+		});
+
 		test(`log gut quick-log, sheet and today ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'log-gut', 'log-gut screenshots only');
 			await prepare(page, scheme);

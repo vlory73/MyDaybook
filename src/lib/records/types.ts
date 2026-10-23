@@ -11,7 +11,7 @@ import { isPainEpisodePayload, isPainPayload, type PainEpisodePayload, type Pain
 export const PAYLOAD_VERSION = 1;
 
 export const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
-export const WHERE = ['home', 'out', 'takeaway'] as const;
+export const WHERE = ['home', 'out', 'takeaway', 'work', 'school'] as const;
 export const EXPOSURE_STATES = ['no', 'unsure', 'yes'] as const;
 export const SENSITIVITY_KINDS = ['intolerance', 'allergen', 'other'] as const;
 export const BOWEL_FLAGS = ['urgent', 'straining', 'pain', 'notFinished', 'blood', 'mucus'] as const;

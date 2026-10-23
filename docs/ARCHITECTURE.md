@@ -471,7 +471,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 
 | Type | Fields (inside the ciphertext) | Fast path |
 | --- | --- | --- |
-| `food` | meal type, time, text, tags, `where` (home / out / takeaway) ★, `exposures` ★: one entry per watched item, each `no / unsure / yes`, attachments | **Saved meals** ★ fill in everything with one tap; "Again?" repeats the last meal |
+| `food` | meal type, time, text, tags, `where` (home / out / takeaway / work / school) ★, `exposures` ★: one entry per watched item, each `no / unsure / yes`, attachments | **Saved meals** ★ fill in everything with one tap; "Again?" repeats the last meal |
 | `sensitivity` ★ | the user's own watch list: label, icon, kind (`intolerance`, `allergen`, `other`) and order. Suggestions cover the 14 EU allergens (Reg. 1169/2011 Annex II: gluten cereals, milk, eggs, nuts, peanuts, soy, fish, crustaceans, molluscs, celery, mustard, sesame, sulphites, lupin), plus lactose, fructose, FODMAP, histamine, sorbitol, caffeine and alcohol | Only watched items appear on the meal sheet, so most people see 2–3 rows |
 | `saved_meal` ★ | name, meal type, text, tags, exposures | |
 | `feeling` | mood, energy and stress (1–5), symptom tags with severity, note | One tap from Today |
