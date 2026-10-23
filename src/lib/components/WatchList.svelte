@@ -10,6 +10,9 @@
 	import { allRecords, remove, save } from '$lib/records/store.svelte';
 	import { SUGGESTIONS, suggestionLabel, watchedItems } from '$lib/records/watch';
 
+	/** `bare` leaves out the card, for use inside a sheet. */
+	let { bare = false }: { bare?: boolean } = $props();
+
 	/** "What I watch in food": the person's own list of intolerances and allergens (descriptive records only). */
 	const items = $derived(watchedItems(allRecords()));
 	const available = $derived(
@@ -84,7 +87,7 @@
 	}
 </script>
 
-<Card title={t('watch.heading')}>
+{#snippet body()}
 	<p class="muted small lead">{t('watch.lead')}</p>
 
 	{#if items.length === 0}
@@ -144,7 +147,13 @@
 		<button type="submit" class="go">{t('common.add')}</button>
 	</form>
 	{#if failed}<p class="muted small" role="alert">{t('entry.error.save')}</p>{/if}
-</Card>
+{/snippet}
+
+{#if bare}
+	{@render body()}
+{:else}
+	<Card title={t('watch.heading')}>{@render body()}</Card>
+{/if}
 
 <style>
 	.lead {

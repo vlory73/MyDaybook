@@ -577,6 +577,8 @@ export const da: Record<MessageKey, string> = {
 	'meal.where.home': 'Hjemme',
 	'meal.where.out': 'Spist ude',
 	'meal.where.takeaway': 'Takeaway',
+	'meal.where.work': 'Arbejde',
+	'meal.where.school': 'Skole',
 	'meal.saveAs': 'Gem som et måltid, jeg ofte spiser',
 	'again.savedMeal': 'gemt måltid',
 	'watch.heading': 'Det holder jeg øje med i maden',

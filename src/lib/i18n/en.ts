@@ -571,6 +571,8 @@ export const en = {
 	'meal.where.home': 'Home',
 	'meal.where.out': 'Eating out',
 	'meal.where.takeaway': 'Takeaway',
+	'meal.where.work': 'Work',
+	'meal.where.school': 'School',
 	'meal.saveAs': 'Save as a meal I eat often',
 	'again.savedMeal': 'saved meal',
 	'watch.heading': 'What I watch in food',
