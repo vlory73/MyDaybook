@@ -14,7 +14,10 @@
 	} from '$lib/components';
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { openPhoto } from '$lib/photos/viewer.svelte';
-	import { openDetail, openDose, openLog, openNote } from '$lib/records/editor.svelte';
+	import { openDetail, openDose, openEpisode, openLog, openNote } from '$lib/records/editor.svelte';
+	import { goneForEntry, markGone } from '$lib/records/episodeActions';
+	import { dayNumber, episodeViews, formatDay, type EpisodeView } from '$lib/records/episodes';
+	import { showToast } from '$lib/components';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
 	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
@@ -77,6 +80,31 @@
 		});
 		return s.more > 0 ? `${text} · ${t('fmt.pain.more', { n: s.more })}` : text;
 	}
+	// Pain episodes: the chip on timeline entries and the line on the "Still there?" card.
+	const episodes = $derived(episodeViews(allRecords(), i18n.locale, todayKey()));
+	const episodeById = $derived(new Map(episodes.map((v) => [v.id, v])));
+	function episodeOf(id: string): EpisodeView | undefined {
+		const p = store.items[id]?.payload;
+		return p?.type === 'pain' && p.episode ? episodeById.get(p.episode) : undefined;
+	}
+	const stillEpisode = $derived(still ? episodeOf(still.id) : undefined);
+	function stillLast(s: StillThere): string {
+		const text = t('pain.still.last', {
+			when: t(`pain.still.day.${Math.min(s.daysAgo, 2)}` as MessageKey),
+			n: s.point.intensity
+		});
+		return s.more > 0 ? `${text} · ${t('fmt.pain.more', { n: s.more })}` : text;
+	}
+	async function stillGone(s: StillThere) {
+		try {
+			if (stillEpisode) await markGone(stillEpisode.id);
+			else await goneForEntry(s.id);
+			dismissStill(s.id);
+			showToast(t('episode.toast.gone'));
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
 	function dismissStill(id: string) {
 		dismissed = id;
 		writeDismissed(browser ? localStorage : undefined, id);
@@ -134,11 +162,23 @@
 {#if still}
 	<section class="card still" aria-labelledby="still">
 		<h2 class="card-title" id="still">{t('pain.still.title')}</h2>
-		<p class="card-sub still-text">{stillText(still)}</p>
+		{#if stillEpisode}
+			<p class="ep-line">
+				{t('pain.still.episode', {
+					n: dayNumber(stillEpisode.startDay, formatAt(now)),
+					name: stillEpisode.name,
+					date: formatDay(i18n.locale, stillEpisode.startDay)
+				})}
+			</p>
+			<p class="card-sub still-text">{stillLast(still)}</p>
+		{:else}
+			<p class="card-sub still-text">{stillText(still)}</p>
+		{/if}
 		<div class="still-actions">
 			<button type="button" class="more" onclick={() => openLog('pain', { same: true })}
 				>{t('pain.still.log')}</button
 			>
+			<button type="button" class="more" onclick={() => stillGone(still!)}>{t('pain.still.gone')}</button>
 			<button type="button" class="more quiet" onclick={() => dismissStill(still.id)}
 				>{t('pain.still.dismiss')}</button
 			>
@@ -184,6 +224,20 @@
 						<span class="text">{@render lines(d)}</span>
 					{/if}
 				</button>
+				{#if record.payload.type === 'pain'}
+					{@const ep = episodeOf(record.id)}
+					{#if ep}
+						{@const n = dayNumber(ep.startDay, record.payload.at)}
+						<button
+							type="button"
+							class="epchip"
+							aria-label={t('episode.chip.aria', { name: ep.name, n })}
+							onclick={() => openEpisode(ep.id)}
+						>
+							<Icon name="repeat" size={14} />{t('episode.chip', { name: ep.name, n })}
+						</button>
+					{/if}
+				{/if}
 				{#if record.payload.attachments?.length}
 					<div class="photos">
 						{#each record.payload.attachments as photo (photo.id)}
@@ -262,6 +316,29 @@
 		color: var(--primary);
 		font-size: var(--fs-callout);
 		font-weight: var(--fw-semibold);
+	}
+	.ep-line {
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-medium);
+		color: var(--text-2);
+		margin-top: 2px;
+	}
+	.epchip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		max-width: calc(100% - 46px - 40px - 2 * var(--sp-3));
+		margin: -4px 0 var(--sp-2) calc(46px + 40px + 2 * var(--sp-3));
+		min-height: 28px;
+		padding: 0 10px;
+		border-radius: var(--r-full);
+		background: var(--surface-2);
+		border: 1px solid var(--line);
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-semibold);
+	}
+	.epchip :global(svg) {
+		flex: none;
 	}
 	.still-text {
 		text-wrap: pretty;

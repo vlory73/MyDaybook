@@ -14,6 +14,8 @@
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { formatDuration } from '$lib/records/format';
 	import { allRecords, store } from '$lib/records/store.svelte';
+	import { openEpisode } from '$lib/records/editor.svelte';
+	import { episodeRange, episodeViews, overlapping } from '$lib/records/episodes';
 	import { dayDate, todayKey } from '$lib/records/time';
 	import { WEIGHT_ID } from '$lib/records/log';
 	import { mlToCl } from '$lib/records/drinks';
@@ -83,6 +85,9 @@
 	const bowel = $derived(bowelDots(recs, days));
 	const gut = $derived(gutSeries(recs, days));
 	const pain = $derived(painSeries(recs, days));
+	const episodes = $derived(
+		days.length > 0 ? overlapping(episodeViews(recs, i18n.locale, today), days[0]!, days.at(-1)!) : []
+	);
 
 	const showFeeling = $derived(hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress));
 	const showSleep = $derived(hasAny(sleep.minutes));
@@ -521,6 +526,29 @@
 			</Card>
 		{/if}
 
+		{#if episodes.length > 0}
+			<Card title={t('trends.episodes.title')}>
+				<p class="sub">{t('trends.episodes.sub')}</p>
+				<ul class="eps">
+					{#each episodes as ep (ep.id)}
+						<li>
+							<button type="button" onclick={() => openEpisode(ep.id)}>
+								<span class="en">{ep.name}</span>
+								<span class="em"
+									>{t('trends.episodes.line', {
+										range: episodeRange(i18n.locale, ep),
+										days: tn('trends.days', ep.spanDays),
+										avg: ep.average === null ? '–' : num(ep.average)
+									})}</span
+								>
+							</button>
+						</li>
+					{/each}
+				</ul>
+				<p class="hint">{t('trends.episodes.foot')}</p>
+			</Card>
+		{/if}
+
 		<HeatMapCard {days} />
 
 		<AfterMeals {days} />
@@ -528,6 +556,33 @@
 {/if}
 
 <style>
+	.eps {
+		list-style: none;
+		margin: var(--sp-2) 0 0;
+		padding: 0;
+	}
+	.eps li {
+		border-top: 1px solid var(--line);
+	}
+	.eps li:first-child {
+		border-top: 0;
+	}
+	.eps button {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		width: 100%;
+		padding: var(--sp-3) 0;
+		text-align: left;
+	}
+	.en {
+		font-weight: var(--fw-semibold);
+		overflow-wrap: anywhere;
+	}
+	.em {
+		font-size: var(--fs-callout);
+		color: var(--text-2);
+	}
 	.reports-link {
 		display: inline-flex;
 		align-items: center;

@@ -48,8 +48,19 @@
 		type PainQuality
 	} from '$lib/records/pain';
 	import { copyPoints, latestPain, painSummary } from '$lib/records/painEntry';
-	import { allRecords } from '$lib/records/store.svelte';
-	import { addDays, dayKey, formatAt, fromLocalInput, instant } from '$lib/records/time';
+	import { allRecords, store } from '$lib/records/store.svelte';
+	import { applyJoin, joinPlan } from '$lib/records/episodeActions';
+	import {
+		chooserList,
+		dayNumber,
+		episodeRange,
+		episodeViews,
+		formatDay,
+		latestOngoing,
+		mostLoggedPlace,
+		type JoinPlan
+	} from '$lib/records/episodes';
+	import { addDays, dayKey, formatAt, fromLocalInput, instant, todayKey } from '$lib/records/time';
 	import type { GutPayload, Payload } from '$lib/records/types';
 
 	/**
@@ -100,6 +111,38 @@
 	let hLight = $state<boolean | undefined>();
 	let hSound = $state<boolean | undefined>();
 	let hTrigger = $state('');
+
+	// Episode (pain episodes): the id the entry carries, an episode still to be made from the previous entry when
+	// the entry joins it ("Same as last time"), and the open chooser.
+	let epId = $state<string | undefined>();
+	let epCreate = $state<JoinPlan['create']>();
+	let choosing = $state(false);
+	const episodes = $derived(episodeViews(allRecords(), i18n.locale, todayKey()));
+	const epView = $derived(epId ? episodes.find((v) => v.id === epId) : undefined);
+	/** The episode as the row shows it: an existing one, or the one that will be made from the previous entry. */
+	const epShown = $derived.by(() => {
+		if (epView) return { name: epView.name, startDay: epView.startDay };
+		if (!epId || !epCreate) return undefined;
+		const prev = store.items[epCreate.previousId]?.payload;
+		if (prev?.type !== 'pain') return undefined;
+		return {
+			name: mostLoggedPlace(i18n.locale, [{ payload: prev }]) ?? t('episode.untitled'),
+			startDay: dayKey(epCreate.started)
+		};
+	});
+	const ongoingOffer = $derived(latestOngoing(episodes));
+	const chooser = $derived(chooserList(episodes));
+	function joinLast() {
+		const plan = last ? joinPlan(last.id) : null;
+		epId = plan?.episodeId;
+		epCreate = plan?.create;
+		choosing = false;
+	}
+	function chooseEpisode(id: string | undefined) {
+		epId = id;
+		epCreate = undefined;
+		choosing = false;
+	}
 
 	const isNew = $derived(editor.log?.kind === 'pain' && editor.log.id === null);
 	const last = $derived(latestPain(allRecords()));
@@ -153,6 +196,7 @@
 		points: Draft[];
 		sel: number | null;
 		entryNote?: string;
+		ep: { id?: string; create?: JoinPlan['create'] };
 		tick: boolean;
 		open: boolean;
 		h: ReturnType<typeof headacheDraft>;
@@ -197,6 +241,9 @@
 			points = d.points;
 			sel = d.sel;
 			entryNote = d.entryNote;
+			epId = d.ep.id;
+			epCreate = d.ep.create;
+			choosing = false;
 			headacheTick = d.tick;
 			hOpen = d.open;
 			hStartDay = d.h.startDay;
@@ -222,6 +269,11 @@
 		if (saved) points = saved.points.map(draftOf);
 		else if (editor.log?.same && last) points = copyPoints(last.payload).map(draftOf);
 		else points = [];
+		epId = saved?.episode;
+		epCreate = undefined;
+		choosing = false;
+		// "Same as last time" and "Log today" join the previous entry's episode.
+		if (!saved && editor.log?.same && last) joinLast();
 		sel = points.length > 0 ? 0 : null;
 		view = points[0] ? viewOf(points[0].space) : 'front';
 		zoomKind = null;
@@ -232,6 +284,7 @@
 	function sameAsLast() {
 		if (!last) return;
 		points = copyPoints(last.payload).map(draftOf);
+		joinLast();
 		sel = 0;
 		show(points[0]!);
 		void reveal(false);
@@ -406,6 +459,7 @@
 			})
 		};
 		if (entryNote) p.note = entryNote;
+		if (epId && (epView || epCreate)) p.episode = epId;
 		if (showHeadache) {
 			const h: HeadacheDetails = {};
 			if (startedAt) h.started = startedAt;
@@ -434,11 +488,17 @@
 			points: $state.snapshot(points) as Draft[],
 			sel,
 			entryNote,
+			ep: { id: epId, create: epCreate },
 			tick: headacheTick,
 			open: hOpen,
 			h: $state.snapshot(headacheDraft())
 		};
 		openNauseaFromPain({ id: editor.log?.id ?? null, draft }, fromLocalInput(time) ?? formatAt(new Date()));
+	}
+
+	/** Before the entry is saved: make the episode it joins (and link the previous entry), so the link has a target. */
+	async function onbeforesave() {
+		if (epId && epCreate) await applyJoin({ episodeId: epId, create: epCreate });
 	}
 
 	const zoomButtons = ['head', 'hand', 'foot'] as const;
@@ -461,6 +521,7 @@
 	{valid}
 	{payload}
 	{onopen}
+	{onbeforesave}
 	{saveLabel}
 	{dock}
 	{extra}
@@ -548,6 +609,7 @@
 			ontap={place}
 		/>
 		{@render headache()}
+		{@render episodeRow()}
 	{/if}
 </LogSheet>
 
@@ -653,6 +715,61 @@
 	</div>
 {/snippet}
 
+{#snippet episodeRow()}
+	{#if epShown || episodes.length > 0}
+		<div class="ep">
+			<p class="label">{t('episode.row.label')}</p>
+			{#if epShown}
+				<div class="eprow">
+					<div class="epname">
+						<b>{epShown.name}</b>
+						<span class="muted small"
+							>{t('episode.row.since', {
+								date: formatDay(i18n.locale, epShown.startDay),
+								n: dayNumber(epShown.startDay, time)
+							})}</span
+						>
+					</div>
+					<button type="button" class="eplink" aria-expanded={choosing} onclick={() => (choosing = !choosing)}
+						>{t('episode.row.change')}</button
+					>
+				</div>
+			{:else}
+				<div class="chips">
+					{#if ongoingOffer}
+						<Chip onclick={() => chooseEpisode(ongoingOffer.id)}>
+							<Icon name="plus" size={14} />{t('episode.row.add', { name: ongoingOffer.name })}
+						</Chip>
+					{/if}
+				</div>
+				<button
+					type="button"
+					class="eplink start"
+					aria-expanded={choosing}
+					onclick={() => (choosing = !choosing)}>{t('episode.row.choose')}</button
+				>
+			{/if}
+			{#if choosing}
+				<ul class="chooser" aria-label={t('episode.row.group')}>
+					{#each chooser as v (v.id)}
+						<li>
+							<button type="button" class:on={v.id === epId} onclick={() => chooseEpisode(v.id)}>
+								<b>{v.name}</b>
+								<span class="muted small">{episodeRange(i18n.locale, v)}</span>
+							</button>
+						</li>
+					{/each}
+					<li>
+						<button type="button" class:on={!epId} onclick={() => chooseEpisode(undefined)}
+							><b>{t('episode.row.none')}</b></button
+						>
+					</li>
+				</ul>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
+
 {#snippet extra()}
 	<Button
 		variant="quiet"
@@ -748,6 +865,65 @@
 {/snippet}
 
 <style>
+	.ep {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+	}
+	.ep .label {
+		margin: 0;
+	}
+	.eprow {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--sp-3);
+		background: var(--surface-2);
+		border-radius: var(--r-md);
+		padding: 8px 8px 8px var(--sp-4);
+		min-height: 56px;
+	}
+	.epname {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.eplink {
+		min-height: 36px;
+		padding: 0 var(--sp-2);
+		color: var(--primary);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-semibold);
+	}
+	.eplink.start {
+		align-self: flex-start;
+	}
+	.chooser {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.chooser button {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		width: 100%;
+		min-height: 48px;
+		padding: var(--sp-2) var(--sp-4);
+		justify-content: center;
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		border: 1.5px solid transparent;
+		text-align: left;
+	}
+	.chooser button.on {
+		background: var(--primary-soft);
+		border-color: var(--primary);
+	}
 	.same {
 		display: flex;
 		align-items: center;
