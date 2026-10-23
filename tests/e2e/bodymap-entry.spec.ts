@@ -38,6 +38,7 @@ async function logKneeAndCalf(page: Page) {
 	await tap(page, 'Your right calf');
 	await intensity(page, 3).click();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(toast(page, 'Saved')).toBeVisible();
 }
 
@@ -92,6 +93,7 @@ test('logs two points with intensities and qualities, on the front and the back'
 
 	await expect(saveButton(page, 'Save 2 points')).toBeEnabled();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(toast(page, 'Saved')).toBeVisible();
 	await expect(sheet(page)).toBeHidden();
 	await expect(
@@ -121,6 +123,7 @@ test('edit a body map entry, then delete it with undo', async ({ page }) => {
 	await sheet(page).getByRole('button', { name: 'Remove point' }).click();
 	await expect(saveButton(page, 'Save 1 point')).toBeVisible();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	const edited = timeline(page).getByText('Your right knee 8', { exact: true });
 	await expect(edited).toBeVisible();
 
@@ -147,6 +150,7 @@ test('Find adds a point without tapping the outline', async ({ page }) => {
 	await expect(sheet(page).getByRole('heading', { name: 'Your left knee' })).toBeVisible();
 	await intensity(page, 4).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(timeline(page).getByText('Your left knee 4', { exact: true })).toBeVisible();
 
 	// A region only drawn on the back is found too, and the map switches to the back view.
@@ -194,6 +198,7 @@ test('"+ Point" places a second point in the same region', async ({ page }) => {
 	await expect(sheet(page).getByText('Point 2 of 2')).toBeVisible();
 	await intensity(page, 7).click();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(
 		timeline(page).getByText('Your right knee 2 · Your right knee 7', { exact: true })
 	).toBeVisible();
@@ -219,6 +224,7 @@ test('Same as last time copies the points; the person adjusts and saves', async 
 	await expect(quality(page, 'Aching')).toHaveAttribute('aria-pressed', 'true');
 	await intensity(page, 2).click();
 	await saveButton(page, 'Save 2 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(toast(page, 'Saved')).toBeVisible();
 	await expect(
 		timeline(page).getByText('Your right knee 2 · Your right calf 3', { exact: true })
@@ -244,6 +250,7 @@ test('"Still there?" appears for a recent entry, and Dismiss hides it until a ne
 	await tap(page, 'Head');
 	await intensity(page, 2).click();
 	await saveButton(page, 'Save 3 points').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(toast(page, 'Saved')).toBeVisible();
 
 	// The highest point, and how many others there are. Neutral: no alert, no advice.
@@ -275,6 +282,7 @@ test('"Still there?" appears for a recent entry, and Dismiss hides it until a ne
 	await tap(page, 'Your right knee');
 	await intensity(page, 3).click();
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	await expect(card).toContainText('Your right knee · last logged today: 3');
 	await expect(card).not.toContainText('more');
 });
@@ -288,6 +296,7 @@ test('a body map entry survives reload and unlock, and the server only sees ciph
 	await quality(page, 'Throbbing').click();
 	await sheet(page).getByLabel('Note for this point').fill(note);
 	await saveButton(page, 'Save 1 point').click();
+	await expect(sheet(page)).toBeHidden();
 	const line = timeline(page).getByText('Your right knee 5', { exact: true });
 	await expect(line).toBeVisible();
 
