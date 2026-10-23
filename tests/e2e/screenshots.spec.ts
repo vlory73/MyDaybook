@@ -1606,6 +1606,93 @@ for (const scheme of ['light', 'dark'] as const) {
 			await shoot('English', 'report-en', false);
 			await shoot('Dansk', 'report-da', true);
 		});
+		test(`export ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'export', 'export screenshots only');
+			await prepare(page, scheme);
+			await page.addInitScript(() => {
+				Object.defineProperty(navigator, 'canShare', { value: () => false, configurable: true });
+			});
+			const user = await signUpAndSignIn(page);
+			const dialog = page.getByRole('dialog');
+			// A note, a weight and three meals with a synthetic photo each.
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Note', exact: true }).click();
+			await page.getByLabel('Note text').fill('Slept well, short walk after lunch');
+			await page.getByRole('button', { name: 'Save' }).click();
+			await expect(dialog).toBeHidden();
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Weight', exact: true }).click();
+			await page.getByLabel('Value', { exact: true }).fill('72.4');
+			await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+			await expect(dialog).toBeHidden();
+			const png = await page.evaluate(async () => {
+				const canvas = document.createElement('canvas');
+				canvas.width = 1200;
+				canvas.height = 900;
+				const ctx = canvas.getContext('2d')!;
+				ctx.fillStyle = '#e8c9a8';
+				ctx.fillRect(0, 0, 1200, 900);
+				ctx.fillStyle = '#6b8f71';
+				ctx.beginPath();
+				ctx.arc(600, 450, 260, 0, Math.PI * 2);
+				ctx.fill();
+				const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), 'image/png'));
+				return Array.from(new Uint8Array(await blob.arrayBuffer()));
+			});
+			for (const text of ['Porridge with berries', 'Soup and bread', 'Apple']) {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: 'Meal', exact: true }).click();
+				await page.getByLabel('What did you have?').fill(text);
+				await dialog.locator('input[type=file]').setInputFiles({
+					name: 'synthetic.png',
+					mimeType: 'image/png',
+					buffer: Buffer.from(png)
+				});
+				await expect(dialog.getByRole('img', { name: 'Photo attached to this entry' })).toBeVisible();
+				await page.getByRole('button', { name: 'Save', exact: true }).click();
+				await expect(page.getByRole('status').getByText('Saved', { exact: true })).toBeVisible({
+					timeout: 15_000
+				});
+				await expect(dialog).toBeHidden();
+			}
+
+			// Let the last "Saved" toast go away before taking pictures.
+			await expect(page.getByRole('status').getByText('Saved', { exact: true })).toBeHidden({
+				timeout: 15_000
+			});
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			const card = page.locator('section.card').filter({
+				has: page.getByRole('heading', { name: 'Your data', exact: true })
+			});
+			await card.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+			await page.waitForTimeout(300);
+			await snap(page, 'me-your-data', scheme);
+			await page.evaluate(() => document.querySelector('div.danger')!.scrollIntoView({ block: 'center' }));
+			await page.waitForTimeout(300);
+			await snap(page, 'me-delete-account', scheme);
+
+			await page.getByTestId('export-link').click();
+			await expect(page.getByRole('heading', { name: 'Download my data', level: 1 })).toBeVisible();
+			await snap(page, 'export-page', scheme, true);
+
+			await page.getByRole('button', { name: 'Prepare download' }).click();
+			await dialog.getByLabel('Passphrase').fill(user.passphrase);
+			await page.waitForTimeout(400);
+			await snap(page, 'export-passphrase', scheme);
+
+			// Slow the photo downloads a little so the progress state can be captured.
+			await page.route('**/api/attachments/*', async (route) => {
+				await new Promise((r) => setTimeout(r, 2500));
+				await route.continue();
+			});
+			await dialog.getByRole('button', { name: 'Continue' }).click();
+			await expect(page.getByText(/Preparing… [12] of 3 photos/)).toBeVisible({ timeout: 20_000 });
+			await snap(page, 'export-preparing', scheme, true);
+			await expect(page.getByRole('heading', { name: 'Your file is ready' })).toBeVisible({
+				timeout: 30_000
+			});
+			await snap(page, 'export-ready', scheme, true);
+		});
 	});
 }
 

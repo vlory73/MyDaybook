@@ -584,6 +584,15 @@ outbound request is not subject to it. The server never sends pushes based on me
   `security_events` rows**. `admin_audit` rows are kept for accountability (D23). Afterwards it removes `<DATA_DIR>/blobs/<userId>/`
   and runs `PRAGMA wal_checkpoint(TRUNCATE)`. Deletion is refused with 409 `last_guardian` when the user is the only guardian of a
   dependent (D12). `VACUUM` is left to the maintenance work in the Docker branch.
+- **Data export (`/me/export`, `src/lib/export/`):** built entirely on the device, no server endpoint. The person re-types the passphrase
+  (checked locally by unwrapping the master key, `verifyPassphrase`), then `buildExport` takes the decrypted records from memory and writes
+  one .zip with `fflate` (MIT, ~30 KB minified): `mydaybook.json` (`format: "mydaybook-export"`, `version: 1`, `exportedAt`, app version and every
+  live record as `{ id, updatedAt, payload }`; photo keys are never exported, `attachments` becomes `photos` file names or `photoCount`), one
+  CSV per kind of entry that has data (`tables.ts`: English column names, UTF-8 BOM, CRLF, RFC 4180 quoting, lists joined with "; ", `at`
+  kept as stored with its UTC offset, one row per pain point), `photos/<date>_<hhmm>_<id8>.jpg` (decrypted, only when the toggle is on;
+  fetched one at a time from `/api/attachments`) and a `README.txt` in the app language. The file is not encrypted (the screen and the
+  README say so). The result stays in memory; it is handed to the share sheet (`navigator.share({ files })`) or an `<a download>` blob URL
+  (revoked afterwards) and dropped on Done, on leaving the page and on lock.
 - **Withdrawing consent** goes through the same flow (export offered, then deletion).
 - An adult with dependents can delete their account as long as every dependent still has at least one other guardian. Their
   guardianship rows are simply removed. Deletion is blocked only when it would leave a dependent with no guardian; the user is
