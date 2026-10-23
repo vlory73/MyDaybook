@@ -240,7 +240,8 @@
 	{/if}
 
 	{#each values.map((_, i) => i) as i (i)}
-		<div class="value">
+		{#if upperLower}<p class="label cap">{t(i === 0 ? 'measure.bp.upper' : 'measure.bp.lower')}</p>{/if}
+		<div class="value" class:first={upperLower && i === 0}>
 			<button type="button" class="step" aria-label={t('measure.minus')} onclick={() => step(i, -1)}
 				><Icon name="minus" size={26} /></button
 			>
@@ -256,7 +257,7 @@
 					placeholder={formatNumber(0, info.decimals)}
 					bind:value={values[i]}
 				/>
-				{#if i === values.length - 1 && info.unit}<small>{info.unit}</small>{/if}
+				{#if (upperLower || i === values.length - 1) && info.unit}<small>{info.unit}</small>{/if}
 			</div>
 			<button type="button" class="step" aria-label={t('measure.plus')} onclick={() => step(i, 1)}
 				><Icon name="plus" size={26} /></button
@@ -304,6 +305,13 @@
 		justify-content: space-between;
 		gap: var(--sp-2);
 		margin-top: var(--sp-3);
+	}
+	.cap {
+		margin: var(--sp-3) 0 0;
+	}
+	.value.first,
+	.cap + .value {
+		margin-top: var(--sp-1);
 	}
 	.num {
 		flex: 1;
