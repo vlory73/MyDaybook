@@ -58,6 +58,7 @@ jobs:
           cache: npm
       # As in the Dockerfile: better-sqlite3 ships prebuilt addons, and the image has no compiler for its node-gyp step.
       - run: npm ci --ignore-scripts
+      - run: npm run prepare
       - name: Playwright
         run: npm run test:e2e
         env:
