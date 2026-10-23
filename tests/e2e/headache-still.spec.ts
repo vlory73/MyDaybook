@@ -41,7 +41,7 @@ test('Still there notes the hour on the same entry, hides the card and shows a t
 	await logHeadache(page);
 
 	await expect(card(page)).toBeVisible();
-	await expect(card(page)).toContainText(`Since ${pad(startHour())}:00 today · strongest 6`);
+	await expect(card(page)).toHaveText(/Since \d{1,2}(:00)?( [AP]M)? today · strongest 6/);
 	// The general card is for other pain: nothing else was logged, so there is only the headache card.
 	await expect(generalCard(page)).toHaveCount(0);
 
@@ -58,9 +58,11 @@ test('It’s gone asks when it stopped, writes it on the entry and removes the c
 
 	await card(page).getByRole('button', { name: "It's gone", exact: true }).click();
 	await expect(card(page).getByText('When did it stop?')).toBeVisible();
-	const now = card(page).getByRole('button', { name: /^Now \(\d\d:00\)$/ });
+	const now = card(page).getByRole('button', { name: /^Now \(\d{1,2}(:00)?( [AP]M)?\)$/ });
 	await expect(now).toHaveAttribute('aria-pressed', 'true');
-	const stopHour = /\((\d\d):00\)/.exec((await now.textContent()) ?? '')![1]!;
+	// The label follows the phone's 12 or 24 hour style ("9 PM" or "21:00").
+	const m = /\((\d{1,2})(?::00)?(?: ([AP])M)?\)/.exec((await now.textContent()) ?? '')!;
+	const stopHour = pad(m[2] ? (Number(m[1]) % 12) + (m[2] === 'P' ? 12 : 0) : Number(m[1]));
 	await expect(card(page).getByRole('button', { name: 'Earlier…' })).toBeVisible();
 
 	// Cancel collapses; the card keeps asking.

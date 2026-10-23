@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import {
+		Button,
 		CategoryBadge,
 		Chip,
 		DueDoses,
@@ -133,9 +134,17 @@
 	let notNow = $state<NotNow | null>(browser ? readNotNow(localStorage) : null);
 	const hCard = $derived(isToday ? headacheCard(allRecords(), new Date(), notNow) : null);
 	const hEpisode = $derived(hCard ? episodeOf(hCard.id) : undefined);
+	/** The clock time in the phone's 12 or 24 hour style ("6 PM", "6:30 PM"; the minutes only when there are some). */
+	function clock(at: string): string {
+		const d = new Date(2000, 0, 1, Number(at.slice(11, 13)), Number(at.slice(14, 16)));
+		return d.toLocaleTimeString(i18n.locale, {
+			hour: 'numeric',
+			...(at.slice(14, 16) === '00' ? {} : { minute: '2-digit' })
+		});
+	}
 	function hSince(h: OpenHeadache): string {
 		const when = t('headache.card.when', {
-			time: timeOf(h.start),
+			time: clock(h.start),
 			day: t(`pain.still.day.${Math.min(h.daysAgo, 2)}` as MessageKey)
 		});
 		return h.strongest === null
@@ -264,7 +273,7 @@
 						onclick={() => {
 							stopPick = c;
 							earlier = false;
-						}}>{i === 0 ? t('headache.card.now', { time: timeOf(c) }) : timeOf(c)}</Chip
+						}}>{i === 0 ? t('headache.card.now', { time: clock(c) }) : clock(c)}</Chip
 					>
 				{/each}
 				<Chip selected={earlier} onclick={() => (earlier = !earlier)}>{t('headache.card.earlier')}</Chip>
@@ -284,20 +293,23 @@
 				</div>
 			{/if}
 			{#if !stopValid(h)}<p class="warn" role="alert">{t('headache.order')}</p>{/if}
-			<div class="still-actions">
-				<button type="button" class="more" disabled={!stopValid(h)} onclick={() => hGone(h)}
-					>{t('common.save')}</button
+			<div class="hc-actions">
+				<Button size="sm" style="min-height:44px" disabled={!stopValid(h)} onclick={() => hGone(h)}
+					>{t('common.save')}</Button
 				>
-				<button type="button" class="more quiet" onclick={() => (stopping = false)}
-					>{t('common.cancel')}</button
+				<Button size="sm" variant="quiet" style="min-height:44px" onclick={() => (stopping = false)}
+					>{t('common.cancel')}</Button
 				>
 			</div>
 		{:else}
-			<div class="still-actions">
-				<button type="button" class="more" onclick={() => hStill(h)}>{t('headache.card.still')}</button>
-				<button type="button" class="more" onclick={() => hOpen(h)}>{t('pain.still.gone')}</button>
-				<button type="button" class="more quiet" onclick={() => hNotNow(h)}
-					>{t('headache.card.notNow')}</button
+			<div class="hc-actions">
+				<Button size="sm" style="min-height:44px" onclick={() => hStill(h)}>{t('headache.card.still')}</Button
+				>
+				<Button size="sm" variant="soft" style="min-height:44px" onclick={() => hOpen(h)}
+					>{t('pain.still.gone')}</Button
+				>
+				<Button size="sm" variant="quiet" style="min-height:44px" onclick={() => hNotNow(h)}
+					>{t('headache.card.notNow')}</Button
 				>
 			</div>
 		{/if}
@@ -497,6 +509,12 @@
 		display: flex;
 		align-items: center;
 		gap: var(--sp-2);
+	}
+	.hc-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-2);
+		margin-top: var(--sp-3);
 	}
 	.hc-line {
 		margin-top: 6px;
