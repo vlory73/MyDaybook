@@ -16,6 +16,8 @@
 	import { openPhoto } from '$lib/photos/viewer.svelte';
 	import { openDetail, openDose, openEpisode, openLog, openNote } from '$lib/records/editor.svelte';
 	import { goneForEntry, markGone } from '$lib/records/episodeActions';
+	import { findProfile, greetingName } from '$lib/records/profile';
+	import { session } from '$lib/session.svelte';
 	import { dayNumber, episodeViews, formatDay, type EpisodeView } from '$lib/records/episodes';
 	import { showToast } from '$lib/components';
 	import { describe, lookups } from '$lib/records/format';
@@ -29,6 +31,9 @@
 	const now = new Date();
 	const hour = now.getHours();
 	const greeting = hour < 12 ? 'greeting.morning' : hour < 18 ? 'greeting.afternoon' : 'greeting.evening';
+	const greetName = $derived(
+		greetingName(findProfile(allRecords())?.payload, session.identity?.username ?? '')
+	);
 	const dateLabel = $derived(
 		new Intl.DateTimeFormat(i18n.locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)
 	);
@@ -126,7 +131,9 @@
 <header class="page-head">
 	<div>
 		<p class="eyebrow">{dateLabel}</p>
-		<h1 class="large-title">{t(greeting)}</h1>
+		<h1 class="large-title">
+			{greetName ? t('greeting.named', { greeting: t(greeting), name: greetName }) : t(greeting)}
+		</h1>
 	</div>
 </header>
 
