@@ -48,6 +48,7 @@ export const iconNames = [
 	'minus',
 	'moon',
 	'moon-star',
+	'nap',
 	'notebook-pen',
 	'nut',
 	'pill',

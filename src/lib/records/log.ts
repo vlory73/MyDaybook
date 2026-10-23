@@ -6,7 +6,14 @@
 import type { StoredRecord } from './codec';
 import { lastSavedMeal, foodFromSaved } from './watch';
 import { addDays, dayKey, formatAt, fromLocalInput, instant, minutesBetween, todayKey } from './time';
-import type { FeelingPayload, MeasurementPayload, Payload, SavedMealPayload, SleepPayload } from './types';
+import {
+	isNap,
+	type FeelingPayload,
+	type MeasurementPayload,
+	type Payload,
+	type SavedMealPayload,
+	type SleepPayload
+} from './types';
 
 export const DEFAULT_ASLEEP = '23:00';
 export const DEFAULT_WAKE = '07:00';
@@ -33,7 +40,10 @@ const newestFirst = <T extends { at: string }>(a: T, b: T) => instant(b.at) - in
  * 23:00 to 07:00. Fell-asleep times are measured from noon so that 23:30 and 00:20 sit next to each other.
  */
 export function usualNight(sleeps: SleepPayload[]): { asleep: string; wake: string } {
-	const recent = [...sleeps].sort(newestFirst).slice(0, USUAL_NIGHTS);
+	const recent = sleeps
+		.filter((s) => !isNap(s))
+		.sort(newestFirst)
+		.slice(0, USUAL_NIGHTS);
 	if (recent.length === 0) return { asleep: DEFAULT_ASLEEP, wake: DEFAULT_WAKE };
 	const asleep = recent.map((s) => (toMin(s.asleepAt.slice(11, 16)) + 720) % 1440);
 	const wake = recent.map((s) => toMin(s.at.slice(11, 16)));
@@ -55,6 +65,17 @@ export function nightFor(
 	const at = fromLocalInput(`${wakeDay}T${wake}`, offsetMinutes);
 	return asleepAt && at ? { asleepAt, at } : null;
 }
+
+/**
+ * Which kind a new sleep sheet starts on, from the hour it is opened: 10:00 to 19:59 is a nap, else a night.
+ * Only a starting point; the person can change it.
+ */
+export function sleepKindByHour(hour: number): 'main' | 'nap' {
+	return hour >= 10 && hour < 20 ? 'nap' : 'main';
+}
+
+/** Default length of a new nap, in minutes (the sheet shows it as fell asleep = now minus this). */
+export const DEFAULT_NAP_MINUTES = 45;
 
 /** A sleep sheet is valid when waking comes after falling asleep, within a day, and each nap ends after it starts. */
 export function sleepProblem(
@@ -156,7 +177,7 @@ export function againOptions(all: Iterable<Rec>, now: Date): Again[] {
 	const today = todayKey(now);
 	const out: Again[] = [];
 
-	const sleeps = payloads(records, 'sleep');
+	const sleeps = payloads(records, 'sleep').filter((s) => !isNap(s));
 	if (sleeps.length > 0 && !sleeps.some((s) => dayKey(s.at) === today)) {
 		out.push({ kind: 'sleep', ...usualNight(sleeps) });
 	}

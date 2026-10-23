@@ -221,7 +221,7 @@
 			<li>
 				<button type="button" class="entry" onclick={() => open(record.id, record.payload.type)}>
 					<time>{timeOf(record.payload.at)}</time>
-					<CategoryBadge category={d.category} size={40} />
+					<CategoryBadge category={d.category} nap={d.nap} size={40} />
 					{#if record.payload.type === 'pain'}
 						<span class="text withfig">
 							<PainThumb points={record.payload.points} />

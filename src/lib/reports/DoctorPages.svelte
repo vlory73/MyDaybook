@@ -241,10 +241,12 @@
 										style:background={c.id === 'bp' && k === 1
 											? `repeating-linear-gradient(90deg, ${s.color} 0 5px, transparent 5px 8px)`
 											: s.color}
+										class:outlined={c.stacked}
 									></i>{s.label}</span
 								>{/each}
 						</div>
 					{/if}
+					{#if c.foot}<p class="foot">{c.foot}</p>{/if}
 				</div>
 			{/each}
 		</div>
@@ -781,6 +783,17 @@
 		border-radius: 2px;
 		vertical-align: middle;
 		margin-right: 4px;
+	}
+	.key i.outlined {
+		width: 10px;
+		height: 8px;
+		border: 0.6px solid #333;
+		border-radius: 1px;
+	}
+	.foot {
+		margin: 2px 0 0;
+		font-size: 10.5px;
+		color: #333;
 	}
 	.counts {
 		display: grid;

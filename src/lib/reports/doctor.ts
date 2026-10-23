@@ -120,7 +120,10 @@ export function doctorOverview(records: Iterable<Rec>, days: readonly string[], 
 			days.length > 0 ? overlapping(episodeViews(all, 'en', today), days[0]!, days.at(-1)!).length : 0,
 		headache,
 		feeling: dayCount(feeling.mood, feeling.energy, feeling.stress),
-		sleep: present(sleepSeries(all, days).minutes).length,
+		sleep: (() => {
+			const s = sleepSeries(all, days);
+			return s.minutes.filter((m, i) => m !== null || s.napMinutes[i] != null).length;
+		})(),
 		measurements:
 			present(weight.values).length +
 			Math.max(present(bp.values).length, present(bpLow.values).length) +
@@ -181,6 +184,10 @@ export type ChartSpec = {
 	series: ChartSeries[];
 	/** Show a key for the series (more than one line). */
 	legend: boolean;
+	/** Bars only: later series are stacked on top of the first, with a small gap. */
+	stacked?: boolean;
+	/** Plain extra line under the chart (the sleep card's nap count and average). */
+	foot?: string;
 };
 
 export type DoctorReport = {
@@ -250,6 +257,8 @@ export function medicinesBlock(all: Rec[], days: readonly string[], locale: Loca
 const FEEL_COLORS = { mood: '#574694', energy: '#2f6449', stress: '#973945' } as const;
 const LINE_COLOR = '#2a5c7d';
 const BAR_COLOR = '#4d7a99';
+/** Naps: a much lighter shade of the bar colour, with a dark outline in the chart so it still reads in black and white. */
+const NAP_COLOR = '#b9cfdd';
 
 const niceTop = (value: number, step: number, min: number) => Math.max(min, Math.ceil(value / step) * step);
 
@@ -278,6 +287,13 @@ export function buildDoctorReport(
 	const on = options.include;
 	const tr = (key: MessageKey, vars?: Record<string, string | number>) => translate(locale, key, vars);
 	const nf = new Intl.NumberFormat(locale === 'en' ? 'en-GB' : locale, { maximumFractionDigits: 1 });
+	/** "7 h 20 min" in the report language. */
+	const duration = (min: number) => {
+		const h = Math.floor(min / 60);
+		const m = min % 60;
+		if (h > 0 && m > 0) return tr('fmt.duration', { h, m });
+		return h > 0 ? tr('fmt.duration.hours', { h }) : tr('fmt.duration.minutes', { m });
+	};
 	const plural = (base: 'dr.logged' | 'dr.nights' | 'dr.days' | 'dr.entries', n: number) =>
 		translatePlural(locale, base, n);
 
@@ -363,9 +379,15 @@ export function buildDoctorReport(
 	const charts: ChartSpec[] = [];
 	if (on.sleep) {
 		const s = sleepSeries(all, days);
-		if (hasAny(s.minutes)) {
+		if (hasAny(s.minutes) || hasAny(s.napMinutes)) {
 			const hours = s.minutes.map((m) => (m === null ? null : m / 60));
-			const top = niceTop(Math.max(...present(hours)), 2, 8);
+			const napHours = s.napMinutes.map((m) => (m === null ? null : m / 60));
+			const top = niceTop(
+				Math.max(...s.minutes.map((m, i) => ((m ?? 0) + (s.napMinutes[i] ?? 0)) / 60)),
+				2,
+				8
+			);
+			const hasNaps = s.napCount > 0;
 			charts.push({
 				id: 'sleep',
 				title: tr('trends.sleep.title'),
@@ -376,8 +398,20 @@ export function buildDoctorReport(
 				yMax: top,
 				yTicks: ticks(0, top, top / 2 + 1),
 				yUnit: tr('dr.hours'),
-				legend: false,
-				series: [{ key: 'sleep', label: tr('trends.sleep.title'), color: BAR_COLOR, values: hours }]
+				legend: hasNaps,
+				stacked: hasNaps,
+				series: [
+					{ key: 'sleep', label: tr('trends.sleep.legend.main'), color: BAR_COLOR, values: hours },
+					...(hasNaps
+						? [{ key: 'nap', label: tr('trends.sleep.legend.nap'), color: NAP_COLOR, values: napHours }]
+						: [])
+				],
+				foot: hasNaps
+					? tr('trends.sleep.naps', {
+							count: s.napCount,
+							avg: duration(Math.round(s.napAverageMinutes ?? 0))
+						})
+					: undefined
 			});
 		}
 	}

@@ -87,6 +87,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
 			// Sleep (usual times, quality and one awakening)
 			await open('Sleep');
+			await sheet.getByRole('radio', { name: 'Main sleep' }).click();
 			await sheet
 				.getByRole('radiogroup', { name: 'How did you sleep?' })
 				.getByRole('radio', { name: '4/5' })

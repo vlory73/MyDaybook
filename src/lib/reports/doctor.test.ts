@@ -365,3 +365,39 @@ describe('report place names', () => {
 		expect(build('Your right knee, again', 'en').episodes![0]!.name).toBe('Your right knee, again');
 	});
 });
+
+describe('sleep chart with naps', () => {
+	const sleep = (extra: Record<string, unknown>) =>
+		rec({
+			v: 1,
+			type: 'sleep',
+			asleepAt: '2026-10-10T23:00:00+02:00',
+			at: '2026-10-11T07:00:00+02:00',
+			...extra
+		} as Payload);
+	const build = (records: StoredRecord[], locale: 'en' | 'da' = 'en') =>
+		buildDoctorReport(records, days, { questions: '', include: { ...all } }, locale, '2026-10-22');
+	it('stays a plain bar chart without naps', () => {
+		const c = build([sleep({})]).charts.find((x) => x.id === 'sleep')!;
+		expect(c.stacked).toBeFalsy();
+		expect(c.legend).toBe(false);
+		expect(c.foot).toBeUndefined();
+		expect(c.series).toHaveLength(1);
+	});
+	it('stacks the naps on the nights and adds a plain count line in the report language', () => {
+		const nap = sleep({
+			kind: 'nap',
+			asleepAt: '2026-10-11T13:20:00+02:00',
+			at: '2026-10-11T14:20:00+02:00'
+		});
+		const c = build([sleep({}), nap]).charts.find((x) => x.id === 'sleep')!;
+		expect(c.stacked).toBe(true);
+		expect(c.legend).toBe(true);
+		expect(c.series.map((s) => s.key)).toEqual(['sleep', 'nap']);
+		expect(c.yMax).toBeGreaterThanOrEqual(9);
+		expect(c.foot).toBe('Naps: 1 in this period · 1 h on average');
+		expect(build([sleep({}), nap], 'da').charts.find((x) => x.id === 'sleep')!.foot).toBe(
+			'Lure: 1 i perioden · 1 t. i gennemsnit'
+		);
+	});
+});
