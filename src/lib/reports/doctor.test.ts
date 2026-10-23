@@ -298,3 +298,38 @@ describe('runsOf', () => {
 		]);
 	});
 });
+
+describe('report place names', () => {
+	const records = (name?: string) => [
+		rec(
+			{
+				v: 1,
+				type: 'pain_episode',
+				started: '2026-10-10T10:00:00+02:00',
+				...(name ? { name } : {})
+			} as unknown as Payload,
+			'ep1'
+		),
+		rec({
+			v: 1,
+			type: 'pain',
+			at: '2026-10-10T10:00:00+02:00',
+			episode: 'ep1',
+			points: [point(4)]
+		} as unknown as PainPayload)
+	];
+	const build = (name: string | undefined, locale: 'en' | 'da') =>
+		buildDoctorReport(records(name), days, { questions: '', include: all }, locale, '2026-10-22');
+
+	it('names the top places and automatic episodes without "your"', () => {
+		const en = build(undefined, 'en');
+		expect(en.pain!.rows[0]!.name).toBe('Right knee');
+		expect(en.episodes![0]!.name).toBe('Right knee');
+		const da = build(undefined, 'da');
+		expect(da.pain!.rows[0]!.name).toBe('Højre knæ');
+		expect(da.episodes![0]!.name).toBe('Højre knæ');
+	});
+	it('keeps a name the person typed exactly as typed', () => {
+		expect(build('Your right knee, again', 'en').episodes![0]!.name).toBe('Your right knee, again');
+	});
+});

@@ -7,7 +7,7 @@
  * (a heading, a table row, a chart, ...) that the page splits over A4 sheets with `paginate`, never cutting a row or a
  * chart in half.
  */
-import { regionName } from '$lib/bodymap/catalogue';
+import { reportRegionName } from '$lib/bodymap/catalogue';
 import { translate, translatePlural, type Locale } from '$lib/i18n/core';
 import type { MessageKey } from '$lib/i18n/en';
 import type { StoredRecord } from '$lib/records/codec';
@@ -284,9 +284,9 @@ export function buildDoctorReport(
 		if (heat.daysWithPain > 0) {
 			const steps = buckets(heat.maxDays);
 			const name = (h: {
-				region: Parameters<typeof regionName>[1];
-				side: Parameters<typeof regionName>[2];
-			}) => regionName(locale, h.region, h.side);
+				region: Parameters<typeof reportRegionName>[1];
+				side: Parameters<typeof reportRegionName>[2];
+			}) => reportRegionName(locale, h.region, h.side);
 			const ranked = rankPlaces(heat.places.values(), name).slice(0, TOP_PLACES);
 			pain = {
 				heat,
@@ -305,9 +305,11 @@ export function buildDoctorReport(
 
 	let episodes: EpisodeRow[] | null = null;
 	if (on.episodes && days.length > 0) {
-		const found = overlapping(episodeViews(all, locale, today), days[0]!, days.at(-1)!).sort(
-			(a, b) => a.startDay.localeCompare(b.startDay) || a.id.localeCompare(b.id)
-		);
+		const found = overlapping(
+			episodeViews(all, locale, today, reportRegionName),
+			days[0]!,
+			days.at(-1)!
+		).sort((a, b) => a.startDay.localeCompare(b.startDay) || a.id.localeCompare(b.id));
 		episodes = found.map((v) => ({
 			name: v.name,
 			from: dayMonthLabel(v.startDay, locale),

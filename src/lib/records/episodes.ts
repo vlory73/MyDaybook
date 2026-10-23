@@ -3,7 +3,7 @@
  * and the rules for joining and unlinking. Descriptive only: it repeats what the person entered and never rates it
  * (not a medical device). Everything that writes to the store is in `episodeActions.ts`.
  */
-import { regionName } from '$lib/bodymap/catalogue';
+import { regionName, type PlaceNamer } from '$lib/bodymap/catalogue';
 import { translate, type Locale } from '$lib/i18n/core';
 import { painSeries } from '$lib/trends/series';
 import { dayRange } from '$lib/trends/range';
@@ -62,14 +62,18 @@ const byTime = (a: PainRec, b: PainRec) =>
 	instant(a.payload.at) - instant(b.payload.at) || a.id.localeCompare(b.id);
 
 /** The place logged most often across the entries (a point counts once; the first placed wins a tie), or null. */
-export function mostLoggedPlace(locale: Locale, entries: readonly { payload: PainPayload }[]): string | null {
+export function mostLoggedPlace(
+	locale: Locale,
+	entries: readonly { payload: PainPayload }[],
+	placeName: PlaceNamer = regionName
+): string | null {
 	const counts = new Map<string, { n: number; name: string }>();
 	for (const e of entries)
 		for (const p of e.payload.points) {
 			const key = `${p.region}/${p.side}`;
 			const found = counts.get(key);
 			if (found) found.n++;
-			else counts.set(key, { n: 1, name: regionName(locale, p.region, p.side) });
+			else counts.set(key, { n: 1, name: placeName(locale, p.region, p.side) });
 		}
 	let best: { n: number; name: string } | null = null;
 	for (const c of counts.values()) if (!best || c.n > best.n) best = c;
@@ -80,12 +84,23 @@ export function mostLoggedPlace(locale: Locale, entries: readonly { payload: Pai
 export function episodeName(
 	locale: Locale,
 	episode: PainEpisodePayload,
-	entries: readonly { payload: PainPayload }[]
+	entries: readonly { payload: PainPayload }[],
+	placeName: PlaceNamer = regionName
 ): string {
-	return episode.name?.trim() || mostLoggedPlace(locale, entries) || translate(locale, 'episode.untitled');
+	return (
+		episode.name?.trim() ||
+		mostLoggedPlace(locale, entries, placeName) ||
+		translate(locale, 'episode.untitled')
+	);
 }
 
-function build(locale: Locale, today: string, ep: EpisodeRec, entries: PainRec[]): EpisodeView {
+function build(
+	locale: Locale,
+	today: string,
+	ep: EpisodeRec,
+	entries: PainRec[],
+	placeName: PlaceNamer
+): EpisodeView {
 	const first = entries[0]!.payload.at;
 	const startDay = dayKey(ep.payload.started) < dayKey(first) ? dayKey(ep.payload.started) : dayKey(first);
 	const lastDay = dayKey(entries.at(-1)!.payload.at);
@@ -97,7 +112,7 @@ function build(locale: Locale, today: string, ep: EpisodeRec, entries: PainRec[]
 	const series = painSeries(entries, days).days.filter((d) => d !== null);
 	return {
 		id: ep.id,
-		name: episodeName(locale, ep.payload, entries),
+		name: episodeName(locale, ep.payload, entries, placeName),
 		renamed: !!ep.payload.name?.trim(),
 		startDay,
 		lastDay,
@@ -117,7 +132,12 @@ function build(locale: Locale, today: string, ep: EpisodeRec, entries: PainRec[]
  * Every episode that still has at least one linked entry (an episode left without entries is ignored), most recently
  * logged first. `today` is a day key.
  */
-export function episodeViews(all: Iterable<Rec>, locale: Locale, today: string): EpisodeView[] {
+export function episodeViews(
+	all: Iterable<Rec>,
+	locale: Locale,
+	today: string,
+	placeName: PlaceNamer = regionName
+): EpisodeView[] {
 	const episodes = new Map<string, EpisodeRec>();
 	const linked = new Map<string, PainRec[]>();
 	for (const r of all) {
@@ -131,7 +151,7 @@ export function episodeViews(all: Iterable<Rec>, locale: Locale, today: string):
 	const views: EpisodeView[] = [];
 	for (const [id, ep] of episodes) {
 		const entries = linked.get(id);
-		if (entries?.length) views.push(build(locale, today, ep, entries.sort(byTime)));
+		if (entries?.length) views.push(build(locale, today, ep, entries.sort(byTime), placeName));
 	}
 	return views.sort((a, b) => b.lastDay.localeCompare(a.lastDay) || a.id.localeCompare(b.id));
 }

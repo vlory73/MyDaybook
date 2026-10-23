@@ -8,7 +8,7 @@
 	import { tick } from 'svelte';
 	import { brand } from '$lib/brand';
 	import BodyMap from '$lib/components/BodyMap.svelte';
-	import { sideKey, type Shape } from '$lib/bodymap/catalogue';
+	import type { Shape } from '$lib/bodymap/catalogue';
 	import { translate, translatePlural, type Locale } from '$lib/i18n/core';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { heatKey, tokenFor, type Bucket } from '$lib/trends/heatmap';
@@ -254,7 +254,7 @@
 							showToggle={false}
 							width={138}
 							heat={heatFor(view)}
-							edgeText={(side) => translate(locale, sideKey(side))}
+							edgeText={(side) => translate(locale, `dr.side.${side}`)}
 						/>
 					</figure>
 				{/each}
