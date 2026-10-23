@@ -130,6 +130,14 @@ describe('heatmap', () => {
 		expect(h.places.get(heatKey('upper_back', 'midline'))).toMatchObject({ days: 1, avg: 6 });
 		expect(h.places.has(heatKey('back', 'midline'))).toBe(false);
 	});
+	it('a heel on the back view counts for the whole foot, like a point in the foot close-up', () => {
+		const h = heatmap(
+			[rec(at(20), pt('heel', 'left', B, 4)), rec(at(21), pt('big_toe', 'left', '2d-foot-v1', 6))],
+			days
+		);
+		expect(h.roll.get(heatKey('foot', 'left'))).toMatchObject({ days: 2, avg: 5 });
+		expect(h.places.get(heatKey('heel', 'left'))!.days).toBe(1);
+	});
 	it('a close-up point counts for the whole head, hand or foot on the body', () => {
 		const h = heatmap(
 			[

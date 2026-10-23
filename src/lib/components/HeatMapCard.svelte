@@ -70,11 +70,16 @@
 	);
 	const steps = $derived(buckets(maxDays));
 
-	const ROLLED = ['head', 'back_of_head', 'hand', 'foot'];
+	// The back view draws the feet as heels, so a heel stands for the whole foot there.
+	const ROLLED = ['head', 'back_of_head', 'hand', 'foot', 'heel'];
 	function cellOf(s: Shape): Heat | undefined {
 		if (zoomKind === null && ROLLED.includes(s.region)) {
 			const key =
-				s.region === 'hand' || s.region === 'foot' ? heatKey(s.region, s.side) : heatKey('head', 'midline');
+				s.region === 'hand' || s.region === 'foot'
+					? heatKey(s.region, s.side)
+					: s.region === 'heel'
+						? heatKey('foot', s.side)
+						: heatKey('head', 'midline');
 			return heat.roll.get(key);
 		}
 		return heat.places.get(heatKey(s.region, s.side));
@@ -91,7 +96,12 @@
 		zoomable: (s: Shape) => zoomKind === null && ROLLED.includes(s.region),
 		look: (s: Shape) =>
 			t('trends.heat.look', {
-				name: s.region === 'head' || s.region === 'back_of_head' ? t('bodymap.region.head') : name(s)
+				name:
+					s.region === 'head' || s.region === 'back_of_head'
+						? t('bodymap.region.head')
+						: s.region === 'heel'
+							? name({ region: 'foot', side: s.side })
+							: name(s)
 			})
 	});
 
@@ -118,6 +128,11 @@
 			side = sd;
 			face = bestFace(heat, s.region, sd);
 			zoomKind = s.region;
+		} else if (s.region === 'heel') {
+			// Seen from the back: open the foot on its sole, where the heel is.
+			side = s.side === 'left' ? 'left' : 'right';
+			face = 'sole';
+			zoomKind = 'foot';
 		} else return;
 		showAll = false;
 	}
