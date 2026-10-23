@@ -98,6 +98,9 @@ const DEFS = [
 	{ id: 'shin', paired: true, views: ['front'] },
 	{ id: 'ankle', paired: true, views: ['front', 'back'] },
 	{ id: 'foot', paired: true, views: ['front'] },
+	// Wider limb areas (not tappable, see "Wider areas"): the whole arm (upper arm to wrist) and the whole leg (thigh to ankle).
+	{ id: 'whole_arm', paired: true, views: ['front', 'back'] },
+	{ id: 'whole_leg', paired: true, views: ['front', 'back'] },
 	{ id: 'back_of_head', paired: false, views: ['back'] },
 	{ id: 'back_of_neck', paired: false, views: ['back'] },
 	{ id: 'back', paired: false, views: ['back'] },
@@ -275,6 +278,15 @@ const ARMS: Spec[] = [
 	spec('hand', 48, 235, 19, 28, { r: 9, ...arm })
 ];
 
+/**
+ * Whole arm (upper arm to wrist, hung like the arm itself) and whole leg (thigh to ankle): one calm soft bar each, the same
+ * on both views. Not tappable; drawn when a point uses them.
+ */
+const LIMBS_WIDE: Spec[] = [
+	spec('whole_arm', 48.5, 104, 18, 128, { r: 9, ...arm }),
+	spec('whole_leg', 73, 240, 26, 163, { r: 12 })
+];
+
 /** Drawn on the left half of the screen (paired regions are mirrored for the right half); midline ones are centred. */
 const FRONT: Spec[] = [
 	spec('head', 79, 10, 42, 50, { round: true }),
@@ -297,7 +309,8 @@ const FRONT: Spec[] = [
 const FRONT_WIDE: Spec[] = [
 	spec('belly', 74, 131, 52, 73, { r: 14, mid: true }),
 	spec('upper_belly', 74, 131, 52, 38, { r: 12, mid: true }),
-	spec('lower_belly', 76, 172, 48, 32, { r: 12, mid: true })
+	spec('lower_belly', 76, 172, 48, 32, { r: 12, mid: true }),
+	...LIMBS_WIDE
 ];
 const BACK: Spec[] = [
 	spec('back_of_head', 79, 10, 42, 50, { round: true }),
@@ -313,7 +326,7 @@ const BACK: Spec[] = [
 	spec('ankle', 77, 389, 18, 14, { r: 7 }),
 	spec('heel', 75, 406, 22, 18, { r: 9 })
 ];
-const BACK_WIDE: Spec[] = [spec('back', 74, 79, 52, 125, { r: 14, mid: true })];
+const BACK_WIDE: Spec[] = [spec('back', 74, 79, 52, 125, { r: 14, mid: true }), ...LIMBS_WIDE];
 
 /**
  * Head close-up. Two drawings (front: mirrors the person like the front view; back: does not), 200 x 240. Zones are soft
@@ -697,12 +710,24 @@ function cached(key: string, make: () => Scene): Scene {
 	return scene;
 }
 
+/** A whole arm or leg is highlighted as the parts it stands for (so the highlight follows the limb); its box only places the dot. */
+function withLimbCovers(wide: Shape[], parts: readonly Shape[]): Shape[] {
+	return wide.map((w) => {
+		const names = w.region === 'whole_arm' ? ARM_PARTS : w.region === 'whole_leg' ? LEG_PARTS : null;
+		if (!names) return w;
+		return { ...w, cover: parts.filter((p) => p.side === w.side && names.includes(p.region)) };
+	});
+}
+
 export const mainScene = (view: View): Scene =>
 	cached(view, () => ({
 		space: spaceOf(view),
 		viewBox: VIEWBOXES[view],
 		shapes: build(view, view === 'front' ? FRONT : BACK),
-		wide: build(view, view === 'front' ? FRONT_WIDE : BACK_WIDE),
+		wide: withLimbCovers(
+			build(view, view === 'front' ? FRONT_WIDE : BACK_WIDE),
+			build(view, view === 'front' ? FRONT : BACK)
+		),
 		decor: [],
 		edges: edgeSides(view)
 	}));
@@ -823,6 +848,8 @@ export type WideId =
 	| 'lower_belly'
 	| 'whole_belly'
 	| 'whole_back'
+	| 'whole_arm'
+	| 'whole_leg'
 	| 'head_front_side'
 	| 'head_back_side'
 	| 'head_side'
@@ -831,6 +858,8 @@ export type WideId =
 export type WideOption = { id: WideId; key: MessageKey; region: RegionId; side: Side };
 
 const BELLY: readonly string[] = ['upper_belly', 'lower_belly', 'belly'];
+const ARM_PARTS: readonly string[] = ['upper_arm', 'elbow', 'forearm', 'wrist'];
+const LEG_PARTS: readonly string[] = ['thigh', 'back_of_thigh', 'knee', 'shin', 'calf', 'ankle'];
 const BACKS: readonly string[] = ['upper_back', 'mid_back', 'lower_back', 'back'];
 /** The tappable zones of the head close-up, and the wider head areas built over them. */
 const HEAD_ZONES: readonly string[] = [
@@ -851,14 +880,18 @@ const HEAD_WIDE: readonly string[] = [
 	'whole_head',
 	'head_band'
 ];
-export const wideGroup = (region: string): 'belly' | 'back' | 'head' | null =>
+export const wideGroup = (region: string): 'belly' | 'back' | 'arm' | 'leg' | 'head' | null =>
 	BELLY.includes(region)
 		? 'belly'
 		: BACKS.includes(region)
 			? 'back'
-			: HEAD_ZONES.includes(region) || HEAD_WIDE.includes(region)
-				? 'head'
-				: null;
+			: ARM_PARTS.includes(region) || region === 'whole_arm'
+				? 'arm'
+				: LEG_PARTS.includes(region) || region === 'whole_leg'
+					? 'leg'
+					: HEAD_ZONES.includes(region) || HEAD_WIDE.includes(region)
+						? 'head'
+						: null;
 /** Wider head areas that exist on both head drawings: a point on one is drawn on whichever drawing is shown. */
 export const isViewIndependent = (region: string): boolean =>
 	region === 'head_side' || region === 'whole_head' || region === 'head_band';
@@ -876,6 +909,8 @@ const isNarrow = (region: string, side: Side) =>
 	region === 'upper_back' ||
 	region === 'mid_back' ||
 	region === 'lower_back' ||
+	ARM_PARTS.includes(region) ||
+	LEG_PARTS.includes(region) ||
 	HEAD_ZONES.includes(region);
 
 /** Which drawing of the head a place is in: from its space, or else from its region when only one drawing has it. */
@@ -953,7 +988,16 @@ export function wideOptions(
 				side: 'midline'
 			});
 		out.push({ id: 'whole_belly', key: 'bodymap.wide.whole_belly', region: 'belly', side: 'midline' });
-	} else out.push({ id: 'whole_back', key: 'bodymap.wide.whole_back', region: 'back', side: 'midline' });
+	} else if (group === 'back')
+		out.push({ id: 'whole_back', key: 'bodymap.wide.whole_back', region: 'back', side: 'midline' });
+	else if (group === 'arm' || group === 'leg') {
+		// A limb is paired: the whole limb is on the same side as the part.
+		const side = at.side === 'left' || at.side === 'right' ? at.side : undefined;
+		if (side) {
+			const id = group === 'arm' ? 'whole_arm' : 'whole_leg';
+			out.push({ id, key: `bodymap.wide.${id}`, region: id, side });
+		}
+	}
 	return out;
 }
 
@@ -1010,6 +1054,8 @@ export function partsOf(region: RegionId, side: Side): Part[] {
 		];
 	if (region === 'back')
 		return (['upper_back', 'mid_back', 'lower_back'] as const).map((r) => ({ region: r, side: 'midline' }));
+	if (region === 'whole_arm' || region === 'whole_leg')
+		return (region === 'whole_arm' ? ARM_PARTS : LEG_PARTS).map((r) => ({ region: r as RegionId, side }));
 	if (!HEAD_WIDE.includes(region)) return own;
 	const faces = (['front', 'back'] as const).map((face) => zoomScene({ zoom: 'head', face }));
 	const area = (scene: Scene) => scene.wide.find((w) => w.region === region && w.side === side);
