@@ -186,8 +186,7 @@
 
 <header class="page-head">
 	<h1 class="large-title">{t('trends.title')}</h1>
-	<a class="reports-link" href={resolve('/reports/headache')}
-		><Icon name="printer" size={18} />{t('reports.button')}</a
+	<a class="reports-link" href={resolve('/reports')}><Icon name="printer" size={18} />{t('reports.button')}</a
 	>
 </header>
 
