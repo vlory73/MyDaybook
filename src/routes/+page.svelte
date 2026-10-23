@@ -4,6 +4,7 @@
 		CategoryBadge,
 		DueDoses,
 		PhotoThumb,
+		PainThumb,
 		EmptyState,
 		Icon,
 		Notice,
@@ -156,6 +157,16 @@
 	</p>
 {/if}
 
+{#snippet lines(d: ReturnType<typeof describe>)}
+	<span class="t">{d.title}</span>
+	{#if d.summary}<span class="s">{d.summary}</span>{/if}
+	{#if d.tags?.length}
+		<span class="tags"
+			>{#each d.tags as tag, i (i)}<span class="tag">{tag}</span>{/each}</span
+		>
+	{/if}
+{/snippet}
+
 {#if entries.length > 0}
 	<ol class="tl">
 		{#each entries as record (record.id)}
@@ -164,15 +175,14 @@
 				<button type="button" class="entry" onclick={() => open(record.id, record.payload.type)}>
 					<time>{timeOf(record.payload.at)}</time>
 					<CategoryBadge category={d.category} size={40} />
-					<span class="text">
-						<span class="t">{d.title}</span>
-						{#if d.summary}<span class="s">{d.summary}</span>{/if}
-						{#if d.tags?.length}
-							<span class="tags"
-								>{#each d.tags as tag, i (i)}<span class="tag">{tag}</span>{/each}</span
-							>
-						{/if}
-					</span>
+					{#if record.payload.type === 'pain'}
+						<span class="text withfig">
+							<PainThumb points={record.payload.points} />
+							<span class="col">{@render lines(d)}</span>
+						</span>
+					{:else}
+						<span class="text">{@render lines(d)}</span>
+					{/if}
 				</button>
 				{#if record.payload.attachments?.length}
 					<div class="photos">
@@ -304,6 +314,17 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
+	}
+	.withfig {
+		flex-direction: row;
+		gap: var(--sp-3);
+		align-items: flex-start;
+	}
+	.col {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		flex: 1;
 	}
 	.t {
 		font-weight: var(--fw-semibold);

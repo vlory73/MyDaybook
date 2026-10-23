@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heat map head: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+.hm-seg { margin-top: var(--sp-3); }
+.stage { position: relative; display: flex; justify-content: center; margin-top: var(--sp-3); }
+.edge { position: absolute; top: 4px; font-size: var(--fs-caption); font-weight: var(--fw-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); max-width: 5.5em; line-height: 1.25; }
+.edge.l { left: 0; } .edge.r { right: 0; text-align: right; }
+.body { width: 252px; height: auto; overflow: visible; }
+.rg { stroke: var(--line); stroke-width: 1.2; }
+.h0 { fill: var(--heat-0); } .h1 { fill: var(--heat-1); } .h2 { fill: var(--heat-2); } .h3 { fill: var(--heat-3); } .h4 { fill: var(--heat-4); } .h5 { fill: var(--heat-5); }
+i.h0 { background: var(--heat-0); } i.h1 { background: var(--heat-1); } i.h2 { background: var(--heat-2); } i.h3 { background: var(--heat-3); } i.h4 { background: var(--heat-4); } i.h5 { background: var(--heat-5); }
+.decor { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.2; }
+.feature { fill: none; stroke: var(--text-3); stroke-opacity: .4; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tapable { stroke: var(--primary); stroke-width: 1.6; stroke-dasharray: 3 2.5; }
+.n { font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; font-family: var(--font-sans); paint-order: normal; }
+.n1, .n2, .n3, .n4, .n5 { fill: var(--on-heat-1); }
+:root { --on-heat-1: #2a2430; --on-heat-2: #2a2430; --on-heat-3: #2a2430; --on-heat-4: #16101a; --on-heat-5: #ffffff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --on-heat-1: #f4eff2; --on-heat-2: #f4eff2; --on-heat-3: #16101a; --on-heat-4: #16101a; --on-heat-5: #16101a; } }
+.n1 { fill: var(--on-heat-1); } .n2 { fill: var(--on-heat-2); } .n3 { fill: var(--on-heat-3); } .n4 { fill: var(--on-heat-4); } .n5 { fill: var(--on-heat-5); }
+.hint { display: flex; gap: 6px; align-items: center; justify-content: center; font-size: var(--fs-footnote); color: var(--text-2); margin-top: var(--sp-3); }
+.ramp { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: var(--sp-4); }
+.ramp div { text-align: center; font-size: var(--fs-caption); color: var(--text-2); }
+.ramp i { display: block; height: 14px; border-radius: 4px; margin-bottom: 4px; border: 1px solid var(--line); }
+.ramp-title { font-size: var(--fs-footnote); color: var(--text-2); margin-top: var(--sp-4); display: flex; justify-content: space-between; }
+.notlogged { display: inline-flex; align-items: center; gap: 6px; }
+.notlogged i { width: 12px; height: 12px; border-radius: 3px; background: var(--heat-0); border: 1px solid var(--line); display: inline-block; }
+.rows { list-style: none; margin: var(--sp-2) 0 0; padding: 0; }
+.rows li { display: grid; grid-template-columns: 14px 1fr auto auto; gap: var(--sp-3); align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: var(--fs-callout); }
+.rows li:first-child { border-top: 0; }
+.rows i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line); }
+.rows .days { color: var(--text); font-weight: var(--fw-semibold); text-align: right; }
+.rows .avg { color: var(--text-2); width: 62px; text-align: right; }
+.list-head { display: flex; justify-content: space-between; margin-top: var(--sp-4); font-size: var(--fs-footnote); color: var(--text-2); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.more { width: 100%; margin-top: var(--sp-2); }
+.foot { font-size: var(--fs-footnote); color: var(--text-2); margin-top: var(--sp-3); border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+.card.gap { margin-top: var(--sp-3); }
+.cut { position: relative; height: 62px; overflow: hidden; padding-top: 0; }
+.cut .legend { display: flex; flex-wrap: wrap; gap: 4px var(--sp-4); font-size: var(--fs-footnote); color: var(--text-2); }
+.cut .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cut .legend svg { width: 22px; height: 12px; }
+.back-link { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; color: var(--primary); font-weight: var(--fw-semibold); font-size: var(--fs-callout); }
+.zoom-head { display: flex; align-items: center; justify-content: space-between; margin-top: var(--sp-3); }
+.zoom-name { font-weight: var(--fw-semibold); }
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys">
+<span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span>
+<span class="batt"></span></span></div>
+<main class="content">
+  <section class="card cut" style="margin-top:var(--sp-3)" aria-hidden="true">
+    <div class="legend" style="margin-top:0;padding-top:0">
+      <span><svg viewBox="0 0 22 12"><rect x="5" y="1" width="12" height="10" rx="2" style="fill:var(--pain-tint);stroke:var(--pain-ink);stroke-width:1.2"/></svg>Entries a day (right axis)</span>
+      <span><svg viewBox="0 0 22 12"><circle cx="11" cy="6" r="3.6" style="fill:var(--pain-ink)"/></svg>Average intensity, 0 to 10</span>
+    </div>
+  </section>
+  <section class="card gap" aria-labelledby="hm-t">
+    <div class="card-title" id="hm-t">Where it hurt</div><div class="card-sub">On how many days each place was logged · numbers are the average intensity</div>
+    <div class="zoom-head"><a class="back-link" href="#"><svg class="i i-sm" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back to the body</a><span class="zoom-name">Head</span></div>
+    <div class="segmented hm-seg" role="group" aria-label="Head view"><button class="on" aria-pressed="true">Front</button><button aria-pressed="false">Back</button></div>
+    <div class="stage"><span class="edge l">Your right</span><span class="edge r">Your left</span><svg class="body" viewBox="0 0 200 240" style="aspect-ratio:200/240" role="img" aria-label="Head, front, coloured by days logged"><path class="decor" d="M38 94c-10 0-10 32 0 32c10 0 10-32 0-32Z"/><path class="decor" d="M162 94c-10 0-10 32 0 32c10 0 10-32 0-32Z"/><path class="decor" d="M80 188h40v38q0 6-6 6H86q-6 0-6-6Z"/><path d="M98.5 25.9Q98.5 20.2 92.8 20.9L90.8 21.1Q87.1 21.5 83.5 22.6L82.5 22.9Q79.9 23.7 77.3 24.8L76.9 25Q74.8 25.9 72.7 27L72.5 27.2Q70.7 28.1 69 29.3L68.8 29.3Q67.3 30.4 65.8 31.5L65.7 31.5Q64.3 32.6 63 33.7L62.9 33.7Q61.6 34.8 60.5 35.9L60.4 35.9Q59.3 37 58.2 38.1L58.2 38.2Q57.1 39.2 56.2 40.3L56.1 40.4Q55.2 41.4 54.3 42.5L54.3 42.6Q53.4 43.6 52.6 44.8L52.6 44.8Q51.8 45.9 51.1 47L51.1 47Q50.3 48.1 49.7 49.2L49.7 49.2Q49 50.3 48.4 51.4L48.4 51.4Q47.8 52.5 48.6 53.4L58.3 63.9Q63 69 70 69L91.5 69Q98.5 69 98.5 62Z" class="rg h2" data-region="forehead" data-side="right"/><path d="M101.5 25.9Q101.5 20.2 107.2 20.9L109.2 21.1Q112.9 21.5 116.5 22.6L117.5 22.9Q120.1 23.7 122.7 24.8L123.1 25Q125.2 25.9 127.3 27L127.5 27.2Q129.3 28.1 131 29.3L131.2 29.3Q132.7 30.4 134.2 31.5L134.3 31.5Q135.7 32.6 137 33.7L137.1 33.7Q138.4 34.8 139.5 35.9L139.6 35.9Q140.7 37 141.8 38.1L141.8 38.2Q142.9 39.2 143.8 40.3L143.9 40.4Q144.8 41.4 145.7 42.5L145.7 42.6Q146.6 43.6 147.4 44.8L147.4 44.8Q148.2 45.9 148.9 47L148.9 47Q149.7 48.1 150.3 49.2L150.3 49.2Q151 50.3 151.6 51.4L151.6 51.4Q152.2 52.5 151.4 53.4L141.7 63.9Q137 69 130 69L108.5 69Q101.5 69 101.5 62Z" class="rg h1" data-region="forehead" data-side="left"/><path d="M47.6 57.8Q46 56 45.2 58.2L45.1 58.2Q44.3 60.3 43.5 62.5L43.5 62.5Q42.8 64.7 42.2 66.8L42.2 66.9Q41.7 69 41.3 71.2L41.3 71.2Q40.8 73.3 40.6 75.5L40.6 75.5Q40.3 77.7 40.2 79.8L40.2 79.8Q40 82 40.1 84.2L40.1 84.2Q40.2 86.3 40.3 88.5L40.3 88.5Q40.5 90.7 40.7 92.8L40.7 92.8Q40.8 95 41 97.2L41 97.2Q41.2 99.3 41.3 101.5L41.3 101.5Q41.5 103.7 41.7 105.8L41.7 105.8Q41.8 108 44 108L53 108Q60 108 60 101L60 79Q60 72 55.4 66.7Z" class="rg h4" data-region="temple" data-side="right"/><path d="M152.4 57.8Q154 56 154.8 58.2L154.9 58.2Q155.7 60.3 156.5 62.5L156.5 62.5Q157.2 64.7 157.8 66.8L157.8 66.9Q158.3 69 158.7 71.2L158.7 71.2Q159.2 73.3 159.4 75.5L159.4 75.5Q159.7 77.7 159.8 79.8L159.8 79.8Q160 82 159.9 84.2L159.9 84.2Q159.8 86.3 159.7 88.5L159.7 88.5Q159.5 90.7 159.3 92.8L159.3 92.8Q159.2 95 159 97.2L159 97.2Q158.8 99.3 158.7 101.5L158.7 101.5Q158.5 103.7 158.3 105.8L158.3 105.8Q158.2 108 156 108L147 108Q140 108 140 101L140 79Q140 72 144.6 66.7Z" class="rg h2" data-region="temple" data-side="left"/><path d="M63 78Q63 72 69 72L92.5 72Q98.5 72 98.5 78L98.5 102Q98.5 108 92.5 108L69 108Q63 108 63 102Z" class="rg h2" data-region="around_eye" data-side="right"/><path d="M137 78Q137 72 131 72L107.5 72Q101.5 72 101.5 78L101.5 102Q101.5 108 107.5 108L131 108Q137 108 137 102Z" class="rg h0" data-region="around_eye" data-side="left"/><path d="M72 88Q72 82 78 82L85 82Q91 82 91 88L91 94Q91 100 85 100L78 100Q72 100 72 94Z" class="rg h2" data-region="behind_eye" data-side="right"/><path d="M128 88Q128 82 122 82L115 82Q109 82 109 88L109 94Q109 100 115 100L122 100Q128 100 128 94Z" class="rg h0" data-region="behind_eye" data-side="left"/><path d="M63 117Q63 111 69 111L92.5 111Q98.5 111 98.5 117L98.5 140Q98.5 146 92.5 146L78 146Q72 146 67.5 142L67.5 142Q63 138 63 132Z" class="rg h0" data-region="cheek" data-side="right"/><path d="M137 117Q137 111 131 111L107.5 111Q101.5 111 101.5 117L101.5 140Q101.5 146 107.5 146L122 146Q128 146 132.5 142L132.5 142Q137 138 137 132Z" class="rg h1" data-region="cheek" data-side="left"/><path d="M45 111Q42 111 42.1 114L42.1 114Q42.2 117 42.4 119.9L42.4 119.9Q42.7 122.9 43 125.9L43 125.9Q43.4 128.9 43.9 131.9L43.9 131.9Q44.5 134.9 45.2 137.8L45.2 137.8Q45.9 140.8 46.7 143.8L46.7 143.8Q47.6 146.8 48.6 149.7L48.6 149.8Q49.7 152.8 50.9 155.7L50.9 155.7Q52.2 158.7 53.7 161.6L53.7 161.7Q55.2 164.7 57 167.5L57.1 167.7Q58.9 170.6 61 173.4L61.1 173.6Q63.3 176.6 65.8 179.3L66.1 179.6Q68.9 182.6 72.1 185.1L72.6 185.6Q76.4 188.5 80.7 190.6L85 192.5Q89.2 194.5 93.9 194.8L93.9 194.8Q98.5 195 98.5 190.4L98.5 157Q98.5 150 91.5 150L82 150Q75 150 69.4 145.9L65.6 143.1Q60 139 60 132L60 118Q60 111 53 111Z" class="rg h0" data-region="jaw" data-side="right"/><path d="M155 111Q158 111 157.9 114L157.9 114Q157.8 117 157.6 119.9L157.6 119.9Q157.3 122.9 157 125.9L157 125.9Q156.6 128.9 156.1 131.9L156.1 131.9Q155.5 134.9 154.8 137.8L154.8 137.8Q154.1 140.8 153.3 143.8L153.3 143.8Q152.4 146.8 151.4 149.7L151.4 149.8Q150.3 152.8 149.1 155.7L149.1 155.7Q147.8 158.7 146.3 161.6L146.3 161.7Q144.8 164.7 143 167.5L142.9 167.7Q141.1 170.6 139 173.4L138.9 173.6Q136.7 176.6 134.2 179.3L133.9 179.6Q131.1 182.6 127.9 185.1L127.4 185.6Q123.6 188.5 119.3 190.6L115 192.5Q110.8 194.5 106.1 194.8L106.1 194.8Q101.5 195 101.5 190.4L101.5 157Q101.5 150 108.5 150L118 150Q125 150 130.6 145.9L134.4 143.1Q140 139 140 132L140 118Q140 111 147 111Z" class="rg h0" data-region="jaw" data-side="left"/><path class="feature" d="M66 78q11-6 25-1M134 78q-11-6-25-1"/><path class="feature" d="M74 90.5q8.5 5 17 0M126 90.5q-8.5 5-17 0"/><path class="feature" d="M100.5 104L98 127q1 4 6 3"/><path class="feature" d="M88 160h24"/><text class="n n2" x="73.1" y="44.6">5</text><text class="n n4" x="50.0" y="82.0">6</text><text class="n n2" x="150.0" y="82.0">4</text><text class="n n2" x="80.8" y="90.0">6</text></svg></div>
+    <div class="ramp-title"><span>Days logged</span><span class="notlogged"><i aria-hidden="true"></i>Not logged</span></div>
+    <div class="ramp" role="img" aria-label="Colour scale by days logged: 1 day, 2–3, 4–6, 7–9, 10+"><div><i class="h1"></i>1 day</div><div><i class="h2"></i>2–3</div><div><i class="h3"></i>4–6</div><div><i class="h4"></i>7–9</div><div><i class="h5"></i>10+</div></div>
+    <div class="list-head"><span>Place on the head</span><span>Days · average intensity</span></div>
+    <ul class="rows" aria-label="Places, most days first"><li><i class="h4" aria-hidden="true"></i><span>Your right temple</span><span class="days">7 days</span><span class="avg">avg 6</span></li><li><i class="h2" aria-hidden="true"></i><span>Right side of your forehead</span><span class="days">3 days</span><span class="avg">avg 5</span></li><li><i class="h2" aria-hidden="true"></i><span>Around your right eye</span><span class="days">2 days</span><span class="avg">avg 6</span></li><li><i class="h2" aria-hidden="true"></i><span>Your left temple</span><span class="days">2 days</span><span class="avg">avg 4</span></li><li><i class="h1" aria-hidden="true"></i><span>Left side of your forehead</span><span class="days">1 day</span><span class="avg">avg 4</span></li><li><i class="h1" aria-hidden="true"></i><span>Your left cheek and sinus</span><span class="days">1 day</span><span class="avg">avg 3</span></li></ul>
+    <p class="foot">Wider areas, such as the band around the head, count towards each of their parts. Days are counted over the 30 days shown.</p>
+  </section>
+</main>
+<nav class="tabbar" aria-label="Main">
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button>
+<button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button>
+<button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button>
+<button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button>
+</nav>
+<div class="home-indicator"></div>
+</div>
+</body>
+</html>

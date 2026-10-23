@@ -36,7 +36,9 @@
 		selected = null,
 		showToggle = true,
 		width = 252,
-		ontap
+		ontap,
+		heat = null,
+		onzoom
 	}: {
 		view?: View;
 		/** A close-up (head, one hand or one foot) instead of the main view. */
@@ -48,6 +50,17 @@
 		width?: number;
 		/** Called with the region, side, space and region-local (u, v) of the tap. */
 		ontap?: (place: BodyPlace) => void;
+		/**
+		 * Read-only heat map (Trends, "Where it hurt"): places are coloured by `--heat-N` (token 0 = not logged) with the
+		 * average as a number where it fits. Only places `zoomable` says so are buttons (they open a close-up).
+		 */
+		heat?: {
+			cell: (s: Shape) => { token: number; num: number | null; showNum: boolean };
+			aria: string;
+			zoomable?: (s: Shape) => boolean;
+			look?: (s: Shape) => string;
+		} | null;
+		onzoom?: (s: Shape) => void;
 	} = $props();
 
 	let svg: SVGSVGElement | undefined = $state();
@@ -138,94 +151,158 @@
 			class="body"
 			viewBox="0 0 {scene.viewBox.w} {scene.viewBox.h}"
 			style:aspect-ratio="{scene.viewBox.w} / {scene.viewBox.h}"
-			role="group"
-			aria-label={label}
+			role={heat ? 'img' : 'group'}
+			aria-label={heat ? heat.aria : label}
 		>
 			{#each body as d, i (i)}
 				<path class="decor" d={d.d} aria-hidden="true" />
 			{/each}
-			{#each shapes as s (s.space + s.key)}
-				{#if s.d}
-					<path
-						class="rg"
-						class:sel={isSelected(s)}
-						d={s.d}
-						role="button"
-						tabindex="0"
-						aria-label={nameOf(s)}
-						data-region={s.region}
-						data-side={s.side}
-						onclick={(e) => onclick(e, s)}
-						onkeydown={(e) => onkeydown(e, s)}
-					/>
-				{:else}
-					<rect
-						class="rg"
-						class:sel={isSelected(s)}
-						x={s.x}
-						y={s.y}
-						width={s.w}
-						height={s.h}
-						rx={s.rx}
-						ry={s.ry}
-						transform={transform(s)}
-						role="button"
-						tabindex="0"
-						aria-label={nameOf(s)}
-						data-region={s.region}
-						data-side={s.side}
-						onclick={(e) => onclick(e, s)}
-						onkeydown={(e) => onkeydown(e, s)}
-					/>
-				{/if}
-			{/each}
-			{#each features as d, i (i)}
-				<path class="feature" d={d.d} aria-hidden="true" />
-			{/each}
-			{#each wides as w (w.key)}
-				{#each w.cover ?? [w] as c (c.key)}
-					{#if c.d}
+			{#if heat}
+				{#each shapes as s (s.space + s.key)}
+					{@const c = heat.cell(s)}
+					{@const zoomable = heat.zoomable?.(s) ?? false}
+					{#if s.d}
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 						<path
-							class="wide"
-							class:sel={isSelected(w)}
-							d={c.d}
-							aria-hidden="true"
-							data-region={w.region}
-							data-side={w.side}
+							class="rg hm"
+							class:zm={zoomable}
+							d={s.d}
+							style:fill="var(--heat-{c.token})"
+							role={zoomable ? 'button' : undefined}
+							tabindex={zoomable ? 0 : undefined}
+							aria-label={zoomable ? heat.look?.(s) : undefined}
+							aria-hidden={zoomable ? undefined : 'true'}
+							data-region={s.region}
+							data-side={s.side}
+							data-heat={c.token}
+							onclick={zoomable ? () => onzoom?.(s) : undefined}
+							onkeydown={zoomable
+								? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onzoom?.(s))
+								: undefined}
 						/>
 					{:else}
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 						<rect
-							class="wide"
-							class:sel={isSelected(w)}
-							x={c.x}
-							y={c.y}
-							width={c.w}
-							height={c.h}
-							rx={c.rx}
-							ry={c.ry}
-							aria-hidden="true"
-							data-region={w.region}
-							data-side={w.side}
+							class="rg hm"
+							class:zm={zoomable}
+							x={s.x}
+							y={s.y}
+							width={s.w}
+							height={s.h}
+							rx={s.rx}
+							ry={s.ry}
+							transform={transform(s)}
+							style:fill="var(--heat-{c.token})"
+							role={zoomable ? 'button' : undefined}
+							tabindex={zoomable ? 0 : undefined}
+							aria-label={zoomable ? heat.look?.(s) : undefined}
+							aria-hidden={zoomable ? undefined : 'true'}
+							data-region={s.region}
+							data-side={s.side}
+							data-heat={c.token}
+							onclick={zoomable ? () => onzoom?.(s) : undefined}
+							onkeydown={zoomable
+								? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onzoom?.(s))
+								: undefined}
 						/>
 					{/if}
 				{/each}
-			{/each}
-			{#each dots as d, i (i)}
-				<g class="dot" aria-hidden="true">
-					<circle cx={d.x} cy={d.y} r="9.5" class="halo" />
-					<circle
-						cx={d.x}
-						cy={d.y}
-						r="7.5"
-						fill={heatVar(d.intensity)}
-						class="pt"
-						class:unset={d.intensity === undefined}
-					/>
-					{#if d.intensity !== undefined}
-						<text x={d.x} y={d.y} fill={textVar(d.intensity)}>{d.intensity}</text>
+			{:else}
+				{#each shapes as s (s.space + s.key)}
+					{#if s.d}
+						<path
+							class="rg"
+							class:sel={isSelected(s)}
+							d={s.d}
+							role="button"
+							tabindex="0"
+							aria-label={nameOf(s)}
+							data-region={s.region}
+							data-side={s.side}
+							onclick={(e) => onclick(e, s)}
+							onkeydown={(e) => onkeydown(e, s)}
+						/>
+					{:else}
+						<rect
+							class="rg"
+							class:sel={isSelected(s)}
+							x={s.x}
+							y={s.y}
+							width={s.w}
+							height={s.h}
+							rx={s.rx}
+							ry={s.ry}
+							transform={transform(s)}
+							role="button"
+							tabindex="0"
+							aria-label={nameOf(s)}
+							data-region={s.region}
+							data-side={s.side}
+							onclick={(e) => onclick(e, s)}
+							onkeydown={(e) => onkeydown(e, s)}
+						/>
 					{/if}
-				</g>
+				{/each}
+			{/if}
+			{#each features as d, i (i)}
+				<path class="feature" d={d.d} aria-hidden="true" />
 			{/each}
+			{#if heat}
+				{#each shapes as s (s.space + s.key)}
+					{@const c = heat.cell(s)}
+					{#if c.showNum && c.num !== null}
+						{@const at = toView(s, 0.5, 0.5)}
+						<text class="num" x={at.x} y={at.y} fill="var(--on-heat-{c.token})" aria-hidden="true"
+							>{c.num}</text
+						>
+					{/if}
+				{/each}
+			{:else}
+				{#each wides as w (w.key)}
+					{#each w.cover ?? [w] as c (c.key)}
+						{#if c.d}
+							<path
+								class="wide"
+								class:sel={isSelected(w)}
+								d={c.d}
+								aria-hidden="true"
+								data-region={w.region}
+								data-side={w.side}
+							/>
+						{:else}
+							<rect
+								class="wide"
+								class:sel={isSelected(w)}
+								x={c.x}
+								y={c.y}
+								width={c.w}
+								height={c.h}
+								rx={c.rx}
+								ry={c.ry}
+								aria-hidden="true"
+								data-region={w.region}
+								data-side={w.side}
+							/>
+						{/if}
+					{/each}
+				{/each}
+				{#each dots as d, i (i)}
+					<g class="dot" aria-hidden="true">
+						<circle cx={d.x} cy={d.y} r="9.5" class="halo" />
+						<circle
+							cx={d.x}
+							cy={d.y}
+							r="7.5"
+							fill={heatVar(d.intensity)}
+							class="pt"
+							class:unset={d.intensity === undefined}
+						/>
+						{#if d.intensity !== undefined}
+							<text x={d.x} y={d.y} fill={textVar(d.intensity)}>{d.intensity}</text>
+						{/if}
+					</g>
+				{/each}
+			{/if}
 		</svg>
 	</div>
 </div>
@@ -330,6 +407,22 @@
 		stroke-width: 1.6;
 	}
 	.dot {
+		pointer-events: none;
+	}
+	.hm {
+		cursor: default;
+	}
+	.hm.zm {
+		cursor: pointer;
+		stroke: var(--primary);
+		stroke-width: 1.6;
+		stroke-dasharray: 3 2.5;
+	}
+	.num {
+		font-size: 11px;
+		font-weight: var(--fw-bold);
+		text-anchor: middle;
+		dominant-baseline: central;
 		pointer-events: none;
 	}
 	.dot text {

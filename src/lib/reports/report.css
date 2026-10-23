@@ -1,0 +1,30 @@
+/*
+ * Print rules for the report pages. Each sheet names its page ("report-landscape" or "report-portrait") so the
+ * paper size and orientation follow the layout. The print page sets data-print="report" on <html> while it is open,
+ * which hides the app chrome (tab bar, toolbar, skip link) on paper.
+ */
+@page report-landscape {
+	size: A4 landscape;
+	margin: 0;
+}
+@page report-portrait {
+	size: A4 portrait;
+	margin: 0;
+}
+
+@media print {
+	html[data-print='report'],
+	html[data-print='report'] body {
+		background: #fff !important;
+	}
+	html[data-print='report'] .tabbar,
+	html[data-print='report'] .skip-link,
+	html[data-print='report'] .report-toolbar {
+		display: none !important;
+	}
+	html[data-print='report'] main#main {
+		max-width: none !important;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+}

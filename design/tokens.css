@@ -35,13 +35,19 @@
 
   /* Sequential ramp for intensity & heat map: peach to plum (no alarm red/green) */
   --heat-0: #f4ede4;
-  --heat-1: #fbe3cc;
+  --heat-1: #f9d5b4;
   --heat-2: #f6c29c;
   --heat-3: #ec9672;
   --heat-4: #d16a5f;
   --heat-5: #a7465d;
   --heat-6: #6c2d57;
   --on-heat-hi: #ffffff;  /* text on heat-4..6 */
+  /* Numbers on heat map steps 1 to 5 (4.5:1 or better on each step) */
+  --on-heat-1: #2a2430;
+  --on-heat-2: #2a2430;
+  --on-heat-3: #2a2430;
+  --on-heat-4: #16101a;
+  --on-heat-5: #ffffff;
 
   /* ---- Type ---- */
   --font-sans: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
@@ -122,6 +128,11 @@
     --heat-5: #f0a07f;
     --heat-6: #fbd0b3;
     --on-heat-hi: #2b1309;
+    --on-heat-1: #f4eff2;
+    --on-heat-2: #f4eff2;
+    --on-heat-3: #ffffff;
+    --on-heat-4: #16101a;
+    --on-heat-5: #16101a;
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-2: 0 6px 18px rgb(0 0 0 / 0.45);
     --shadow-fab: 0 6px 18px rgb(240 143 104 / 0.25), 0 2px 4px rgb(0 0 0 / 0.4);
