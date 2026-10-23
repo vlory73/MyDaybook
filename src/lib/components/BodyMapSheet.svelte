@@ -735,13 +735,12 @@
 					>
 				</div>
 			{:else}
-				<div class="chips">
-					{#if ongoingOffer}
-						<Chip onclick={() => chooseEpisode(ongoingOffer.id)}>
-							<Icon name="plus" size={14} />{t('episode.row.add', { name: ongoingOffer.name })}
-						</Chip>
-					{/if}
-				</div>
+				{#if ongoingOffer}
+					<button type="button" class="epadd" onclick={() => chooseEpisode(ongoingOffer.id)}>
+						<Icon name="plus" size={14} />
+						<span>{t('episode.row.add', { name: ongoingOffer.name })}</span>
+					</button>
+				{/if}
 				<button
 					type="button"
 					class="eplink start"
@@ -888,6 +887,25 @@
 		flex-direction: column;
 		min-width: 0;
 		overflow-wrap: anywhere;
+	}
+	.epadd {
+		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 36px;
+		padding: 4px var(--sp-3);
+		border-radius: var(--r-full);
+		background: var(--primary-soft);
+		color: var(--primary-press);
+		border: 1.5px solid var(--primary);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-medium);
+		text-align: left;
+		overflow-wrap: anywhere;
+	}
+	.epadd :global(svg) {
+		flex: none;
 	}
 	.eplink {
 		min-height: 36px;

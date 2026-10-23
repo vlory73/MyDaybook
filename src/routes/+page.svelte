@@ -234,7 +234,9 @@
 							aria-label={t('episode.chip.aria', { name: ep.name, n })}
 							onclick={() => openEpisode(ep.id)}
 						>
-							<Icon name="repeat" size={14} />{t('episode.chip', { name: ep.name, n })}
+							<Icon name="repeat" size={14} /><span class="epl"
+								>{t('episode.chip', { name: ep.name, n })}</span
+							>
 						</button>
 					{/if}
 				{/if}
@@ -336,6 +338,12 @@
 		border: 1px solid var(--line);
 		font-size: var(--fs-footnote);
 		font-weight: var(--fw-semibold);
+	}
+	.epl {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.epchip :global(svg) {
 		flex: none;

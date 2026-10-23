@@ -942,7 +942,7 @@ export const da: Record<MessageKey, string> = {
 	'pain.still.text': '{name} · senest noteret {when}: {n}',
 	'pain.still.log': 'Notér i dag',
 	'pain.still.dismiss': 'Afvis',
-	'pain.still.episode': 'Dag {n} af {name} · siden {date}',
+	'pain.still.episode': '{name} · dag {n} · siden {date}',
 	'pain.still.last': 'Senest noteret {when}: {n}',
 	'pain.still.gone': 'Det er væk',
 	'episode.untitled': 'Smerteforløb',

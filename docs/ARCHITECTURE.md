@@ -388,6 +388,18 @@ draw):
 `headacheSides` reads a sided zone or area as that side; the top of the head, the whole head and the band count as both
 sides, and mixed points as both. Nothing here names a headache type (not a medical device).
 
+*Pain episodes.* A `pain_episode` record (payload v1: `started` ISO time, optional `ended` ISO time, optional `name`) groups pain
+entries over several days. A `pain` entry carries an optional `episode` (the episode record's id, at most one); old entries
+simply have none, so there is no migration. The name is stored only when the person renamed it; otherwise it is the place
+logged most often across the episode's entries (ties: first placed). The start shown is the earliest linked entry (or the stored
+`started` when earlier); `ended` is set by "It's gone" and cleared by "Not gone yet". Nothing ends an episode by itself; an
+ongoing episode whose last entry is more than 14 days old shows "last logged <date>". "Same as last time" and "Log today" join
+the previous entry's episode (creating one from it when it has none); the normal way never joins automatically. "Unlink all"
+deletes the episode record and clears the link on its entries; an episode left without entries is ignored by the app. The
+episode average is the mean of the daily averages used by the Trends pain line (`painSeries`); the day dots show each day's
+highest intensity. Pure rules: `src/lib/records/episodes.ts`; store writes: `episodeActions.ts`; `EpisodeSheet.svelte`. The heat
+map and the headache report ignore episodes.
+
 ### 5.1 Sync and client storage
 
 - `GET /api/records?since=<cursor>&limit=<n>` returns `{ records, cursor, hasMore }` for the signed-in user: changed records and
@@ -471,6 +483,7 @@ Every type below is an encrypted record (§5). The server cannot tell them apart
 | `drink` ★ | time, drink (`def:<id>` for a built-in, else the name), size name (snapshot), size in ml, count 1–10, total in ml, note. Stored in whole ml, shown in cl. Later preset edits never change an entry. Descriptive only: a plain daily sum, no goals, nudges, warnings or caffeine / alcohol calculations (D19) | Drink tile: water in 2 taps; "Same again" repeats the last drink |
 | `drink_presets` ★ | ONE record per person: drinks (built-in overrides, hidden flag, own drinks, order, usual size) and sizes (built-in overrides, hidden flag, own sizes). No record = the built-in defaults (names from i18n) | |
 | `pain` | note; 1–20 points (region, side, space, u, v, intensity 0–10, qualities: 0–3 of sharp, dull, burning, throbbing, constant, aching, tingling, numb, itchy; note ≤ 500); optional `headache` details (§5). The UI calls it "Pain" / "Smerter"; the map says "Where do you feel it?" | §5 |
+| `pain_episode` | optional name ≤ 60; `started`; optional `ended`; entries point at it with `pain.episode` (§5) | §5 |
 | `medication` ★ (recurring) | name, strength + unit, form, **schedule**: `daily`, `weekdays [..]`, `every N days` or `as_needed`; times, each with an amount *as entered by the user*; start date, optional end date (courses); reminders on/off; active/archived | Set up once. Today and Meds then list each due dose automatically |
 | `dose` | medication id, the scheduled slot (date + time, or none for as-needed), status `taken / skipped / late`, actual time | **"All taken" per time slot** ★: one tap logs every due dose in that slot. Undo instead of confirm. A medicine not in the list can be logged from the Medicine sheet ("Log another medicine"); it is saved as a "when needed" medication (archived when "Keep in my medicines" is off), so every dose still links to a medication. The time of a taken dose can be set or corrected in the dose sheet; an as-needed dose can be moved to another medicine |
 | `note` | free text, tags | |

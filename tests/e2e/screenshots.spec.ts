@@ -1010,6 +1010,103 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'pain-sheet', scheme);
 		});
 
+		test(`pain episodes ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'pain-episodes', 'pain episodes screenshots only');
+			await prepare(page, scheme);
+			const pt = (region: string, side: string, intensity: number) => ({
+				region,
+				side,
+				space: region === 'lower_back' ? '2d-back-v1' : '2d-front-v1',
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: []
+			});
+			const knee = (intensity: number, side = 'right') => pt('knee', side, intensity);
+			const account = await signUpApiAccount(page.request);
+			const [ongoing, ended] = await seedRecords(page.request, account, [
+				{ v: 1, type: 'pain_episode', started: at(2, 9, 10) },
+				{ v: 1, type: 'pain_episode', started: at(24, 9), ended: at(18, 12) }
+			]);
+			const entry = (episode: string, daysAgo: number, hh: number, mm: number, points: object[]) => ({
+				v: 1,
+				type: 'pain',
+				at: at(daysAgo, hh, mm),
+				points,
+				episode
+			});
+			await seedRecords(page.request, account, [
+				entry(ongoing!, 2, 9, 10, [knee(4)]),
+				entry(ongoing!, 2, 21, 5, [knee(5)]),
+				entry(ongoing!, 1, 19, 40, [knee(6), knee(2, 'left')]),
+				entry(ended!, 24, 9, 0, [knee(4)]),
+				entry(ended!, 24, 21, 0, [knee(5)]),
+				entry(ended!, 23, 12, 0, [knee(6)]),
+				entry(ended!, 21, 8, 0, [knee(3)]),
+				entry(ended!, 20, 8, 0, [knee(2)]),
+				entry(ended!, 19, 8, 0, [knee(2)]),
+				entry(ended!, 18, 8, 0, [knee(1)])
+			]);
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			const card = page.getByRole('region', { name: 'Still there?' });
+			await card.waitFor({ timeout: 20_000 });
+			await snap(page, 'today-card', scheme);
+
+			await seedRecords(page.request, account, [
+				entry(ongoing!, 0, 0, 10, [knee(3)]),
+				{ v: 1, type: 'pain', at: at(0, 0, 15), points: [pt('lower_back', 'midline', 2)] }
+			]);
+			await page.reload();
+			await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+			await unlockWith(page, account.passphrase);
+			const chip = page.getByRole('button', { name: /^Open episode/ });
+			await chip.waitFor({ timeout: 20_000 });
+			await snap(page, 'timeline-chip', scheme, true);
+
+			await chip.click();
+			const episode = page.getByRole('dialog', { name: 'Your right knee' });
+			await episode.waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'episode-sheet-ongoing', scheme);
+			await page.keyboard.press('Escape');
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			await sheet
+				.locator('svg[role=group]')
+				.getByRole('button', { name: 'Your right knee', exact: true })
+				.click();
+			await sheet
+				.getByRole('radiogroup', { name: /^Intensity/ })
+				.getByRole('radio', { name: '5', exact: true })
+				.click();
+			const add = sheet.getByRole('button', { name: /^Add to / });
+			const toEnd = () => sheet.evaluate((d) => d.scrollTo(0, d.scrollHeight));
+			await toEnd();
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet-add', scheme);
+			await add.click();
+			await toEnd();
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet-linked', scheme);
+			await page.keyboard.press('Escape');
+
+			await page.getByRole('link', { name: 'Trends', exact: true }).click();
+			const episodes = page
+				.locator('section.card')
+				.filter({ has: page.getByRole('heading', { name: 'Episodes', exact: true }) });
+			await episodes.waitFor({ timeout: 20_000 });
+			await episodes.scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-episodes', scheme);
+			await episodes.getByRole('button').nth(1).click();
+			await episode.waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'episode-sheet-ended', scheme);
+		});
+
 		test(`trends empty ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'trends', 'trends screenshots only');
 			await prepare(page, scheme);

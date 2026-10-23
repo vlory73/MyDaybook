@@ -934,7 +934,7 @@ export const en = {
 	'pain.still.text': '{name} · last logged {when}: {n}',
 	'pain.still.log': 'Log today',
 	'pain.still.dismiss': 'Dismiss',
-	'pain.still.episode': 'Day {n} of {name} · since {date}',
+	'pain.still.episode': '{name} · day {n} · since {date}',
 	'pain.still.last': 'Last logged {when}: {n}',
 	'pain.still.gone': "It's gone",
 	'episode.untitled': 'Pain episode',
