@@ -27,6 +27,7 @@
 		type Zoom,
 		type ZoomState
 	} from '$lib/bodymap/catalogue';
+	import type { StoredRecord } from '$lib/records/codec';
 	import { editor, openNauseaFromPain } from '$lib/records/editor.svelte';
 	import {
 		HEADACHE_BEFORE,
@@ -105,7 +106,8 @@
 	let hStartHour = $state('');
 	let hStopDay = $state('');
 	let hStopHour = $state('');
-	let hStill = $state(false);
+	/** The hour of the last "Still there" on Today. Kept as stored; the sheet never asks for it. */
+	let hLastSeen = $state<string | undefined>();
 	let hBefore = $state<HeadacheBefore[]>([]);
 	let hActivity = $state<boolean | undefined>();
 	let hLight = $state<boolean | undefined>();
@@ -132,8 +134,8 @@
 	});
 	const ongoingOffer = $derived(latestOngoing(episodes));
 	const chooser = $derived(chooserList(episodes));
-	function joinLast() {
-		const plan = last ? joinPlan(last.id) : null;
+	function joinLast(from = last?.id) {
+		const plan = from ? joinPlan(from) : null;
 		epId = plan?.episodeId;
 		epCreate = plan?.create;
 		choosing = false;
@@ -146,6 +148,12 @@
 
 	const isNew = $derived(editor.log?.kind === 'pain' && editor.log.id === null);
 	const last = $derived(latestPain(allRecords()));
+	/** The entry "Log today" copies: the one the Today card named, else the latest. */
+	const sameFrom = $derived.by(() => {
+		const id = editor.log?.sameFrom;
+		const named = id ? store.items[id] : undefined;
+		return named?.payload.type === 'pain' ? (named as StoredRecord<PainPayload>) : last;
+	});
 	const current = $derived(sel === null ? undefined : points[sel]);
 	const complete = $derived(points.length > 0 && points.every((p) => p.intensity !== undefined));
 	const full = $derived(points.length >= MAX_PAIN_POINTS);
@@ -165,7 +173,7 @@
 			(hStartHour !== '' && hStopHour !== '' && hStopHour < hStartHour ? addDays(startDay, 1) : startDay)
 	);
 	const startedAt = $derived(hStartHour === '' ? undefined : hourAt(startDay, hStartHour));
-	const stoppedAt = $derived(hStill || hStopHour === '' ? undefined : hourAt(stopDay, hStopHour));
+	const stoppedAt = $derived(hStopHour === '' ? undefined : hourAt(stopDay, hStopHour));
 	const orderOk = $derived(
 		startedAt === undefined ||
 			stoppedAt === undefined ||
@@ -207,7 +215,7 @@
 		startHour: hStartHour,
 		stopDay: hStopDay,
 		stopHour: hStopHour,
-		still: hStill,
+		lastSeen: hLastSeen,
 		before: [...hBefore],
 		activity: hActivity,
 		light: hLight,
@@ -220,7 +228,7 @@
 		hStartHour = h?.started?.slice(11, 13) ?? '';
 		hStopDay = h?.stopped?.slice(0, 10) ?? '';
 		hStopHour = h?.stopped?.slice(11, 13) ?? '';
-		hStill = h?.stillGoing === true;
+		hLastSeen = h?.lastSeen;
 		hBefore = [...(h?.before ?? [])];
 		hActivity = h?.worseWithActivity;
 		hLight = h?.light;
@@ -250,7 +258,7 @@
 			hStartHour = d.h.startHour;
 			hStopDay = d.h.stopDay;
 			hStopHour = d.h.stopHour;
-			hStill = d.h.still;
+			hLastSeen = d.h.lastSeen;
 			hBefore = d.h.before;
 			hActivity = d.h.activity;
 			hLight = d.h.light;
@@ -267,13 +275,13 @@
 		hOpen = saved ? hasHeadacheAnswers(saved.headache ?? {}) : true;
 		fillHeadache(saved?.headache);
 		if (saved) points = saved.points.map(draftOf);
-		else if (editor.log?.same && last) points = copyPoints(last.payload).map(draftOf);
+		else if (editor.log?.same && sameFrom) points = copyPoints(sameFrom.payload).map(draftOf);
 		else points = [];
 		epId = saved?.episode;
 		epCreate = undefined;
 		choosing = false;
 		// "Same as last time" and "Log today" join the previous entry's episode.
-		if (!saved && editor.log?.same && last) joinLast();
+		if (!saved && editor.log?.same && sameFrom) joinLast(sameFrom.id);
 		sel = points.length > 0 ? 0 : null;
 		view = points[0] ? viewOf(points[0].space) : 'front';
 		zoomKind = null;
@@ -464,7 +472,9 @@
 			const h: HeadacheDetails = {};
 			if (startedAt) h.started = startedAt;
 			if (stoppedAt) h.stopped = stoppedAt;
-			if (hStill) h.stillGoing = true;
+			// "Last seen" only matters while there is no stop time, and never before the start (the validator's rule).
+			if (hLastSeen && !stoppedAt && (!startedAt || instant(hLastSeen) >= instant(startedAt)))
+				h.lastSeen = hLastSeen;
 			if (hBefore.length > 0) h.before = HEADACHE_BEFORE.filter((b) => hBefore.includes(b));
 			if (hActivity !== undefined) h.worseWithActivity = hActivity;
 			if (hLight !== undefined) h.light = hLight;
@@ -634,7 +644,6 @@
 				<div class="hd-body">
 					{#each [{ key: 'started', hourKey: 'start' }, { key: 'stopped', hourKey: 'stop' }] as row (row.key)}
 						{@const isStart = row.key === 'started'}
-						{@const off = !isStart && hStill}
 						<div class="when" role="group" aria-label={t(`headache.${row.key}` as MessageKey)}>
 							<span class="label">{t(`headache.${row.key}` as MessageKey)}</span>
 							<div class="pick">
@@ -642,7 +651,6 @@
 									type="date"
 									class="field"
 									aria-label={t('headache.day') + ' ' + t(`headache.${row.key}` as MessageKey)}
-									disabled={off}
 									value={isStart ? startDay : stopDay}
 									onchange={(e) =>
 										isStart ? (hStartDay = e.currentTarget.value) : (hStopDay = e.currentTarget.value)}
@@ -650,7 +658,6 @@
 								<select
 									class="field"
 									aria-label={t('headache.hour') + ' ' + t(`headache.${row.key}` as MessageKey)}
-									disabled={off}
 									value={isStart ? hStartHour : hStopHour}
 									onchange={(e) =>
 										isStart ? (hStartHour = e.currentTarget.value) : (hStopHour = e.currentTarget.value)}
@@ -661,8 +668,8 @@
 									{/each}
 								</select>
 							</div>
-							{#if !isStart}
-								<Chip selected={hStill} onclick={() => (hStill = !hStill)}>{t('headache.stillGoing')}</Chip>
+							{#if !isStart && hStopHour === ''}
+								<p class="warn stop-hint">{t('headache.stopped.hint')}</p>
 							{/if}
 						</div>
 					{/each}
@@ -1197,6 +1204,9 @@
 	.field:focus-visible {
 		outline: none;
 		border-color: var(--focus);
+	}
+	.stop-hint {
+		flex-basis: 100%;
 	}
 	.warn {
 		margin: 0;

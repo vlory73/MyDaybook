@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import {
 		CategoryBadge,
+		Chip,
 		DueDoses,
 		PhotoThumb,
 		PainThumb,
@@ -25,6 +26,17 @@
 	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
 	import { allRecords, daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
 	import { regionName } from '$lib/bodymap/catalogue';
+	import { noteStillThere, stopHeadache } from '$lib/records/headacheActions';
+	import {
+		headacheCard,
+		hourOf,
+		readNotNow,
+		stopChoices,
+		stopOk,
+		writeNotNow,
+		type NotNow,
+		type OpenHeadache
+	} from '$lib/records/headacheStill';
 	import { readDismissed, stillThere, writeDismissed, type StillThere } from '$lib/records/painEntry';
 	import { dayDate, formatAt, timeOf, todayKey, weekDays } from '$lib/records/time';
 
@@ -115,6 +127,67 @@
 		writeDismissed(browser ? localStorage : undefined, id);
 	}
 
+	// The headache card: an open headache (no stop time) from the last two days. "Still there" notes the hour on the
+	// entry, "It's gone" asks when it stopped and writes it on the same entry, "Not now" hides the card until tomorrow
+	// (this device remembers only an entry id and a day).
+	let notNow = $state<NotNow | null>(browser ? readNotNow(localStorage) : null);
+	const hCard = $derived(isToday ? headacheCard(allRecords(), new Date(), notNow) : null);
+	const hEpisode = $derived(hCard ? episodeOf(hCard.id) : undefined);
+	function hSince(h: OpenHeadache): string {
+		const when = t('headache.card.when', {
+			time: timeOf(h.start),
+			day: t(`pain.still.day.${Math.min(h.daysAgo, 2)}` as MessageKey)
+		});
+		return h.strongest === null
+			? t('headache.card.lineNoN', { when })
+			: t('headache.card.line', { when, n: h.strongest });
+	}
+	async function hStill(h: OpenHeadache) {
+		try {
+			await noteStillThere(h.id);
+			showToast(t('headache.card.noted'));
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
+	function hNotNow(h: OpenHeadache) {
+		notNow = { id: h.id, day: todayKey() };
+		writeNotNow(browser ? localStorage : undefined, notNow);
+	}
+	let stopping = $state(false);
+	let stopChips = $state<string[]>([]);
+	let stopPick = $state('');
+	let earlier = $state(false);
+	let eDay = $state('');
+	let eHour = $state('');
+	const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+	const hourLabel = (h: string) =>
+		new Date(2000, 0, 1, Number(h)).toLocaleTimeString(i18n.locale, { hour: 'numeric' });
+	function hOpen(h: OpenHeadache) {
+		const now = new Date();
+		stopChips = stopChoices(h.start, now);
+		stopPick = stopChips[0]!;
+		earlier = false;
+		eDay = todayKey(now);
+		eHour = stopChips[0]!.slice(11, 13);
+		stopping = true;
+	}
+	const stopValue = (): string =>
+		earlier && eDay && eHour !== '' ? `${eDay}T${eHour}:00:00${hourOf(new Date()).slice(19)}` : stopPick;
+	const stopValid = (h: OpenHeadache) => {
+		const v = stopValue();
+		return v !== '' && !Number.isNaN(Date.parse(v)) && stopOk(h.start, v, new Date());
+	};
+	async function hGone(h: OpenHeadache) {
+		try {
+			await stopHeadache(h.id, stopValue(), hEpisode?.ongoing ? hEpisode.id : undefined);
+			stopping = false;
+			showToast(t('episode.toast.gone'));
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
+
 	// One-tap mood: saves a feeling with just the mood and offers Undo.
 	const moodLabels = ['mood.1', 'mood.2', 'mood.3', 'mood.4', 'mood.5'] as const;
 	const latestMood = $derived(
@@ -166,6 +239,71 @@
 	</section>
 {/if}
 
+{#if hCard}
+	{@const h = hCard}
+	<section class="card still" aria-labelledby="hcard">
+		<h2 class="card-title hc-title" id="hcard">
+			<CategoryBadge category="pain" size={32} />{t('headache.card.title')}
+		</h2>
+		{#if hEpisode}
+			<p class="ep-line">
+				{t('pain.still.episode', {
+					n: dayNumber(hEpisode.startDay, formatAt(now)),
+					name: hEpisode.name,
+					date: formatDay(i18n.locale, hEpisode.startDay)
+				})}
+			</p>
+		{/if}
+		<p class="card-sub still-text hc-line">{hSince(h)}</p>
+		{#if stopping}
+			<p class="stop-q" id="stopq">{t('headache.card.stopQ')}</p>
+			<div class="chips" role="group" aria-labelledby="stopq">
+				{#each stopChips as c, i (c)}
+					<Chip
+						selected={!earlier && stopPick === c}
+						onclick={() => {
+							stopPick = c;
+							earlier = false;
+						}}>{i === 0 ? t('headache.card.now', { time: timeOf(c) }) : timeOf(c)}</Chip
+					>
+				{/each}
+				<Chip selected={earlier} onclick={() => (earlier = !earlier)}>{t('headache.card.earlier')}</Chip>
+			</div>
+			{#if earlier}
+				<div class="pick">
+					<input
+						type="date"
+						class="field"
+						aria-label={t('headache.card.stopDay')}
+						max={todayKey()}
+						bind:value={eDay}
+					/>
+					<select class="field" aria-label={t('headache.card.stopHour')} bind:value={eHour}>
+						{#each hours as hh (hh)}<option value={hh}>{hourLabel(hh)}</option>{/each}
+					</select>
+				</div>
+			{/if}
+			{#if !stopValid(h)}<p class="warn" role="alert">{t('headache.order')}</p>{/if}
+			<div class="still-actions">
+				<button type="button" class="more" disabled={!stopValid(h)} onclick={() => hGone(h)}
+					>{t('common.save')}</button
+				>
+				<button type="button" class="more quiet" onclick={() => (stopping = false)}
+					>{t('common.cancel')}</button
+				>
+			</div>
+		{:else}
+			<div class="still-actions">
+				<button type="button" class="more" onclick={() => hStill(h)}>{t('headache.card.still')}</button>
+				<button type="button" class="more" onclick={() => hOpen(h)}>{t('pain.still.gone')}</button>
+				<button type="button" class="more quiet" onclick={() => hNotNow(h)}
+					>{t('headache.card.notNow')}</button
+				>
+			</div>
+		{/if}
+	</section>
+{/if}
+
 {#if still}
 	<section class="card still" aria-labelledby="still">
 		<h2 class="card-title" id="still">{t('pain.still.title')}</h2>
@@ -182,7 +320,7 @@
 			<p class="card-sub still-text">{stillText(still)}</p>
 		{/if}
 		<div class="still-actions">
-			<button type="button" class="more" onclick={() => openLog('pain', { same: true })}
+			<button type="button" class="more" onclick={() => openLog('pain', { same: true, sameFrom: still!.id })}
 				>{t('pain.still.log')}</button
 			>
 			<button type="button" class="more" onclick={() => stillGone(still!)}>{t('pain.still.gone')}</button>
@@ -354,6 +492,50 @@
 	}
 	.epchip :global(svg) {
 		flex: none;
+	}
+	.hc-title {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+	}
+	.hc-line {
+		margin-top: 6px;
+	}
+	.stop-q {
+		font-size: var(--fs-footnote);
+		font-weight: var(--fw-medium);
+		color: var(--text-2);
+		margin: var(--sp-3) 0 var(--sp-2);
+	}
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-2);
+		margin-bottom: var(--sp-3);
+	}
+	.pick {
+		display: flex;
+		gap: var(--sp-2);
+		margin-bottom: var(--sp-3);
+	}
+	.field {
+		flex: 1;
+		min-width: 0;
+		min-height: 44px;
+		padding: 0 var(--sp-3);
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		border: 1px solid var(--line);
+		color: var(--text);
+		font: inherit;
+	}
+	.warn {
+		margin: 0 0 var(--sp-2);
+		font-size: var(--fs-footnote);
+		color: var(--text-2);
+	}
+	.more:disabled {
+		opacity: 0.45;
 	}
 	.still-text {
 		text-wrap: pretty;

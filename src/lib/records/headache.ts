@@ -19,13 +19,17 @@ export const MAX_TRIGGER = 200;
  * headache" (the person ticked it without a point on the head).
  *
  * `started` and `stopped` are full local date-times rounded to the hour ("2026-10-18T22:00:00+02:00"), so a headache
- * that ended the next day needs no extra field and the offset travels with the value like every `at`. `stillGoing`
- * replaces `stopped` and is only ever `true`.
+ * that ended the next day needs no extra field and the offset travels with the value like every `at`. An empty
+ * `stopped` means "still going" (Today asks later); `lastSeen` is the hour the person last said "Still there" on
+ * Today. `stillGoing` is legacy: old entries still parse, nothing writes it any more, and it reads like no `stopped`.
  */
 export type HeadacheDetails = {
 	started?: string;
 	stopped?: string;
+	/** Legacy (no longer written): same meaning as having no `stopped`. */
 	stillGoing?: true;
+	/** The hour of the last "Still there" tap on Today (same format as `started`). */
+	lastSeen?: string;
 	/** Changes noticed just before it started, in the order of HEADACHE_BEFORE. */
 	before?: HeadacheBefore[];
 	worseWithActivity?: boolean;
@@ -36,7 +40,17 @@ export type HeadacheDetails = {
 
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x);
-const KEYS = ['started', 'stopped', 'stillGoing', 'before', 'worseWithActivity', 'light', 'sound', 'trigger'];
+const KEYS = [
+	'started',
+	'stopped',
+	'stillGoing',
+	'lastSeen',
+	'before',
+	'worseWithActivity',
+	'light',
+	'sound',
+	'trigger'
+];
 const HOUR_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00(Z|[+-]\d{2}:\d{2})$/;
 const isHour = (x: unknown): x is string => typeof x === 'string' && HOUR_RE.test(x) && isAt(x);
 const isBool = (x: unknown) => x === undefined || typeof x === 'boolean';
@@ -45,6 +59,13 @@ export function isHeadacheDetails(x: unknown): x is HeadacheDetails {
 	if (!isObj(x) || Object.keys(x).some((k) => !KEYS.includes(k))) return false;
 	if (x.started !== undefined && !isHour(x.started)) return false;
 	if (x.stopped !== undefined && !isHour(x.stopped)) return false;
+	if (x.lastSeen !== undefined && !isHour(x.lastSeen)) return false;
+	if (
+		typeof x.started === 'string' &&
+		typeof x.lastSeen === 'string' &&
+		instant(x.lastSeen) < instant(x.started)
+	)
+		return false;
 	if (x.stillGoing !== undefined && x.stillGoing !== true) return false;
 	if (x.stillGoing && x.stopped !== undefined) return false;
 	if (
@@ -92,6 +113,13 @@ export function isHeadacheEntry(payload: Payload): payload is PainPayload {
 		payload.type === 'pain' && (payload.headache !== undefined || payload.points.some((p) => isHeadPoint(p)))
 	);
 }
+
+/**
+ * A headache entry with no stop time. An empty `stopped` means the headache is still going (a legacy `stillGoing: true`
+ * reads the same). Whether Today still asks about it depends on its age (`headacheStill.ts`).
+ */
+export const isOpenHeadache = (payload: Payload): payload is PainPayload =>
+	isHeadacheEntry(payload) && payload.headache?.stopped === undefined;
 
 /**
  * The day's severity zone: the average of all head-point intensities of the day's pain entries, rounded to the nearest
