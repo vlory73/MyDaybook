@@ -55,10 +55,11 @@ Other key documents:
    - M3: medication and reminders
    - M4: body map
    - M5: charts, heat map, export, PDF
-   - M6: dependent profiles and handover
+   - M6: data export (JSON + CSV + photos in one .zip; changed 2026-10-23, dependent profiles parked until after v1)
    - M7: Danish i18n, hardening, image publishing, self-hosting docs
    - After v1: M8 offline-first (owner must-have, 2026-10-19): unlock offline, encrypted outbox for entries made offline, clear
      "not synced yet" state; sign-in, reminders and admin stay online. Builds on the ciphertext cache in IndexedDB
+   - After M8: dependent profiles and handover (parked 2026-10-23; mockup `design/dependents.html`)
 2. From M2 onwards, each milestone is split into one or more `feature/*` branches, each with its own PR into develop. Each PR needs:
    - CI green
    - e2e tests run in the sandbox
@@ -213,6 +214,8 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 | 2026-10-23 | Doctor visit report approved (mockup `design/doctor-report.html`): Reports page opened only from the Trends button (cards: Headache diary, Doctor visit); settings: period 7/30/90/custom (default 30), report language, name (prefilled), "Questions for your doctor" (printed as "My questions", never saved), "Include" checklist ticked by default for everything with data except Notes and "Add the Headache diary pages"; A4 portrait, browser print; summaries only (no day-by-day list, no photos); medicines = active or taken in the period plus as-needed ones logged in it (archived not listed); charts get value axes; one CPR line; Danish first draft for M7. Also on this branch: a larger name on the headache report | Owner |
 | 2026-10-23 | #76 merged (`feature/doctor-pdf`): Reports page + Doctor visit report, M5 done. Decisions: neutral place names on the report only ("Right knee", "RIGHT / LEFT"; the app keeps "Your right knee"; typed episode names stay as typed); kept as built: whole-body figures only (no close-ups), "Page N of M" counts doctor pages only, long notes/questions cut with "…" (12 / 24 lines), appended Headache diary pages use the device's remembered layout, Danish first draft | Owner |
 | 2026-10-23 | Issues for 0.8.0: #73 (feet on the Trends heat map not zooming) looks solved to the owner, left under observation (the back view's heels are not in the tap-to-zoom list). #74 approved: the Weight tile is weight only (no type list, no "New type"); Measure gets built-in Blood pressure (two values, mmHg, upper/lower) and Pulse (bpm) plus own types ("New type" kept, per the spec); weight is no longer in the Measure list; an own "Blood pressure" type made earlier stays as it is next to the built-in one; Trends and the doctor report show blood pressure as one chart with two lines and pulse as its own chart; no ranges or warnings. #72: the app gets its own hostname (e.g. diary.lory-home.duckdns.org) via the HA session so password managers stop mixing it with other Pi apps; changing the URL means reinstalling the app and re-enabling reminders per device; passkeys set aside for now | Owner |
+| 2026-10-23 | Spec change: dependent profiles and handover (spec "Minors", old M6) parked until after v1, after M8 offline-first: nobody in the household qualifies to test them and the app is not public yet. The data model already has `guardianships` and `handovers`, so no migration later. Mockup kept (`design/dependents.html`) with its 10 proposed decisions unanswered. Before any public release: signup and privacy notice say "for people aged 13 and over" (backlog) | Owner |
+| 2026-10-23 | M6 is now the standard data export (moved from M7): one .zip with JSON + CSV + photos, generated on the device (fflate, already approved). FHIR export filed as an idea (#82), not built | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -223,12 +226,15 @@ Remind the owner of these when planning the next feature milestone; don't build 
 - **Built-in medicine name list** (requested 2026-10-19): name suggestions beyond the person's own history, bundled in the app
   (no runtime lookups). First check the licence (CC0/CC-BY only; e.g. the Danish Medicines Agency's product data) and the size
   (over 1 MB needs approval); names only, never strengths, doses or interactions, and typed text always stays free.
+- **"For people aged 13 and over"** (2026-10-23): one line at signup and in the privacy notice, before any public release,
+  while dependent profiles are parked.
+- **FHIR export** (2026-10-23): idea issue #82; builds on the M6 export.
 - **Pain episodes** (requested 2026-10-19, for the M5 plan): link pain entries over several days into one episode with a start and
   end ("knee pain, 3 Oct → 9 Oct"), for charts and the doctor-visit PDF. Adds an optional episode link to entries; no migration.
 
 ## Current status
 
-_Last updated: 2026-10-23 (handover). Released: **0.7.0** (on the Pi). **0.8.0 is ready to release** (owner, via docs/RELEASING.md): M5 done with pain episodes (#65), own name (#67), meal fixes (#68), whole arm/leg and headache tick (#70), Reports page + Doctor visit report (#76), heels on the back-view heat map (#77), Weight / Measure split with Blood pressure and Pulse (#78); CI runs e2e in the Playwright container with one retry (#69, #71, #75). **Next session:** plan and build **M6 (dependent profiles and handover) → 0.9.0** (short plan, open decisions with recommendations, static mockup before any build). Done: #72 own hostname `https://myday.lory-home.duckdns.org` (old :8444 address redirects until the owner says everyone has moved; then tell the HA session to remove it). Open: family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`); stale branches can be deleted on GitHub by the owner._
+_Last updated: 2026-10-23 (handover). Released: **0.7.0** (on the Pi). **0.8.0 is ready to release** (owner, via docs/RELEASING.md): M5 done with pain episodes (#65), own name (#67), meal fixes (#68), whole arm/leg and headache tick (#70), Reports page + Doctor visit report (#76), heels on the back-view heat map (#77), Weight / Measure split with Blood pressure and Pulse (#78); CI runs e2e in the Playwright container with one retry (#69, #71, #75). **M6 is now the data export → 0.9.0** (dependent profiles parked until after v1; FHIR idea #82); plan and export mockup on `feature/m6-plan`. Done: #72 own hostname `https://myday.lory-home.duckdns.org` (old :8444 address redirects until the owner says everyone has moved; then tell the HA session to remove it). Open: family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`); stale branches can be deleted on GitHub by the owner._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
