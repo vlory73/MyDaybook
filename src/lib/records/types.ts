@@ -68,7 +68,7 @@ export type SleepPayload = Timed<'sleep'> & {
 	note?: string;
 };
 export type MeasurementPayload = Timed<'measurement'> & {
-	/** `weight` for the built-in type, otherwise the record id of a `measurement_type`. */
+	/** `weight`, `blood_pressure` (upper, lower) or `pulse` for the built-in types, otherwise the record id of a `measurement_type`. */
 	typeId: string;
 	values: number[];
 	unit: string;
@@ -387,6 +387,17 @@ function isTimed(o: Obj): boolean {
 	return isAt(o.at);
 }
 
+/** Largest number accepted for a built-in measure value: it only stops typos and is not a medical range. */
+export const BUILT_IN_MAX = 400;
+/** Blood pressure takes exactly two numbers, pulse exactly one; other types are checked by the caller. */
+const builtInValues = (typeId: string, values: number[]): boolean => {
+	const count = typeId === 'blood_pressure' ? 2 : typeId === 'pulse' ? 1 : 0;
+	return (
+		count === 0 ||
+		(values.length === count && values.every((n) => Number.isInteger(n) && n >= 1 && n <= BUILT_IN_MAX))
+	);
+};
+
 const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	food: (o) =>
 		isTimed(o) &&
@@ -421,6 +432,7 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 		o.values.length >= 1 &&
 		o.values.length <= 3 &&
 		o.values.every((n) => typeof n === 'number' && Number.isFinite(n)) &&
+		builtInValues(o.typeId as string, o.values as number[]) &&
 		isStr(o.unit, 40) &&
 		strList(o.context) &&
 		optStr(o.note),

@@ -130,7 +130,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			// A custom measurement type with two values
 			await open('Measure');
 			await sheet.getByRole('button', { name: 'New type' }).click();
-			await sheet.getByLabel('Name, for example Blood pressure').fill('Blood pressure');
+			await sheet.getByLabel('Name, for example Temperature').fill('Ankle width');
 			await sheet.getByLabel('Unit, for example mmHg').fill('mmHg');
 			await sheet
 				.getByRole('radiogroup', { name: 'Number of values' })
@@ -1349,6 +1349,88 @@ for (const scheme of ['light', 'dark'] as const) {
 			await shoot(/Like the paper form/, 'English', 'form-en', 2);
 			await shoot(/Like the paper form/, 'Dansk', 'form-da', 2);
 		});
+		test(`measure split ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'measure-split', 'measure-split screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const [heartRate] = await seedRecords(page.request, account, [heartRateType]);
+			void heartRate;
+			const bp = [];
+			for (let ago = 29; ago >= 0; ago -= 2) {
+				const wave = Math.sin(ago / 3);
+				bp.push({
+					v: 1,
+					type: 'measurement',
+					at: at(ago, 8),
+					typeId: 'blood_pressure',
+					values: [Math.round(126 + wave * 6), Math.round(81 + wave * 3)],
+					unit: 'mmHg',
+					context: ['morning']
+				});
+				bp.push({
+					v: 1,
+					type: 'measurement',
+					at: at(ago, 8, 5),
+					typeId: 'pulse',
+					values: [Math.round(66 + wave * 4)],
+					unit: 'bpm',
+					context: []
+				});
+			}
+			await seedRecords(page.request, account, bp);
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('button', { name: 'Log something' }).waitFor({ timeout: 20_000 });
+			const sheet = page.getByRole('dialog');
+			const open = async (tile: string) => {
+				await page.getByRole('button', { name: 'Log something' }).click();
+				await page.getByRole('button', { name: tile, exact: true }).click();
+				await page.waitForTimeout(500);
+			};
+
+			await open('Weight');
+			await sheet.getByLabel('Value', { exact: true }).fill('72.4');
+			await snap(page, 'sheet-weight', scheme);
+			await page.getByRole('button', { name: 'Close' }).click();
+
+			await open('Measure');
+			await sheet.getByRole('button', { name: 'Blood pressure', exact: true }).click();
+			await sheet.getByLabel('Upper', { exact: true }).fill('128');
+			await sheet.getByLabel('Lower', { exact: true }).fill('82');
+			await snap(page, 'sheet-measure-bp', scheme);
+			await sheet.getByRole('button', { name: 'Pulse', exact: true }).click();
+			await sheet.getByLabel('Value', { exact: true }).fill('64');
+			await snap(page, 'sheet-measure-type-list', scheme);
+			await page.getByRole('button', { name: 'Close' }).click();
+
+			await page.getByRole('link', { name: 'Trends', exact: true }).click();
+			const card = page.locator('section.card').filter({
+				has: page.getByRole('heading', { name: 'Blood pressure', exact: true })
+			});
+			await card.waitFor({ timeout: 20_000 });
+			await card.scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-blood-pressure', scheme);
+
+			if (scheme !== 'light') return;
+			await page.getByRole('link', { name: 'Reports' }).click();
+			await page.getByTestId('report-doctor').click();
+			await page.getByRole('heading', { name: 'Doctor visit', level: 1 }).waitFor({ timeout: 20_000 });
+			await page.getByLabel('Name on the report').fill('Sam Example');
+			await page.getByRole('button', { name: 'Preview report' }).click();
+			await page.getByTestId('doctor-page').first().waitFor();
+			await page.emulateMedia({ media: 'print', colorScheme: scheme });
+			await page.setViewportSize({ width: 794, height: 1123 });
+			await page.waitForTimeout(300);
+			const sheetEl = page.locator('.dsheet, .report-sheet').filter({ hasText: 'Blood pressure' }).first();
+			const box = (await sheetEl.boundingBox())!;
+			await page.screenshot({
+				path: `docs/screenshots/${folder}/doctor-report-bp.png`,
+				fullPage: true,
+				clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+			});
+		});
+
 		test(`doctor report ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'doctor-report', 'doctor report screenshots only');
 			await prepare(page, scheme);

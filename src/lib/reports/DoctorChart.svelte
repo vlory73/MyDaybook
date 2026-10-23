@@ -82,9 +82,16 @@
 			{/each}
 		{/each}
 	{:else}
-		{#each spec.series as s (s.key)}
+		{#each spec.series as s, k (s.key)}
 			{@const pts = s.values.flatMap((v, i) => (v === null ? [] : [{ x: x(i), y: y(v) }]))}
-			<path d={linePath(pts)} fill="none" stroke={s.color} stroke-width="1.8" stroke-linejoin="round" />
+			<path
+				d={linePath(pts)}
+				fill="none"
+				stroke={s.color}
+				stroke-width="1.8"
+				stroke-linejoin="round"
+				stroke-dasharray={spec.id === 'bp' && k === 1 ? '5 3' : undefined}
+			/>
 			{#if dots || pts.length === 1}
 				{#each pts as p, k (k)}
 					<circle cx={p.x} cy={p.y} r="2.4" fill={s.color} />

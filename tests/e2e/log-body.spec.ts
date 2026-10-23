@@ -177,20 +177,20 @@ test('weight: typed value, steppers, context, edit, delete with undo, and the la
 	await expect(timeline(page).getByText('Weight 72.4 kg')).toBeVisible();
 });
 
-test('a custom measurement type with two values (Blood pressure 120/80) round-trips', async ({ page }) => {
+test('an own measurement type with two values round-trips next to the built-in ones', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openTile(page, 'Measure');
-	await expect(page.getByRole('button', { name: 'Weight', exact: true })).toHaveAttribute(
+	await expect(page.getByRole('button', { name: 'Blood pressure', exact: true })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
 	await page.getByRole('button', { name: 'New type' }).click();
-	await page.getByLabel('Name, for example Blood pressure').fill('Blood pressure');
-	await page.getByLabel('Unit, for example mmHg').fill('mmHg');
+	await page.getByLabel('Name, for example Temperature').fill('Ankle width');
+	await page.getByLabel('Unit, for example mmHg').fill('cm');
 	await page.getByRole('radiogroup', { name: 'Number of values' }).getByRole('radio', { name: '2' }).click();
 	await page.getByRole('radiogroup', { name: 'Decimals' }).getByRole('radio', { name: '0' }).click();
 	await page.getByRole('button', { name: 'Add this type' }).click();
-	await expect(page.getByRole('button', { name: 'Blood pressure', exact: true })).toHaveAttribute(
+	await expect(page.getByRole('button', { name: 'Ankle width', exact: true })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
@@ -199,11 +199,12 @@ test('a custom measurement type with two values (Blood pressure 120/80) round-tr
 	await page.getByRole('button', { name: 'Increase' }).last().click();
 	await page.getByRole('button', { name: 'Decrease' }).last().click();
 	await save(page);
-	await expect(timeline(page).getByText('Blood pressure 120/80 mmHg')).toBeVisible();
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(timeline(page).getByText('Ankle width 120/80 cm')).toBeVisible();
 
 	// The Measure tile now opens on that type, with the last values filled in.
 	await openTile(page, 'Measure');
-	await expect(page.getByRole('button', { name: 'Blood pressure', exact: true })).toHaveAttribute(
+	await expect(page.getByRole('button', { name: 'Ankle width', exact: true })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
@@ -211,12 +212,12 @@ test('a custom measurement type with two values (Blood pressure 120/80) round-tr
 	await expect(page.getByLabel('Value 2')).toHaveValue('80');
 	await page.getByRole('button', { name: 'Close' }).click();
 
-	// Editing keeps both values.
-	await timeline(page).getByText('Blood pressure 120/80 mmHg').click();
+	// Editing opens the Measure sheet with that type and keeps both values.
+	await timeline(page).getByText('Ankle width 120/80 cm').click();
 	await expect(page.getByLabel('Value 1')).toHaveValue('120');
 	await page.getByLabel('Value 1').fill('118');
 	await save(page);
-	await expect(timeline(page).getByText('Blood pressure 118/80 mmHg')).toBeVisible();
+	await expect(timeline(page).getByText('Ankle width 118/80 cm')).toBeVisible();
 });
 
 test('bowel: type, flags and note; edit; delete with undo', async ({ page }) => {
