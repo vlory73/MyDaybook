@@ -432,7 +432,7 @@ test.describe('recovery and account changes', () => {
 		const danger = page.getByRole('heading', { name: 'Delete account' });
 		await expect(danger).toBeVisible();
 		await expect(page.getByText(/up to 14 days/).first()).toBeVisible();
-		await expect(page.getByText(/arrives in a later version/)).toBeVisible();
+		await expect(page.getByText(/Download a copy of your diary first/)).toBeVisible();
 		await expect(page.getByText(/withdraws the agreement/).first()).toBeVisible();
 		await page.getByRole('button', { name: 'Delete my account…' }).click();
 		const sheet = page.getByRole('dialog', { name: 'Delete your account?' });

@@ -139,7 +139,7 @@ describe('buildTables', () => {
 				{
 					region: 'knee',
 					side: 'right',
-					space: 'front',
+					space: '2d-front-v1',
 					u: 0.5,
 					v: 0.5,
 					intensity: 6,
@@ -148,7 +148,7 @@ describe('buildTables', () => {
 				{
 					region: 'knee',
 					side: 'left',
-					space: 'front',
+					space: '2d-front-v1',
 					u: 0.5,
 					v: 0.5,
 					intensity: 3,
@@ -182,7 +182,9 @@ describe('buildTables', () => {
 			type: 'pain',
 			at: AT,
 			episode: 'e1',
-			points: [{ region: 'knee', side: 'right', space: 'front', u: 0.5, v: 0.5, intensity: 4, qualities: [] }]
+			points: [
+				{ region: 'knee', side: 'right', space: '2d-front-v1', u: 0.5, v: 0.5, intensity: 4, qualities: [] }
+			]
 		} as Payload);
 		const t = find([ep, pain], 'pain.csv');
 		expect(t.rows[0]![t.columns.indexOf('episode')]).toBe('Knee, October');
