@@ -336,7 +336,7 @@ children's outline (decided); the same regions and spaces serve every profile.
 
 | Space | Drawing | viewBox | Regions |
 | --- | --- | --- | --- |
-| `2d-front-v1` | main front view, mirrors the person | 200 x 440 | head, neck, arm parts, chest, belly quarters, hip and groin, leg parts, foot |
+| `2d-front-v1` | main front view, mirrors the person | 200 x 440 | head, neck, arm parts, chest, belly quarters, hip and groin, leg parts, foot; wider areas `belly`, `whole_arm`, `whole_leg` |
 | `2d-back-v1` | main back view, does not mirror | 200 x 440 | back of head and neck, the three back parts, buttock, leg parts, heel |
 | `2d-head-front-v2` | head close-up, front: faces the person (mirrors like the front view) | 200 x 240 | per side: `forehead`, `temple`, `around_eye`, `behind_eye` (drawn inside `around_eye`), `cheek` (cheek and sinus), `jaw` (jaw, in front of the ear); wider areas `head_front_side`, `head_side`, `whole_head`, `head_band` |
 | `2d-head-back-v2` | head close-up, back (does not mirror) | 200 x 240 | `top_of_head` (one zone, midline), per side `rear_head` and `rear_neck`; wider areas `head_back_side`, `head_side`, `whole_head`, `head_band` |
@@ -360,6 +360,12 @@ centre (`u = v = 0.5`) of the area's bounding box; it is drawn as a dot at that 
 highlighted. The entry sheet offers the choice for a point on a belly quarter ("This quarter", "Upper belly", "Lower
 belly", "Whole belly") or a back part ("This part", "Whole back") and remembers the original quarter in the draft only, so
 "This quarter" puts the point back where it was; nothing else is stored. The chest is not widened (decided).
+
+*Whole arm and whole leg.* `whole_arm` (upper arm, elbow, forearm, wrist; not shoulder or hand) and `whole_leg` (thigh, back of
+thigh, knee, shin, calf, ankle; not hip, buttock, heel or foot) are paired wider areas (`left` / `right`, valid on both main
+views, no tap shape). A point on one of those parts is offered "This part" and "Whole arm" / "Whole leg" on the same side; the
+point is stored at the centre of the area's box, drawn as a dot with the whole limb softly highlighted, and the heat map
+counts it towards each part (`partsOf`; a whole leg counts its front and back parts, so a day shows on both views).
 
 *Head zones.* The head close-up has two drawings with a Front / Back toggle (the sheet's `headFace`); `2d-head-front-v2` and
 `2d-head-back-v2` replace the first head close-up (`2d-head-v1`, with nose, mouth, chin and ear zones), which was never

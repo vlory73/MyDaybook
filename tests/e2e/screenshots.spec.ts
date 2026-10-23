@@ -1043,6 +1043,54 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'pain-sheet', scheme);
 		});
 
+		test(`pain sheet fixes ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'pain-sheet-fixes', 'pain sheet fixes screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			const fig = sheet.locator('svg[role=group]');
+			const wide = sheet.getByRole('group', { name: 'How wide an area' });
+			const level = (n: number) =>
+				sheet
+					.getByRole('radiogroup', { name: /^Intensity/ })
+					.getByRole('radio', { name: String(n), exact: true })
+					.click();
+			// No headache tick on the main body.
+			await page.waitForTimeout(400);
+			await snap(page, 'main-body-no-tick', scheme);
+			await fig.getByRole('button', { name: 'Your right thigh', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole leg', exact: true }).click();
+			await level(6);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-leg', scheme);
+			// Taller than a phone, so the whole leg shows above the panel.
+			await page.setViewportSize({ width: 375, height: 1150 });
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-leg-tall', scheme);
+			await page.setViewportSize({ width: 375, height: 812 });
+			await fig.getByRole('button', { name: 'Your left forearm', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole arm', exact: true }).click();
+			await level(3);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-arm-front', scheme);
+			// Whole arm on the back view.
+			await sheet.getByRole('radio', { name: 'Back', exact: true }).click();
+			await fig.getByRole('button', { name: 'Your right forearm', exact: true }).click();
+			await wide.getByRole('button', { name: 'Whole arm', exact: true }).click();
+			await level(4);
+			await page.waitForTimeout(400);
+			await snap(page, 'whole-arm-back', scheme);
+			// Taller than a phone (as for the head zones) so the whole map and the tick show above the panel.
+			await page.setViewportSize({ width: 375, height: 1150 });
+			for (let i = 0; i < 3; i++) await sheet.getByRole('button', { name: 'Remove point' }).click();
+			await sheet.getByRole('radio', { name: 'Front', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Head, close-up' }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'head-close-up-tick', scheme);
+		});
+
 		test(`pain episodes ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'pain-episodes', 'pain episodes screenshots only');
 			await prepare(page, scheme);

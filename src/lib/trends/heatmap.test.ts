@@ -57,6 +57,24 @@ describe('partsOf', () => {
 		expect(keys('upper_belly', 'midline')).toEqual(['upper_belly:left', 'upper_belly:right']);
 		expect(keys('back', 'midline')).toEqual(['lower_back:midline', 'mid_back:midline', 'upper_back:midline']);
 	});
+	it('whole arm and whole leg count towards each of their parts, on their own side', () => {
+		expect(keys('whole_arm', 'left')).toEqual(['elbow:left', 'forearm:left', 'upper_arm:left', 'wrist:left']);
+		expect(keys('whole_arm', 'right')).toEqual([
+			'elbow:right',
+			'forearm:right',
+			'upper_arm:right',
+			'wrist:right'
+		]);
+		expect(keys('whole_leg', 'right')).toEqual([
+			'ankle:right',
+			'back_of_thigh:right',
+			'calf:right',
+			'knee:right',
+			'shin:right',
+			'thigh:right'
+		]);
+		expect(keys('whole_leg', 'left')).toContain('calf:left');
+	});
 	it('head areas', () => {
 		expect(keys('head_front_side', 'right')).toEqual([
 			'around_eye:right',

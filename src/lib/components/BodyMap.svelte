@@ -282,6 +282,7 @@
 								height={c.h}
 								rx={c.rx}
 								ry={c.ry}
+								transform={c.rot ? `rotate(${c.rot} ${c.px} ${c.py})` : undefined}
 								aria-hidden="true"
 								data-region={w.region}
 								data-side={w.side}
