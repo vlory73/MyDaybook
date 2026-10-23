@@ -177,6 +177,7 @@
 <Card title={t('me.about.heading')}>
 	<div class="about">
 		<p><strong>{brand.displayName}</strong></p>
+		<p class="small muted">{t('me.about.version', { version: __APP_VERSION__ })}</p>
 		<p>{t('me.about.purpose', { app: brand.displayName })}</p>
 		<p>{t('me.about.notMedical')}</p>
 		<p>{t('me.about.privacy')}</p>
