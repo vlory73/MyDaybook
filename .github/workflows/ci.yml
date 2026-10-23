@@ -43,6 +43,13 @@ jobs:
     name: End-to-end (Chromium + WebKit, phone viewport)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Browsers and their system packages come ready in Microsoft's Playwright image (Apache-2.0, CI only), so no
+    # install step depends on Ubuntu's mirrors. Keep the tag equal to the @playwright/test version in package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
+    env:
+      HOME: /root
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -50,8 +57,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Install browsers
-        run: npx playwright install --with-deps chromium webkit
       - name: Playwright
         run: npm run test:e2e
         env:
