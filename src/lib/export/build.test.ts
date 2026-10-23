@@ -8,7 +8,8 @@ import {
 	buildReadme,
 	countPhotos,
 	exportFileName,
-	planPhotos
+	planPhotos,
+	roughly
 } from './build';
 import type { ExportRecord } from './tables';
 
@@ -40,6 +41,15 @@ const meal = (id: string, attachments?: AttachmentRef[]): ExportRecord => ({
 	} as Payload
 });
 const meta = { exportedAt: new Date('2026-10-23T09:30:00+02:00'), appVersion: '0.8.0' };
+
+describe('roughly', () => {
+	it('keeps two significant digits', () => {
+		expect(roughly(3 * 150 * 1024)).toBe(460_000);
+		expect(roughly(142 * 150 * 1024)).toBe(22_000_000);
+		expect(roughly(0)).toBe(0);
+		expect(roughly(42)).toBe(42);
+	});
+});
 
 describe('planPhotos', () => {
 	it('names photos by date, time and a short id, keeping names unique', () => {

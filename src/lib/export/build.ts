@@ -24,6 +24,13 @@ export const README_FILE = 'README.txt';
 /** Photos are stored at about this size (ARCHITECTURE §5.2); only used for the estimate on the export screen. */
 export const PHOTO_ESTIMATE_BYTES = 150 * 1024;
 
+/** An estimate rounded to two significant digits, so "about" never shows false precision (460.8 kB -> 460 kB). */
+export function roughly(bytes: number): number {
+	if (bytes <= 0) return 0;
+	const step = 10 ** Math.max(0, Math.floor(Math.log10(bytes)) - 1);
+	return Math.round(bytes / step) * step;
+}
+
 // ---- Photos ----
 
 export type PhotoPlan = { recordId: string; ref: AttachmentRef; name: string };

@@ -4,7 +4,13 @@
 	import { Button, Card, Icon, Notice, Sheet, Spinner, TextField, Toggle } from '$lib/components';
 	import { formatBytes } from '$lib/admin-format';
 	import { verifyPassphrase } from '$lib/auth';
-	import { ExportCancelled, PHOTO_ESTIMATE_BYTES, buildExport, countPhotos } from '$lib/export/build';
+	import {
+		ExportCancelled,
+		PHOTO_ESTIMATE_BYTES,
+		buildExport,
+		countPhotos,
+		roughly
+	} from '$lib/export/build';
 	import type { BuiltExport } from '$lib/export/build';
 	import type { ExportRecord } from '$lib/export/tables';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
@@ -161,7 +167,7 @@
 				<span class="bul"><Icon name="camera" size={18} /></span>
 				<span>
 					{tn('export.inside.photos', photoCount, {
-						size: formatBytes(photoCount * PHOTO_ESTIMATE_BYTES, i18n.locale)
+						size: formatBytes(roughly(photoCount * PHOTO_ESTIMATE_BYTES), i18n.locale)
 					})}
 				</span>
 			</li>
