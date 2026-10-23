@@ -14,6 +14,7 @@ import {
 	unlockWith
 } from './helpers';
 import { at, heartRateType, heatSet, month, watchRecord, watchRecord2 } from './trends-data';
+import { addDays, todayKey } from '../../src/lib/records/time';
 
 // Phone-width screenshots for PRs (CLAUDE.md "How to work"): 375 x 812 at 2x, light and dark.
 // Opt-in: SCREENSHOTS=<folder name> npx playwright test screenshots --project=phone-chromium
@@ -1347,6 +1348,180 @@ for (const scheme of ['light', 'dark'] as const) {
 			await shoot(/Clean table/, 'Dansk', 'table-da', 2);
 			await shoot(/Like the paper form/, 'English', 'form-en', 2);
 			await shoot(/Like the paper form/, 'Dansk', 'form-da', 2);
+		});
+		test(`doctor report ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'doctor-report', 'doctor report screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const start = addDays(todayKey(), -60);
+			const medBase = { v: 1, type: 'medication', times: [], start, reminders: false, archived: false };
+			const daily = (
+				name: string,
+				strength: number,
+				unit: string,
+				form: string,
+				time: string,
+				schedule: object
+			) => ({
+				...medBase,
+				name,
+				strength,
+				unit,
+				form,
+				schedule,
+				times: [{ time, amount: '1' }]
+			});
+			const [gluten, , heartRate, mg, vitD, omep, para, ibu] = await seedRecords(page.request, account, [
+				watchRecord,
+				watchRecord2,
+				heartRateType,
+				daily('Magnesium', 250, 'mg', 'tablet', '08:00', { kind: 'daily' }),
+				daily('Vitamin D', 20, 'µg', 'capsule', '08:00', { kind: 'daily' }),
+				daily('Omeprazole', 20, 'mg', 'capsule', '07:30', { kind: 'weekdays', days: [1, 3, 5] }),
+				{
+					...medBase,
+					name: 'Paracetamol',
+					strength: 500,
+					unit: 'mg',
+					form: 'tablet',
+					schedule: { kind: 'as_needed' }
+				},
+				{
+					...medBase,
+					name: 'Ibuprofen',
+					strength: 400,
+					unit: 'mg',
+					form: 'tablet',
+					schedule: { kind: 'as_needed' }
+				}
+			]);
+			const doses: object[] = [];
+			const slotDose = (id: string, ago: number, time: string, status: string) => {
+				const day = addDays(todayKey(), -ago);
+				doses.push({
+					v: 1,
+					type: 'dose',
+					at: at(ago, Number(time.slice(0, 2)), Number(time.slice(3)) + (status === 'late' ? 40 : 3)),
+					medicationId: id,
+					status,
+					amount: '1',
+					slot: { date: day, time }
+				});
+			};
+			for (let ago = 1; ago <= 29; ago++) {
+				slotDose(mg!, ago, '08:00', ago % 11 === 0 ? 'late' : 'taken');
+				slotDose(vitD!, ago, '08:00', ago === 7 || ago === 19 ? 'skipped' : ago === 12 ? 'late' : 'taken');
+				const weekday = new Date(addDays(todayKey(), -ago) + 'T12:00:00').getDay();
+				if ([1, 3, 5].includes(weekday)) slotDose(omep!, ago, '07:30', ago === 9 ? 'skipped' : 'taken');
+			}
+			for (const [id, ago, hh, mm, amount] of [
+				[para, 1, 22, 15, '500 mg'],
+				[para, 3, 21, 0, '500 mg'],
+				[para, 5, 12, 30, '1000 mg'],
+				[para, 8, 20, 10, '500 mg'],
+				[para, 11, 9, 45, '500 mg'],
+				[para, 13, 22, 0, '500 mg'],
+				[para, 16, 18, 20, '500 mg'],
+				[para, 20, 13, 0, '500 mg'],
+				[para, 24, 21, 40, '500 mg'],
+				[ibu, 6, 16, 0, '400 mg'],
+				[ibu, 14, 15, 30, '400 mg'],
+				[ibu, 18, 10, 0, '400 mg']
+			] as const) {
+				doses.push({ v: 1, type: 'dose', at: at(ago, hh, mm), medicationId: id, status: 'taken', amount });
+			}
+			const [kneeEp, backEp] = await seedRecords(page.request, account, [
+				{ v: 1, type: 'pain_episode', started: at(17, 9) },
+				{ v: 1, type: 'pain_episode', started: at(29, 9), ended: at(19, 12) }
+			]);
+			const spot = (region: string, side: string, space: string, intensity: number) => ({
+				region,
+				side,
+				space,
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: []
+			});
+			const episodes: object[] = [];
+			for (const ago of [17, 15, 12, 9, 6, 3]) {
+				episodes.push({
+					v: 1,
+					type: 'pain',
+					at: at(ago, 18),
+					points: [spot('knee', 'right', '2d-front-v1', 3 + (ago % 4))],
+					episode: kneeEp
+				});
+			}
+			for (const ago of [29, 27, 24, 21, 19]) {
+				episodes.push({
+					v: 1,
+					type: 'pain',
+					at: at(ago, 8),
+					points: [spot('lower_back', 'midline', '2d-back-v1', 4 + (ago % 3))],
+					episode: backEp
+				});
+			}
+			const notes = [
+				[2, 'Slept badly, woke twice. Knee stiff in the morning.'],
+				[9, 'Long walk with the dog, no problems afterwards.'],
+				[15, 'Started taking the vitamin with breakfast instead of lunch.']
+			].map(([ago, text]) => ({ v: 1, type: 'note', at: at(ago as number, 20), text, tags: [] }));
+			await seedRecords(page.request, account, [
+				...month(gluten!, heartRate!),
+				...heatSet(),
+				...doses,
+				...episodes,
+				...notes
+			]);
+
+			await page.goto('/reports');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('heading', { name: 'Reports', level: 1 }).waitFor({ timeout: 20_000 });
+			await snap(page, 'reports', scheme);
+
+			await page.getByTestId('report-doctor').click();
+			await page.getByRole('heading', { name: 'Doctor visit', level: 1 }).waitFor();
+			await page.getByLabel('Name on the report').fill('Sam Example');
+			await page
+				.getByLabel(/^Questions for your doctor/)
+				.fill('Is it worth changing when I take the omeprazole? The back pain is worse in the evenings.');
+			await page.getByText('3 notes').waitFor();
+			await page.setViewportSize({ width: 375, height: 1500 });
+			await snap(page, 'options', scheme, true);
+			await page.setViewportSize({ width: 375, height: 812 });
+			if (scheme !== 'light') return;
+
+			const shoot = async (language: string, file: string, headache: boolean) => {
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.getByRole('radio', { name: language }).click();
+				await page.getByRole('checkbox', { name: /^Notes/ }).setChecked(true);
+				await page.getByRole('checkbox', { name: /^Add the Headache diary pages/ }).setChecked(headache);
+				await page.getByRole('button', { name: 'Preview report' }).click();
+				await page.getByTestId('doctor-page').first().waitFor();
+				await page.emulateMedia({ media: 'print', colorScheme: scheme });
+				await page.setViewportSize({ width: 794, height: 1123 });
+				await page.waitForTimeout(300);
+				const sheets = page.locator('.dsheet, .report-sheet');
+				const total = await sheets.count();
+				console.log(`${file}: ${total} sheets`);
+				for (let i = 0; i < total; i++) {
+					await page.evaluate(() => window.scrollTo(0, 0));
+					const box = (await sheets.nth(i).boundingBox())!;
+					await page.screenshot({
+						path: `docs/screenshots/${folder}/${file}-page${i + 1}.png`,
+						fullPage: true,
+						clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+					});
+				}
+				await page.setViewportSize({ width: 375, height: 812 });
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.waitForTimeout(200);
+				if (file === 'report-en') await snap(page, 'preview', scheme);
+				await page.getByRole('button', { name: /^(Back|Tilbage)$/ }).click();
+			};
+			await shoot('English', 'report-en', false);
+			await shoot('Dansk', 'report-da', true);
 		});
 	});
 }

@@ -75,7 +75,7 @@
 		<dl>
 			<div>
 				<dt>{tr('rep.name')}</dt>
-				<dd class:blank={name.trim() === ''}>{name.trim() || ' '}</dd>
+				<dd class="name" class:blank={name.trim() === ''}>{name.trim() || ' '}</dd>
 			</div>
 			<div>
 				<dt>{tr('rep.cpr')}</dt>
@@ -505,6 +505,20 @@
 		font-size: 14px;
 		font-weight: 600;
 		min-height: 20px;
+	}
+	dd.name {
+		font-size: 24px;
+		line-height: 26px;
+		font-weight: 700;
+		min-height: 26px;
+		max-width: 330px;
+		overflow-wrap: anywhere;
+	}
+	.portrait dd.name {
+		font-size: 22px;
+		line-height: 26px;
+		min-height: 26px;
+		max-width: 280px;
 	}
 	dd.blank {
 		border-bottom: 1px solid #111;

@@ -8,7 +8,10 @@ export default defineConfig({
 	testDir: 'tests/e2e',
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
-	retries: 0,
+	// One retry on CI only: a test that passes on retry is reported as flaky. maxFailures stops a broken build
+	// from retrying everything.
+	retries: process.env.CI ? 1 : 0,
+	maxFailures: process.env.CI ? 10 : 0,
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
 	use: { baseURL: `http://127.0.0.1:${PORT}`, trace: 'retain-on-failure' },
 	webServer: {

@@ -16,6 +16,8 @@ import {
 	isRegionId,
 	regionKey,
 	regionName,
+	reportRegionKey,
+	reportRegionName,
 	shapesOf,
 	sidesOf,
 	spaceOf,
@@ -857,5 +859,29 @@ describe('head areas seen from the other drawing', () => {
 		expect(isPlace(front.place.region, front.place.side, front.place.space!)).toBe(true);
 		const home = wideOptions(front.place, front.origin, 'front').find((o) => o.id === 'this')!;
 		expect(widen(front.place, home, front.origin).place).toEqual(tap);
+	});
+});
+
+describe('report place names', () => {
+	it('has a neutral name for every region and side in en and da', () => {
+		for (const def of REGIONS) {
+			for (const side of sidesOf(def.id as RegionId)) {
+				const key = reportRegionKey(def.id as RegionId, side);
+				expect(en, key).toHaveProperty([key]);
+				expect(da, key).toHaveProperty([key]);
+				const nameEn = reportRegionName('en', def.id as RegionId, side);
+				const nameDa = reportRegionName('da', def.id as RegionId, side);
+				expect(nameEn.length, key).toBeGreaterThan(2);
+				expect(nameDa.length, key).toBeGreaterThan(2);
+				expect(nameEn, key).not.toMatch(/\byour\b/i);
+				expect(nameDa, key).not.toMatch(/\b(din|dit|dine)\b/i);
+			}
+		}
+	});
+	it('reads naturally', () => {
+		expect(reportRegionName('en', 'knee', 'right')).toBe('Right knee');
+		expect(reportRegionName('en', 'whole_arm', 'right')).toBe('Whole right arm');
+		expect(reportRegionName('da', 'forehead', 'right')).toBe('Højre side af panden');
+		expect(reportRegionName('da', 'lower_back', 'midline')).toBe('Lænd');
 	});
 });

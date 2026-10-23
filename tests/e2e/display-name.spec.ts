@@ -26,6 +26,7 @@ test('the name set in Me is used in the greeting and prefilled on the report', a
 
 	await page.getByRole('link', { name: 'Trends', exact: true }).click();
 	await page.getByRole('link', { name: 'Reports' }).click();
+	await page.getByTestId('report-headache').click();
 	await expect(page.getByLabel('Name on the report')).toHaveValue('Ada Example');
 
 	// The name is an encrypted, synced record: still there after a reload and unlock. Clearing it goes back to the login name.

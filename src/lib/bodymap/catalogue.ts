@@ -182,6 +182,14 @@ export function regionKey(id: RegionId, side: Side): MessageKey {
 export const regionName = (locale: Locale, id: RegionId, side: Side): string =>
 	translate(locale, regionKey(id, side));
 
+/** Place names for printed reports: neutral for a reader who is not the person ("Right knee", no "your"). */
+export type PlaceNamer = (locale: Locale, id: RegionId, side: Side) => string;
+export function reportRegionKey(id: RegionId, side: Side): MessageKey {
+	return (side === 'midline' ? `dr.place.${id}` : `dr.place.${id}.${side}`) as MessageKey;
+}
+export const reportRegionName: PlaceNamer = (locale, id, side) =>
+	translate(locale, reportRegionKey(id, side));
+
 export const sideKey = (side: 'left' | 'right'): MessageKey =>
 	side === 'left' ? 'bodymap.side.left' : 'bodymap.side.right';
 

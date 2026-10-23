@@ -60,7 +60,7 @@
 </script>
 
 <div class="nav-head">
-	<a class="back" href={resolve('/trends')} aria-label={t('reports.back')}
+	<a class="back" href={resolve('/reports')} aria-label={t('reports.back.reports')}
 		><Icon name="chevron-left" size={24} /></a
 	>
 </div>

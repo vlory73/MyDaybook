@@ -38,7 +38,8 @@
 		width = 252,
 		ontap,
 		heat = null,
-		onzoom
+		onzoom,
+		edgeText
 	}: {
 		view?: View;
 		/** A close-up (head, one hand or one foot) instead of the main view. */
@@ -61,6 +62,8 @@
 			look?: (s: Shape) => string;
 		} | null;
 		onzoom?: (s: Shape) => void;
+		/** Text for the side shown at an edge (default: the app language); reports pass their own language. */
+		edgeText?: (side: 'left' | 'right') => string;
 	} = $props();
 
 	let svg: SVGSVGElement | undefined = $state();
@@ -143,8 +146,8 @@
 	{/if}
 	<div class="stage" style:--figure="{width}px">
 		{#if edges}
-			<span class="edge left">{t(sideKey(edges.screenLeft))}</span>
-			<span class="edge right">{t(sideKey(edges.screenRight))}</span>
+			<span class="edge left">{edgeText ? edgeText(edges.screenLeft) : t(sideKey(edges.screenLeft))}</span>
+			<span class="edge right">{edgeText ? edgeText(edges.screenRight) : t(sideKey(edges.screenRight))}</span>
 		{/if}
 		<svg
 			bind:this={svg}
