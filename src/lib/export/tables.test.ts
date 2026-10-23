@@ -27,6 +27,30 @@ describe('buildTables', () => {
 		expect(tables.map((t) => t.file)).toEqual(['notes.csv']);
 	});
 
+	it('writes sleep with its kind, old entries counting as main sleep', () => {
+		const t = find(
+			[
+				rec({ v: 1, type: 'sleep', asleepAt: '2026-10-22T23:50:00+02:00', at: AT }, 'night'),
+				rec(
+					{
+						v: 1,
+						type: 'sleep',
+						kind: 'nap',
+						asleepAt: '2026-10-23T13:20:00+02:00',
+						at: '2026-10-23T14:05:00+02:00'
+					},
+					'nap'
+				)
+			],
+			'sleep.csv'
+		);
+		expect(t.columns.slice(0, 2)).toEqual(['id', 'kind']);
+		expect(t.rows.map((r) => r.slice(0, 2))).toEqual([
+			['night', 'main'],
+			['nap', 'nap']
+		]);
+	});
+
 	it('writes meals with the watch list resolved to names and times as stored', () => {
 		const lactose = rec(
 			{ v: 1, type: 'sensitivity', label: 'sug:lactose', icon: 'milk', kind: 'intolerance', order: 0 },
