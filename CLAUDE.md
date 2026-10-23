@@ -119,7 +119,7 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 - **Design changes:** for anything visual and uncertain, show a quick static mockup (or the sub-agent's screenshots) before the PR, and look at every screenshot yourself before sharing; the owner spots usability issues (e.g. the unrecognisable foot, the band missing on the front view).
 - **Medical sources:** the owner sometimes shares reference material (a doctor's form, infographics). Use it for vocabulary and data fields, never for diagnostic labels; check licences before reusing any image (never trace stock images).
 - **Small follow-ups:** they may ride on the next feature branch instead of their own PR, when the owner says so (e.g. the "Pain" rename went with `feature/bodymap-zoom`).
-- **Issues and milestones:** no GitHub milestones. Issues are not used yet (only family users); see the decisions log.
+- **Issues and milestones:** no GitHub milestones. Issues use two simple forms in `.github/ISSUE_TEMPLATE/` ("Something is wrong" → `bug`, "Idea" → `enhancement`); the owner usually files them for family users. Keep the forms short and keep health details out.
 - **Preferred style:** write all user-facing text and docs in plain, international English, and avoid jargon in messages to the owner.
 
 ## Lessons learned (CI, tests and tooling)
@@ -190,6 +190,7 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 | 2026-10-22 | Headache report mockups v2 approved: default layout Clean table (then remembered per device); constant and pulsating both ticked when the day has both; long trigger text cut to 3 lines with "…"; a new page every 7 headache days (form layout) or 7 calendar days (clean table); "+N more" medicines on its own line | Owner |
 | 2026-10-22 | Headache report: the medicine row lists only as-needed and one-off ("Log another medicine") doses, with a footnote that regular medicines are not listed | Owner |
 | 2026-10-22 | Heat map plan approved: count days (not entries); head, hands and feet coloured as a whole on the main body, a tap opens the close-up heat map; numbers on the map only where they fit, plus a full list (region · days · average); timeline thumbnail with a dot per point (owner unsure, accepted for now); 5-step heat ramp from the design system with a legend in days. Mockup first; `feature/heatmap` from develop | Owner |
+| 2026-10-23 | GitHub issue forms added: "Something is wrong" (what happened, what was expected, device) and "Idea" (idea, how it helps), each with a "no health details" note; blank issues still allowed. Kept minimal: users are family and not technical, and the owner often files on their behalf | Owner |
 
 ## Backlog (owner requests to raise later)
 

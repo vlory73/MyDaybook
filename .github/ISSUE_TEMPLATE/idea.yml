@@ -1,0 +1,20 @@
+name: Idea
+description: Suggest something new or a change that would help you.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! Please **don't write any health details** here (no symptoms, medicines or diary content).
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's your idea?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How would it help you?
+    validations:
+      required: false
