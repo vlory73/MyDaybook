@@ -247,7 +247,8 @@ test('"Still there?" appears for a recent entry, and Dismiss hides it until a ne
 	await intensity(page, 6).click();
 	await tap(page, 'Your left shoulder');
 	await intensity(page, 8).click();
-	await tap(page, 'Head');
+	// Not the head: an open headache has its own card (headache-still.spec.ts).
+	await tap(page, 'Your right shoulder');
 	await intensity(page, 2).click();
 	await saveButton(page, 'Save 3 points').click();
 	await expect(sheet(page)).toBeHidden();

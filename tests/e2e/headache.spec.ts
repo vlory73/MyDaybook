@@ -82,17 +82,27 @@ test('a head point shows the section; every field is saved and shown again', asy
 	await expect(sheet(page).getByLabel('Possible trigger')).toHaveValue('skipped lunch');
 });
 
-test('"Still going" replaces the stop time; an entry with no details opens collapsed', async ({ page }) => {
+test('an empty Stopped means still going (with a hint); an entry with no details opens collapsed', async ({
+	page
+}) => {
 	await signUpAndSignIn(page);
 	await openSheet(page);
 	await templePoint(page, 3);
 	await sheet(page).getByLabel('Hour Started').selectOption('07');
-	await button(page, 'Still going').click();
-	await expect(sheet(page).getByLabel('Hour Stopped')).toBeDisabled();
+	// There is no "Still going" chip any more: an empty Stopped says it.
+	await expect(button(page, 'Still going')).toHaveCount(0);
+	await expect(
+		sheet(page).getByText("Leave empty while it's still going. Today will ask you later.")
+	).toBeVisible();
+	await expect(sheet(page).getByLabel('Hour Stopped')).toBeEnabled();
 	await button(page, 'Save 1 point').click();
 	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 3', { exact: true }).click();
-	await expect(button(page, 'Still going')).toHaveAttribute('aria-pressed', 'true');
+	await expect(sheet(page).getByLabel('Hour Stopped')).toHaveValue('');
+	await sheet(page).getByLabel('Hour Stopped').selectOption('09');
+	await expect(sheet(page).getByText(/^Leave empty while/)).toBeHidden();
+	await sheet(page).getByLabel('Hour Stopped').selectOption('');
+	await expect(sheet(page).getByText(/^Leave empty while/)).toBeVisible();
 
 	// A second entry without any answer is saved without details and reopens collapsed.
 	await button(page, 'Save 1 point').click();
@@ -208,6 +218,7 @@ test('headache details survive reload and unlock, and the server only sees ciphe
 		'headache',
 		'worseWithActivity',
 		'stillGoing',
+		'lastSeen',
 		Buffer.from(trigger).toString('base64')
 	];
 	for (const file of files) {

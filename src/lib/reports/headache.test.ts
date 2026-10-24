@@ -49,6 +49,8 @@ const dose = (medicationId: string, at: string, status = 'taken', amount?: strin
 	rec({ v: 1, type: 'dose', at, medicationId, status, ...(amount ? { amount } : {}) } as Payload);
 
 const days = dayRange('2026-10-13', '2026-10-19');
+// Monday 19 Oct 2026, noon (local): "today" for the still-going window.
+const NOW = new Date(2026, 9, 19, 12, 0);
 
 describe('buildHeadacheReport', () => {
 	it('puts a headache on the day it started and every other day as "no headache"', () => {
@@ -122,7 +124,7 @@ describe('buildHeadacheReport', () => {
 			started: '2026-10-18T07:00:00+02:00',
 			stillGoing: true
 		});
-		const cols = buildHeadacheReport([over, long, going], days, 'table').pages[0]!;
+		const cols = buildHeadacheReport([over, long, going], days, 'table', NOW).pages[0]!;
 		expect(cols[2]!.headache!.stopped).toEqual({ time: '02:00', plusDays: 1 });
 		expect(cols[4]!.headache!.stopped).toEqual({ time: '09:00', plusDays: 2 });
 		expect(cols[5]!.headache!.stillGoing).toBe(true);
@@ -239,5 +241,137 @@ describe('report language', () => {
 		expect(translate('da', 'rep.none')).toBe('Ingen hovedpine');
 		expect(translate('en', 'rep.none')).toBe('No headache');
 		expect(translate('da', 'rep.page', { page: 1, total: 2 })).toBe('Side 1 af 2');
+	});
+});
+
+describe('Stopped row', () => {
+	const col = (records: StoredRecord[], day: string, layout: 'table' | 'form' = 'table') =>
+		buildHeadacheReport(records, days, layout, NOW)
+			.pages.flat()
+			.find((c) => c.day === day)!.headache!;
+
+	it('shows the stop time, with +1 on a later day, and never a guessed one', () => {
+		const r = pain('2026-10-14T20:00:00+02:00', [point(5)], {
+			started: '2026-10-14T18:00:00+02:00',
+			stopped: '2026-10-15T02:00:00+02:00',
+			lastSeen: '2026-10-14T21:00:00+02:00'
+		});
+		const h = col([r], '2026-10-14');
+		expect(h.stopped).toEqual({ time: '02:00', plusDays: 1 });
+		expect(h.stillGoing).toBe(false);
+		expect(h.lastSeen).toBeNull();
+	});
+
+	it('says "still going" for an open headache within the two-day window', () => {
+		const r = pain('2026-10-18T15:00:00+02:00', [point(5)], { started: '2026-10-18T14:00:00+02:00' });
+		const h = col([r], '2026-10-18');
+		expect(h.stillGoing).toBe(true);
+		expect(h.stopped).toBeNull();
+		// a legacy flag reads the same
+		const legacy = pain('2026-10-19T09:00:00+02:00', [point(5)], { stillGoing: true });
+		expect(col([legacy], '2026-10-19').stillGoing).toBe(true);
+	});
+
+	it('is "not recorded" for an older open headache, with the last "Still there" when there is one', () => {
+		const none = pain('2026-10-14T15:00:00+02:00', [point(5)], { started: '2026-10-14T14:00:00+02:00' });
+		const seen = pain('2026-10-15T15:00:00+02:00', [point(5)], {
+			started: '2026-10-15T14:00:00+02:00',
+			lastSeen: '2026-10-15T18:00:00+02:00'
+		});
+		const a = col([none], '2026-10-14');
+		expect(a.stillGoing).toBe(false);
+		expect(a.stopped).toBeNull();
+		expect(a.lastSeen).toBeNull();
+		const b = col([seen], '2026-10-15');
+		expect(b.stillGoing).toBe(false);
+		expect(b.lastSeen).toBe('18:00');
+	});
+
+	it('uses the latest "Still there" of the day', () => {
+		const e1 = pain('2026-10-14T15:00:00+02:00', [point(5)], {
+			started: '2026-10-14T14:00:00+02:00',
+			lastSeen: '2026-10-14T16:00:00+02:00'
+		});
+		const e2 = pain('2026-10-14T19:00:00+02:00', [point(5)], {
+			started: '2026-10-14T17:00:00+02:00',
+			lastSeen: '2026-10-14T20:00:00+02:00'
+		});
+		expect(col([e1, e2], '2026-10-14').lastSeen).toBe('20:00');
+	});
+});
+
+describe('continued days', () => {
+	const found = (records: StoredRecord[], layout: 'table' | 'form' = 'table') =>
+		buildHeadacheReport(records, days, layout, NOW).pages.flat();
+
+	it('marks each day after the start up to the stop day', () => {
+		const r = pain('2026-10-14T22:00:00+02:00', [point(5)], {
+			started: '2026-10-14T22:00:00+02:00',
+			stopped: '2026-10-16T02:00:00+02:00'
+		});
+		const cols = found([r]);
+		const by = (d: string) => cols.find((c) => c.day === d)!;
+		expect(by('2026-10-14').headache!.continuedFrom).toBeNull();
+		expect(by('2026-10-15').headache).toMatchObject({
+			continuedFrom: '2026-10-14',
+			continuedOnly: true,
+			started: null,
+			stopped: null,
+			side: null,
+			severity: null
+		});
+		expect(by('2026-10-16').headache!.continuedFrom).toBe('2026-10-14');
+		expect(by('2026-10-17').headache).toBeNull();
+		expect(by('2026-10-13').headache).toBeNull();
+	});
+
+	it("keeps the day's own entries and adds the marker", () => {
+		const first = pain('2026-10-14T22:00:00+02:00', [point(5)], {
+			started: '2026-10-14T22:00:00+02:00',
+			stopped: '2026-10-15T20:00:00+02:00'
+		});
+		const second = pain('2026-10-15T14:00:00+02:00', [point(7)], { started: '2026-10-15T14:00:00+02:00' });
+		const h = found([first, second]).find((c) => c.day === '2026-10-15')!.headache!;
+		expect(h.continuedFrom).toBe('2026-10-14');
+		expect(h.continuedOnly).toBe(false);
+		expect(h.started).toBe('14:00');
+	});
+
+	it('counts days of the paper-form layout as headache days', () => {
+		const r = pain('2026-10-14T22:00:00+02:00', [point(5)], {
+			started: '2026-10-14T22:00:00+02:00',
+			stopped: '2026-10-16T02:00:00+02:00'
+		});
+		const rep = buildHeadacheReport([r], days, 'form', NOW);
+		expect(rep.pages.flat().map((c) => c.day)).toEqual(['2026-10-14', '2026-10-15', '2026-10-16']);
+	});
+
+	it('runs an open recent headache up to today, and an old one only to its last "Still there"', () => {
+		const open = pain('2026-10-17T20:00:00+02:00', [point(5)], { started: '2026-10-17T20:00:00+02:00' });
+		const cols = found([open]).filter((c) => c.headache?.continuedFrom);
+		expect(cols.map((c) => c.day)).toEqual(['2026-10-18', '2026-10-19']);
+		const old = pain('2026-10-13T20:00:00+02:00', [point(5)], {
+			started: '2026-10-13T20:00:00+02:00',
+			lastSeen: '2026-10-15T09:00:00+02:00'
+		});
+		expect(
+			found([old])
+				.filter((c) => c.headache?.continuedFrom)
+				.map((c) => c.day)
+		).toEqual(['2026-10-14', '2026-10-15']);
+		const bare = pain('2026-10-13T20:00:00+02:00', [point(5)], { started: '2026-10-13T20:00:00+02:00' });
+		expect(found([bare]).filter((c) => c.headache?.continuedFrom)).toHaveLength(0);
+	});
+
+	it('also marks days of the period for a headache that began before it', () => {
+		const r = pain('2026-10-11T22:00:00+02:00', [point(5)], {
+			started: '2026-10-11T22:00:00+02:00',
+			stopped: '2026-10-14T05:00:00+02:00'
+		});
+		const cols = found([r]);
+		expect(cols.filter((c) => c.headache).map((c) => [c.day, c.headache!.continuedFrom])).toEqual([
+			['2026-10-13', '2026-10-11'],
+			['2026-10-14', '2026-10-11']
+		]);
 	});
 });

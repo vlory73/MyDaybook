@@ -50,6 +50,8 @@
 	} as const;
 	const zoneKey = { mild: 'rep.v.mild', moderate: 'rep.v.moderate', severe: 'rep.v.severe' } as const;
 	const nauseaKey = { none: 'rep.v.noNausea', ...zoneKey } as const;
+	/** "Tue 14 Oct": the day a headache continued from. */
+	const contDay = (day: string) => `${weekdayLabel(day, locale)} ${dayMonthLabel(day, locale)}`;
 	const beforeText = (h: HeadacheDay) =>
 		h.before.length > 0 ? h.before.map((b) => tr(`rep.v.${b}` as MessageKey)).join(', ') : dash;
 
@@ -96,10 +98,29 @@
 			<p>{tr(report.layout === 'form' ? 'rep.fn.severityForm' : 'rep.fn.severity')}</p>
 			<p>{tr(report.layout === 'form' ? 'rep.fn.nauseaForm' : 'rep.fn.nausea')}</p>
 			{#if report.layout === 'table'}<p>{tr('rep.fn.started')}</p>{/if}
+			<p>{tr('rep.fn.stopped')}</p>
 			<p>{tr('rep.fn.medicine')}</p>
 		{/if}
 		<p class="last">{tr('rep.fn.disclaimer')}</p>
 	</footer>
+{/snippet}
+
+{#snippet startedCell(h: HeadacheDay, plain: boolean)}
+	{#if h.continuedFrom}<span class="sm cont">{tr('rep.continued', { day: contDay(h.continuedFrom) })}</span
+		>{#if h.started}<br />{/if}{/if}
+	{#if plain}{h.started ?? (h.continuedFrom ? '' : dash)}{:else}<span class="v">{h.started ?? ''}</span>{/if}
+{/snippet}
+
+{#snippet stoppedCell(h: HeadacheDay, plain: boolean)}
+	{#if h.stopped}
+		{#if plain}{h.stopped.time}{:else}<span class="v">{h.stopped.time}</span>{/if}
+		{#if h.stopped.plusDays > 0}<br /><span class="sm">{plusDays(h.stopped.plusDays)}</span>{/if}
+	{:else if h.stillGoing}<span class="sm"><i>{tr('rep.stillGoing')}</i></span>
+	{:else if h.continuedOnly}{plain ? dash : ''}
+	{:else}<span class="sm"
+			><i>{h.lastSeen ? tr('rep.notRecordedSeen', { time: h.lastSeen }) : tr('rep.notRecorded')}</i></span
+		>
+	{/if}
 {/snippet}
 
 {#snippet meds(items: MedicineItem[])}
@@ -143,15 +164,9 @@
 									{#if !h}
 										{#if r === 0}<td class="none" rowspan={TABLE_ROWS.length}>{tr('rep.none')}</td>{/if}
 									{:else if key === 'started'}
-										<td class="first">{h.started ?? dash}</td>
+										<td class="first">{@render startedCell(h, true)}</td>
 									{:else if key === 'stopped'}
-										<td>
-											{#if h.stillGoing}<i>{tr('rep.stillGoing')}</i>
-											{:else if h.stopped}{h.stopped.time}{#if h.stopped.plusDays > 0}<br /><span class="sm"
-														>{plusDays(h.stopped.plusDays)}</span
-													>{/if}
-											{:else}{dash}{/if}
-										</td>
+										<td>{@render stoppedCell(h, true)}</td>
 									{:else if key === 'before'}
 										<td>{beforeText(h)}</td>
 									{:else if key === 'side'}
@@ -196,8 +211,9 @@
 						<tr class="thin">
 							<th scope="row"><span class="n">2</span>{tr('rep.f.started')}</th>
 							{#each slots as c, i (i)}
-								{#if c?.headache}<td class="val"><span class="v">{c.headache.started ?? ''}</span></td
-									>{:else}<td class="empty"></td>{/if}
+								{#if c?.headache}<td class="val">{@render startedCell(c.headache, false)}</td>{:else}<td
+										class="empty"
+									></td>{/if}
 							{/each}
 						</tr>
 						<tr class="thin">
@@ -205,11 +221,7 @@
 							{#each slots as c, i (i)}
 								{#if c?.headache}
 									{@const h = c.headache}
-									<td class="val">
-										{#if h.stillGoing}<span class="sm"><i>{tr('rep.stillGoing')}</i></span>
-										{:else if h.stopped}<span class="v">{h.stopped.time}</span>{#if h.stopped.plusDays > 0}<br
-												/><span class="sm">{plusDays(h.stopped.plusDays)}</span>{/if}{/if}
-									</td>
+									<td class="val">{@render stoppedCell(h, false)}</td>
 								{:else}<td class="empty"></td>{/if}
 							{/each}
 						</tr>

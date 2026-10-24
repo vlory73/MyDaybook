@@ -18,8 +18,9 @@ import {
 	type NauseaLevel,
 	type Zone
 } from '$lib/records/headache';
+import { headacheStart, inWindow } from '$lib/records/headacheStill';
 import type { PainPayload } from '$lib/records/pain';
-import { dayDate, dayKey, instant, timeOf } from '$lib/records/time';
+import { addDays, dayDate, dayKey, instant, timeOf, todayKey } from '$lib/records/time';
 import type { DosePayload, GutPayload, MedicationPayload } from '$lib/records/types';
 
 export type ReportLayout = 'table' | 'form';
@@ -31,9 +32,16 @@ export type MedicineItem = { name: string; amount: string; time: string };
 export type HeadacheDay = {
 	/** "HH:mm" of the earliest start, or null when no start was entered. */
 	started: string | null;
-	/** Latest stop; `plusDays` counts calendar days after the column's day. Null when not entered or still going. */
+	/** Latest stop; `plusDays` counts calendar days after the column's day. Null when no stop time was entered. */
 	stopped: { time: string; plusDays: number } | null;
+	/** No stop time, and an open headache that is still within the two-day window (`inWindow`). */
 	stillGoing: boolean;
+	/** "HH:mm" of the last "Still there" on Today, when there is no stop time and the headache is not recent. */
+	lastSeen: string | null;
+	/** The day this column's headache began on an earlier day and was still going into this one, or null. */
+	continuedFrom: string | null;
+	/** The column has no entries of its own: it only marks a headache that continued from an earlier day. */
+	continuedOnly: boolean;
 	before: HeadacheBefore[];
 	side: 'both' | 'right' | 'left' | null;
 	quality: 'pulsating' | 'constant' | 'both' | null;
@@ -101,11 +109,46 @@ function asNeededDoses(all: Rec[]): Map<string, MedicineItem[]> {
 	return byDay;
 }
 
+/**
+ * The last day a headache is known to have lasted to: its stop day; else, while it is still recent and open, today;
+ * else the day of the last "Still there"; else the day it started (nothing is guessed).
+ */
+function lastKnownDay(e: PainPayload, now: Date): string {
+	const start = headacheStart(e);
+	const h = e.headache;
+	if (h?.stopped) return dayKey(h.stopped);
+	if (inWindow(start, now)) return todayKey(now);
+	return h?.lastSeen ? dayKey(h.lastSeen) : dayKey(start);
+}
+
+/**
+ * Days that a headache of an earlier day ran into: every calendar day after the start day, up to its last known day,
+ * that is one of the report's days. The value is the day it began on (the earliest, when several overlap).
+ */
+export function continuedDays(
+	entries: readonly PainPayload[],
+	wanted: ReadonlySet<string>,
+	now: Date
+): Map<string, string> {
+	const out = new Map<string, string>();
+	for (const e of entries) {
+		const from = headacheDay(e);
+		const to = lastKnownDay(e, now);
+		for (let d = addDays(from, 1); d <= to; d = addDays(d, 1)) {
+			const known = out.get(d);
+			if (wanted.has(d) && (known === undefined || from < known)) out.set(d, from);
+		}
+	}
+	return out;
+}
+
 function mergeDay(
 	day: string,
 	entries: PainPayload[],
 	gut: GutPayload[],
-	medicines: MedicineItem[]
+	medicines: MedicineItem[],
+	now: Date,
+	continuedFrom: string | null
 ): HeadacheDay {
 	const details = entries.flatMap((e) => (e.headache ? [e.headache] : []));
 	const starts = details
@@ -114,18 +157,25 @@ function mergeDay(
 	const stops = details
 		.flatMap((h) => (h.stopped ? [h.stopped] : []))
 		.sort((a, b) => instant(a) - instant(b));
-	const stillGoing = details.some((h) => h.stillGoing === true);
 	const lastStop = stops.at(-1);
+	// Without a stop time an open headache reads "still going" only while it is recent; later it shows when the
+	// person last said "Still there" (if ever). No end time is ever guessed.
+	const open = entries.filter((e) => e.headache?.stopped === undefined);
+	const stillGoing = !lastStop && open.some((e) => inWindow(headacheStart(e), now));
+	const seen = open.flatMap((e) => (e.headache?.lastSeen ? [e.headache.lastSeen] : []));
+	const lastSeen = seen.sort((a, b) => instant(a) - instant(b)).at(-1);
 	const points = entries.flatMap((e) => e.points);
 	const side = headacheSides(points);
 	const triggers = details.flatMap((h) => (h.trigger ? [h.trigger.trim()] : [])).filter((x) => x !== '');
 	return {
 		started: starts[0] ? timeOf(starts[0]) : null,
-		stopped:
-			!stillGoing && lastStop
-				? { time: timeOf(lastStop), plusDays: Math.max(0, daysBetween(day, dayKey(lastStop))) }
-				: null,
+		stopped: lastStop
+			? { time: timeOf(lastStop), plusDays: Math.max(0, daysBetween(day, dayKey(lastStop))) }
+			: null,
 		stillGoing,
+		lastSeen: !lastStop && !stillGoing && lastSeen ? timeOf(lastSeen) : null,
+		continuedFrom,
+		continuedOnly: entries.length === 0,
 		before: HEADACHE_BEFORE.filter((b) => details.some((h) => h.before?.includes(b))),
 		side: side === 'none' ? null : side,
 		quality: pulsatingOrConstant(points),
@@ -143,7 +193,8 @@ function mergeDay(
 export function buildHeadacheReport(
 	records: Iterable<Rec>,
 	days: readonly string[],
-	layout: ReportLayout
+	layout: ReportLayout,
+	now = new Date()
 ): HeadacheReport {
 	const all = [...records];
 	const wanted = new Set(days);
@@ -163,11 +214,18 @@ export function buildHeadacheReport(
 		}
 	}
 	const medicines = asNeededDoses(all);
+	const continued = continuedDays(
+		ordered.flatMap((r) => (r.payload.type === 'pain' && isHeadacheEntry(r.payload) ? [r.payload] : [])),
+		new Set(days),
+		now
+	);
 	const columns: ReportColumn[] = days.map((day) => {
 		const entries = pain.get(day);
+		const from = continued.get(day) ?? null;
+		const meds = medicines.get(day) ?? [];
 		return {
 			day,
-			headache: entries ? mergeDay(day, entries, gut.get(day) ?? [], medicines.get(day) ?? []) : null
+			headache: entries || from ? mergeDay(day, entries ?? [], gut.get(day) ?? [], meds, now, from) : null
 		};
 	});
 	const empty = !columns.some((c) => c.headache);
