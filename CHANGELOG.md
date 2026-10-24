@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1 (2026-10-23)
+
+### Fixes
+
+- **entries:** keep an entry's own date and time when editing it (#90)
+
+## 0.9.0 (2026-10-23)
+
+### Features
+
+- **sleep:** naps as separate sleep entries (#85)
+- **export:** download my data as one .zip (M6) (#84)
+- **me:** show the app version in About (#83)
+
 ## 0.8.0 (2026-10-23)
 
 ### Features

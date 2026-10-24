@@ -1350,6 +1350,136 @@ for (const scheme of ['light', 'dark'] as const) {
 			await shoot(/Like the paper form/, 'English', 'form-en', 2);
 			await shoot(/Like the paper form/, 'Dansk', 'form-da', 2);
 		});
+		test(`headache still there ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'headache-still', 'headache-still screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const startH = Math.max(0, new Date().getHours() - 3);
+			const head = (intensity: number) => ({
+				region: 'temple',
+				side: 'left',
+				space: '2d-head-front-v2',
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: ['throbbing', 'constant']
+			});
+			const [episode] = await seedRecords(page.request, account, [
+				{ v: 1, type: 'pain_episode', started: at(3, 14) }
+			]);
+			await seedRecords(page.request, account, [
+				{ v: 1, type: 'sleep', at: at(0, 0, 30), asleepAt: at(1, 23, 0), quality: 3 },
+				{
+					v: 1,
+					type: 'pain',
+					at: at(3, 14),
+					points: [head(5)],
+					episode,
+					headache: { started: at(3, 14), stopped: at(3, 22) }
+				},
+				{
+					v: 1,
+					type: 'pain',
+					at: at(0, startH),
+					points: [head(6)],
+					episode,
+					headache: { started: at(0, startH), trigger: 'Skipped lunch' }
+				}
+			]);
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			const card = page.getByRole('region', { name: 'Headache · still there?' });
+			await card.waitFor({ timeout: 20_000 });
+			await snap(page, 'today-card', scheme);
+
+			await card.getByRole('button', { name: "It's gone", exact: true }).click();
+			await card.getByText('When did it stop?').waitFor();
+			await snap(page, 'today-card-expanded', scheme);
+
+			await card.getByRole('button', { name: 'Cancel' }).click();
+			await page
+				.getByRole('list')
+				.filter({ has: page.locator('time') })
+				.getByText('Your left temple 6', { exact: true })
+				.click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			await sheet.getByText(/^Leave empty while/).waitFor();
+			// Taller than a phone, so the docked point panel does not cover the headache section (as head-zones does).
+			await page.setViewportSize({ width: 375, height: 1150 });
+			await page.waitForTimeout(900);
+			await sheet.getByText(/^Leave empty while/).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet-stopped', scheme);
+		});
+
+		test(`headache still there report ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'headache-still', 'headache-still screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const todayIso = at(0, 12).slice(0, 10);
+			const head = (intensity: number) => ({
+				region: 'temple',
+				side: 'left',
+				space: '2d-head-front-v2',
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: ['throbbing']
+			});
+			const entry = (daysAgo: number, hour: number, headache: object) => ({
+				v: 1,
+				type: 'pain',
+				at: at(daysAgo, hour),
+				points: [head(5)],
+				headache: { started: at(daysAgo, hour), ...headache }
+			});
+			await seedRecords(page.request, account, [
+				// a normal stop
+				entry(6, 14, { stopped: at(6, 17) }),
+				// never answered, last seen at 18:00
+				entry(5, 15, { lastSeen: at(5, 18) }),
+				// ran past midnight: the next column is marked "continued from"
+				entry(4, 22, { stopped: at(3, 2) }),
+				// still going (today)
+				entry(0, Math.max(0, new Date().getHours() - 2), {})
+			]);
+			await page.goto('/reports/headache');
+			await unlockWith(page, account.passphrase);
+			await page.getByRole('heading', { name: 'Headache diary', level: 1 }).waitFor();
+			await page.getByLabel('Name on the report').fill('Sam Example');
+			await page
+				.getByRole('radio', { name: 'Custom from–to' })
+				.or(page.getByRole('button', { name: 'Custom from–to' }))
+				.click();
+			await page.locator('.custom input').first().fill(at(6, 12).slice(0, 10));
+			await page.locator('.custom input').last().fill(todayIso);
+			for (const [layout, file] of [
+				[/Clean table/, 'report-table'],
+				[/Like the paper form/, 'report-form']
+			] as const) {
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.getByRole('radio', { name: layout }).click();
+				await page.getByRole('radio', { name: 'English' }).click();
+				await page.getByRole('button', { name: 'Make report' }).click();
+				await page.getByTestId('report').waitFor();
+				await page.emulateMedia({ media: 'print', colorScheme: scheme });
+				const portrait = file === 'report-form';
+				await page.setViewportSize(portrait ? { width: 793, height: 1122 } : { width: 1122, height: 793 });
+				const sheet = page.locator('.report-sheet').first();
+				const box = (await sheet.boundingBox())!;
+				await page.evaluate(() => window.scrollTo(0, 0));
+				await page.screenshot({
+					path: `docs/screenshots/${folder}/${file}-sheet-${scheme}.png`,
+					fullPage: true,
+					clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+				});
+				await page.setViewportSize({ width: 375, height: 812 });
+				await page.emulateMedia({ media: 'screen', colorScheme: scheme });
+				await page.waitForTimeout(200);
+				if (!portrait) await snap(page, 'report-preview', scheme);
+				await page.getByRole('button', { name: /^(Back|Tilbage)$/ }).click();
+			}
+		});
 		test(`measure split ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'measure-split', 'measure-split screenshots only');
 			await prepare(page, scheme);
@@ -1773,5 +1903,28 @@ for (const scheme of ['light', 'dark'] as const) {
 			fullPage: true,
 			clip: { x: box.x, y: box.y, width: box.width, height: box.height }
 		});
+	});
+
+	test(`edit keeps time ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'edit-keeps-time', 'edit-keeps-time screenshots only');
+		await prepare(page, scheme);
+		const account = await signUpApiAccount(page.request);
+		await seedRecords(page.request, account, [
+			{ v: 1, type: 'feeling', at: at(1, 8, 15), mood: 4, energy: 3, stress: 2, symptoms: [] }
+		]);
+		await page.goto('/');
+		await unlockWith(page, account.passphrase);
+		const days = page.getByRole('group', { name: 'Choose a day' }).locator('button[aria-pressed]');
+		const marks = await Promise.all((await days.all()).map((b) => b.getAttribute('aria-current')));
+		const idx = marks.indexOf('date');
+		if (idx > 0) await days.nth(idx - 1).click();
+		else {
+			await page.getByRole('button', { name: 'Previous week' }).click();
+			await days.last().click();
+		}
+		await page.getByText(/Mood 4 · Energy 3 · Stress 2/).click();
+		await page.getByRole('dialog').getByLabel('Time of the entry').waitFor();
+		await page.waitForTimeout(400);
+		await snap(page, 'edit-sheet-original-time', scheme);
 	});
 }
