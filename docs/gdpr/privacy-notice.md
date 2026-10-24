@@ -101,7 +101,7 @@ contractual clauses]. Push services are run by US companies and receive no diary
 
 ### Changes
 
-If this notice or the consent text changes in a way that matters, you will be asked to agree again.
+If this notice changes in a way that matters, we will tell you in the app or by message. New members always agree to the newest version of the consent text; the version you agreed to stays on record and you can read it under Me, Privacy. [OPERATOR: if a change needs new consent, ask everyone again.]
 
 ---
 
