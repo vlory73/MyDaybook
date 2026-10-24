@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy page and consent v2: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+:root { --danger: #b3342b; --amber-tint:#f8e9c7; --amber-ink:#6e4708; --amber-line:#e3c277; }
+body.board { padding: 24px; min-height: 0; width: max-content; }
+.board-title { font-size: 22px; font-weight: var(--fw-bold); }
+.board-sub { color: var(--text-2); margin: 4px 0 24px; font-size: var(--fs-callout); }
+.row { display: flex; gap: 32px; align-items: flex-start; width: max-content; }
+.row + .row { margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--line); }
+.frame { margin: 0; width: 375px; }
+.frame.dark { color: var(--text); }
+.phone-wrap { border-radius: 36px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), var(--shadow-2); background: var(--bg); }
+.frame figcaption { margin-top: 12px; font-size: var(--fs-footnote); color: var(--text-2); line-height: 1.4; }
+.frame figcaption b { color: var(--text); }
+.frame.dark figcaption { color: #5f5666; } .frame.dark figcaption b { color: #2a2430; }
+.form-row { display: flex; gap: var(--sp-2); }
+.grow { flex: 1; }
+.back-link{display:inline-flex;align-items:center;gap:2px;min-height:44px;color:var(--primary);font-weight:600;font-size:var(--fs-callout)}
+.hint { margin: var(--sp-2) 0 var(--sp-3); }
+.about { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-3); }
+.card.danger { box-shadow: inset 0 0 0 1.5px var(--pain-ink); }
+.btn-danger { background: transparent; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+.link { color: var(--primary-press); font-weight: var(--fw-semibold); }
+.link.inl { text-decoration: underline; text-underline-offset: 2px; }
+.drow { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: var(--tap); padding: 0 var(--sp-4); border-radius: var(--r-md); background: var(--surface-2); font-weight: var(--fw-semibold); }
+.drow .i { color: var(--text-3); }
+.lead { color: var(--text-2); margin: 0 0 var(--sp-4); }
+.inside { list-style: none; margin: var(--sp-3) 0 0; padding: 0; display: grid; gap: var(--sp-3); font-size: var(--fs-callout); }
+.inside li { display: flex; gap: var(--sp-3); align-items: flex-start; }
+.bul { width: 32px; height: 32px; border-radius: 10px; background: var(--primary-soft); color: var(--primary-press); display: grid; place-items: center; flex: none; }
+.inside li > span:last-child { padding-top: 5px; }
+.trow { display: flex; align-items: center; gap: var(--sp-3); }
+.trow .t { font-weight: var(--fw-semibold); }
+.trow.dis { opacity: .55; }
+.toggle { width: 51px; height: 31px; border-radius: 16px; background: var(--meds-ink); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-1); }
+.warn { display: flex; gap: var(--sp-3); align-items: flex-start; margin-top: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-lg); background: var(--amber-tint); color: var(--amber-ink); box-shadow: inset 0 0 0 1px var(--amber-line); font-size: var(--fs-callout); line-height: 1.4; }
+.warn .i { margin-top: 1px; }
+.warn b { display: block; }
+.prep { margin-top: var(--sp-4); }
+.prep-row { display: flex; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-3); font-size: var(--fs-callout); }
+.bar { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; margin-bottom: var(--sp-3); }
+.bar i { display: block; height: 100%; border-radius: 4px; background: var(--primary); }
+.ready { margin-top: var(--sp-4); text-align: center; }
+.ready h2 { font-size: var(--fs-title3); font-weight: var(--fw-bold); }
+.okmark { width: 48px; height: 48px; border-radius: 16px; background: var(--meds-tint); color: var(--meds-ink); display: grid; place-items: center; margin: 0 auto var(--sp-3); }
+.fname { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: var(--sp-2); font-size: var(--fs-callout); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.fname .muted { font-family: var(--font-sans); }
+.caret { width: 2px; height: 24px; background: var(--primary); margin-left: 2px; display: inline-block; vertical-align: middle; }
+
+/* Dark mode forced for the second row (same values as tokens.css dark block) */
+.dark {
+    --bg: #16131a;
+    --surface: #211d25;
+    --surface-2: #2a2530;
+    --surface-3: #352f3b;
+    --line: #3b3441;
+    --text: #f4eff2;
+    --text-2: #bdb3c1;
+    --text-3: #978c9b;
+    --primary: #f08f68;
+    --primary-press: #f6a585;
+    --on-primary: #2b1309;
+    --primary-soft: #43271d;
+    --focus: #8cbcf0;
+    --scrim: rgb(0 0 0 / 0.55);
+    --food-tint: #3b2a1b;  --food-ink: #f5c591;
+    --feel-tint: #2e2843;  --feel-ink: #cfc1f6;
+    --sleep-tint: #252c45; --sleep-ink: #b5c3f2;
+    --measure-tint: #1e3141; --measure-ink: #a8d2ef;
+    --pain-tint: #3e2329;  --pain-ink: #f5b0b6;
+    --meds-tint: #1f3329;  --meds-ink: #a9dabd;
+    --note-tint: #34301f;  --note-ink: #e4d4a7;
+    --gut-tint: #2b3120;   --gut-ink: #c9d89a;
+    --heat-0: #2a2530;
+    --heat-1: #4a3428;
+    --heat-2: #7a4a34;
+    --heat-3: #b0603f;
+    --heat-4: #dc7a5c;
+    --heat-5: #f0a07f;
+    --heat-6: #fbd0b3;
+    --on-heat-hi: #2b1309;
+    --on-heat-1: #f4eff2;
+    --on-heat-2: #f4eff2;
+    --on-heat-3: #ffffff;
+    --on-heat-4: #16101a;
+    --on-heat-5: #16101a;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-2: 0 6px 18px rgb(0 0 0 / 0.45);
+    --shadow-fab: 0 6px 18px rgb(240 143 104 / 0.25), 0 2px 4px rgb(0 0 0 / 0.4);
+}
+.dark { --amber-tint:#3a2e1c; --amber-ink:#f0c88a; --amber-line:#6b5530; --danger:#f2877f; }
+
+.stepper{display:flex;gap:6px;margin:var(--sp-3) 0 var(--sp-2)}.stepper i{flex:1;height:4px;border-radius:2px;background:var(--surface-3)}.stepper i.on{background:var(--primary)}
+.para{color:var(--text-2);margin-top:var(--sp-4);line-height:1.5}.para b.num{color:var(--text);white-space:nowrap}
+.agepill{display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-3);padding:10px var(--sp-4);border-radius:var(--r-full);background:var(--primary-soft);color:var(--primary-press);font-size:var(--fs-callout);font-weight:var(--fw-semibold);width:fit-content}
+.readlink{display:flex;align-items:center;gap:var(--sp-2);min-height:var(--tap);margin-top:var(--sp-3);color:var(--primary-press);font-weight:var(--fw-semibold);text-decoration:underline;text-underline-offset:3px}
+.agree{display:flex;gap:var(--sp-3);align-items:flex-start;margin-top:var(--sp-2);padding:var(--sp-3) var(--sp-4);min-height:var(--tap);border-radius:var(--r-md);background:var(--surface-2)}
+.box{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;border:2px solid var(--text-3);margin-top:1px}.box.on{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.card.hl{box-shadow:inset 0 0 0 1.5px var(--primary),var(--shadow-1)}
+.card.hl .card-title{color:var(--primary-press)}
+.phead{text-align:center;padding:var(--sp-2) 0 var(--sp-5)}
+.seal{width:64px;height:64px;border-radius:22px;background:var(--primary-soft);color:var(--primary-press);display:grid;place-items:center;margin:0 auto var(--sp-3)}
+.promise{margin-top:var(--sp-3);font-size:var(--fs-title3);line-height:1.35;font-weight:var(--fw-semibold)}
+.pblock{display:flex;gap:var(--sp-4);align-items:flex-start;background:var(--surface);border-radius:var(--r-lg);padding:var(--sp-5) var(--sp-4);box-shadow:var(--shadow-1);margin-top:var(--sp-4)}
+.pblock h2{font-size:var(--fs-title3);font-weight:var(--fw-bold);margin-bottom:var(--sp-2)}
+.pblock p{color:var(--text-2);line-height:1.45}.pblock p+p{margin-top:var(--sp-2)}.pblock p.strong{color:var(--text);font-weight:var(--fw-semibold)}
+.cat.big{width:48px;height:48px;border-radius:16px}.cat.big .i{width:26px;height:26px}
+.keep{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-3)}.keep li{display:grid;gap:2px}.keep b{font-size:var(--fs-title3);color:var(--text)}.keep span{color:var(--text-2);line-height:1.4}
+.sec{font-size:var(--fs-title3);font-weight:var(--fw-bold);margin:var(--sp-6) 0 var(--sp-3)}
+.rlist{display:grid;gap:var(--sp-3)}
+.rrow{display:flex;gap:var(--sp-3);align-items:center;background:var(--surface);border-radius:var(--r-lg);padding:var(--sp-4);box-shadow:var(--shadow-1);min-height:64px}
+.rrow .t{font-weight:var(--fw-semibold)}.rrow .s{color:var(--text-2);font-size:var(--fs-callout);line-height:1.4;margin-top:2px}.rrow .chev{color:var(--text-3)}
+.note{display:flex;gap:var(--sp-3);align-items:flex-start;padding:var(--sp-4);border-radius:var(--r-lg);background:var(--amber-tint);color:var(--amber-ink);box-shadow:inset 0 0 0 1px var(--amber-line);line-height:1.45;margin-bottom:var(--sp-3)}
+.note.plain{background:var(--surface-2);color:var(--text-2);box-shadow:none}.note .i{margin-top:2px}
+.operator{display:flex;gap:var(--sp-3);align-items:center}.operator .s{color:var(--text-2);font-size:var(--fs-callout);margin-top:2px}.operator .t{font-weight:var(--fw-semibold)}
+.frame code{font-size:12px}
+</style>
+</head>
+<body class="board">
+<h1 class="board-title">Privacy page and consent v2</h1>
+<p class="board-sub">Synthetic data. For <code>feature/age-and-consent</code>. Light row above, the same four frames in dark mode below. Plain words on purpose: short sentences, no legal terms.</p>
+<div class="row"><figure class="frame"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><div class="stepper" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="on"></i></div>
+<h1 class="large-title">Before you start</h1>
+<div class="agepill"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>MyDaybook is for people aged 13 and over.</span></div>
+<p class="para">MyDaybook keeps your diary entries, which can include information about your health. Everything you write is encrypted on your device before it is saved, so only you can read it. The server, and the person running it, only ever see scrambled data.</p>
+<p class="para">Besides your encrypted entries, the server keeps only what it needs to run your account: your username, when you joined and last signed in, and a record of this agreement.</p>
+<p class="para">You can withdraw this agreement at any time by deleting your account under Me. Your diary and account are then erased. Encrypted backup copies disappear within <b class="num">14 days</b>.</p>
+<a href="#" class="readlink"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg>Read how your data is handled<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></a>
+<label class="agree"><span class="box on"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#check"/></svg></span><span>I am 13 or older. I understand, and I agree to my diary being stored this way.</span></label>
+<button class="btn btn-primary btn-block" style="margin-top:var(--sp-4)">Create my diary</button></main><div class="home-indicator"></div></div></div><figcaption><b>1. Sign-up consent, version 2.</b> New: the age line (calm pill, part of the hashed text) and &ldquo;I am 13 or older&rdquo; in the tick-box. The &ldquo;14 days&rdquo; is filled in from the server&rsquo;s backup setting (no longer hard-coded). &ldquo;Read how your data is handled&rdquo; opens the Privacy page (sign-up keeps its state). Button as today: <i>Create my diary</i>.</figcaption></figure><figure class="frame"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><header class="page-head"><h1 class="large-title">Me</h1></header>
+<div class="card "><div class="card-title">Reminders</div><p class="small muted hint">Get a nudge when a medicine is due.</p><div class="trow"><span class="t grow">Reminders on this phone</span><span class="toggle"></span></div></div>
+<div class="card "><div class="card-title">About</div><div class="about"><p><b>MyDaybook</b></p><p class="small muted">Version 0.10.0</p><p>A private place for your health diary. Not a medical device.</p></div></div>
+<div class="card hl"><div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg>Privacy</div><p class="small muted hint">Who can see what, how long things are kept, and your rights.</p><button class="drow">How your data is handled<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></button></div>
+<div class="card "><div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg>Your data</div><p class="small muted hint">Download a copy of everything in your diary.</p><button class="drow">Download my data<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></button></div>
+<div class="card danger" style="margin-top:var(--sp-6)"><div class="card-title">Delete account</div><div class="about"><p>This erases your diary and your account from the server. It cannot be undone.</p><button class="btn btn-danger btn-block">Delete my account…</button></div></div></main><nav class="tabbar" aria-label="Main"><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>2. Me, the entry point.</b> A <b>Privacy</b> card with a clay outline, between About and Your data, so the three &ldquo;paper&rdquo; cards (Privacy, Your data, Delete account) sit together at the bottom. About&rsquo;s privacy line can then go.</figcaption></figure><figure class="frame"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><div class="nav-head"><span class="back-link"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg>Me</span></div>
+<header class="phead"><span class="seal"><svg class="i i-lg" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg></span><h1 class="large-title">Your privacy</h1>
+<p class="promise">Only you can read your diary. Not even the person who runs this server can.</p></header>
+<section class="pblock"><span class="cat cat-feel big"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg></span><div><h2>What is kept</h2><p>Your entries and photos, scrambled so only you can open them.</p><p>For your account: your username, when you joined, when you last signed in, and your agreement.</p></div></section>
+<section class="pblock"><span class="cat cat-sleep big"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.7 5.1A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7"/><path d="M6.6 6.6A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg></span><div><h2>What the server can see</h2><p>That you have an account. When something is saved, and roughly how big it is.</p><p class="strong">Never what it says.</p></div></section>
+<section class="pblock"><span class="cat cat-food big"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg></span><div><h2>How long things are kept</h2><ul class="keep"><li><b>7 days</b><span>Internet addresses, noted when you sign up or a sign-in goes wrong</span></li><li><b>14 days</b><span>Backup copies, after you delete your account</span></li></ul></div></section>
+<section class="pblock"><span class="cat cat-meds big"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bell"/></svg></span><div><h2>Reminders</h2><p>If you turn them on, the server gets only the times and your time zone. The message goes through Apple or Google and says just “You have a reminder.”</p></div></section>
+</main><nav class="tabbar" aria-label="Main"><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>3. Privacy page, top.</b> One promise, then four blocks. &ldquo;7 days&rdquo; comes from <code>IP_RETENTION_DAYS</code> (0 = not stored; the line then reads &ldquo;Internet addresses are not kept&rdquo;). &ldquo;14 days&rdquo; comes from the backup retention setting (none exists yet in .env, see report).</figcaption></figure><figure class="frame"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><div class="nav-head"><span class="back-link"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg>Me</span></div>
+<h2 class="sec" style="margin-top:var(--sp-3)">Your rights</h2>
+<div class="rlist">
+<div class="rrow"><span class="bul"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg></span><div class="grow"><div class="t">Download my data</div><div class="s">Get a copy of everything in your diary.</div></div><svg class="i i-sm chev" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></div>
+<div class="rrow"><span class="bul"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg></span><div class="grow"><div class="t">Change anything you wrote</div><div class="s">Open the entry and edit it. No request needed.</div></div></div>
+<div class="rrow"><span class="bul"><svg class="i i-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><div class="grow"><div class="t">Delete my account</div><div class="s">Erases your diary and account.</div></div><svg class="i i-sm chev" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></div>
+<div class="rrow"><span class="bul"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#scale"/></svg></span><div class="grow"><div class="t">Make a complaint</div><div class="s">You can complain to the data protection authority in your country. In Denmark that is Datatilsynet (datatilsynet.dk).</div></div></div>
+</div>
+<h2 class="sec">Your agreement</h2>
+<div class="card"><p>You agreed on <b>18 Oct 2026</b> · version 1</p><button class="drow" style="margin-top:var(--sp-3)">Read the text you agreed to<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></button></div>
+<h2 class="sec">Good to know</h2>
+<div class="note"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#key-round"/></svg><p><b>If you lose both your passphrase and your recovery key, nobody can open your diary.</b> Not even us. Keep your recovery key somewhere safe.</p></div>
+<div class="note plain"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#heart-pulse"/></svg><p>MyDaybook is a diary, not a medical device. It gives no advice and no diagnoses.</p></div>
+<h2 class="sec">Who runs this server</h2>
+<div class="card operator"><span class="bul"><svg class="i i-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg></span><div><div class="t">The Lory family</div><div class="s">Questions about your data? <a href="#" class="link inl">family@example.org</a></div></div></div>
+</main><nav class="tabbar" aria-label="Main"><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>4. Privacy page, lower part.</b> Download and Delete rows are links (/me/export; the Delete card on Me); the other two are plain text. Agreement date and version come from the stored consent. &ldquo;Who runs this server&rdquo; comes from proposed <code>OPERATOR_NAME</code> / <code>OPERATOR_CONTACT</code> (optional; hidden when empty).</figcaption></figure></div>
+<div class="row"><figure class="frame dark"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><div class="stepper" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="on"></i></div>
+<h1 class="large-title">Before you start</h1>
+<div class="agepill"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>MyDaybook is for people aged 13 and over.</span></div>
+<p class="para">MyDaybook keeps your diary entries, which can include information about your health. Everything you write is encrypted on your device before it is saved, so only you can read it. The server, and the person running it, only ever see scrambled data.</p>
+<p class="para">Besides your encrypted entries, the server keeps only what it needs to run your account: your username, when you joined and last signed in, and a record of this agreement.</p>
+<p class="para">You can withdraw this agreement at any time by deleting your account under Me. Your diary and account are then erased. Encrypted backup copies disappear within <b class="num">14 days</b>.</p>
+<a href="#" class="readlink"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg>Read how your data is handled<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></a>
+<label class="agree"><span class="box on"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#check"/></svg></span><span>I am 13 or older. I understand, and I agree to my diary being stored this way.</span></label>
+<button class="btn btn-primary btn-block" style="margin-top:var(--sp-4)">Create my diary</button></main><div class="home-indicator"></div></div></div><figcaption><b>1. Sign-up consent, version 2.</b> New: the age line (calm pill, part of the hashed text) and &ldquo;I am 13 or older&rdquo; in the tick-box. The &ldquo;14 days&rdquo; is filled in from the server&rsquo;s backup setting (no longer hard-coded). &ldquo;Read how your data is handled&rdquo; opens the Privacy page (sign-up keeps its state). Button as today: <i>Create my diary</i>.</figcaption></figure><figure class="frame dark"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><header class="page-head"><h1 class="large-title">Me</h1></header>
+<div class="card "><div class="card-title">Reminders</div><p class="small muted hint">Get a nudge when a medicine is due.</p><div class="trow"><span class="t grow">Reminders on this phone</span><span class="toggle"></span></div></div>
+<div class="card "><div class="card-title">About</div><div class="about"><p><b>MyDaybook</b></p><p class="small muted">Version 0.10.0</p><p>A private place for your health diary. Not a medical device.</p></div></div>
+<div class="card hl"><div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg>Privacy</div><p class="small muted hint">Who can see what, how long things are kept, and your rights.</p><button class="drow">How your data is handled<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></button></div>
+<div class="card "><div class="card-title"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg>Your data</div><p class="small muted hint">Download a copy of everything in your diary.</p><button class="drow">Download my data<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></button></div>
+<div class="card danger" style="margin-top:var(--sp-6)"><div class="card-title">Delete account</div><div class="about"><p>This erases your diary and your account from the server. It cannot be undone.</p><button class="btn btn-danger btn-block">Delete my account…</button></div></div></main><nav class="tabbar" aria-label="Main"><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>2. Me, the entry point.</b> A <b>Privacy</b> card with a clay outline, between About and Your data, so the three &ldquo;paper&rdquo; cards (Privacy, Your data, Delete account) sit together at the bottom. About&rsquo;s privacy line can then go.</figcaption></figure><figure class="frame dark"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><div class="nav-head"><span class="back-link"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg>Me</span></div>
+<header class="phead"><span class="seal"><svg class="i i-lg" aria-hidden="true"><use href="assets/icons.svg#shield-check"/></svg></span><h1 class="large-title">Your privacy</h1>
+<p class="promise">Only you can read your diary. Not even the person who runs this server can.</p></header>
+<section class="pblock"><span class="cat cat-feel big"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg></span><div><h2>What is kept</h2><p>Your entries and photos, scrambled so only you can open them.</p><p>For your account: your username, when you joined, when you last signed in, and your agreement.</p></div></section>
+<section class="pblock"><span class="cat cat-sleep big"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.7 5.1A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7"/><path d="M6.6 6.6A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg></span><div><h2>What the server can see</h2><p>That you have an account. When something is saved, and roughly how big it is.</p><p class="strong">Never what it says.</p></div></section>
+<section class="pblock"><span class="cat cat-food big"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg></span><div><h2>How long things are kept</h2><ul class="keep"><li><b>7 days</b><span>Internet addresses, noted when you sign up or a sign-in goes wrong</span></li><li><b>14 days</b><span>Backup copies, after you delete your account</span></li></ul></div></section>
+<section class="pblock"><span class="cat cat-meds big"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bell"/></svg></span><div><h2>Reminders</h2><p>If you turn them on, the server gets only the times and your time zone. The message goes through Apple or Google and says just “You have a reminder.”</p></div></section>
+</main><nav class="tabbar" aria-label="Main"><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>3. Privacy page, top.</b> One promise, then four blocks. &ldquo;7 days&rdquo; comes from <code>IP_RETENTION_DAYS</code> (0 = not stored; the line then reads &ldquo;Internet addresses are not kept&rdquo;). &ldquo;14 days&rdquo; comes from the backup retention setting (none exists yet in .env, see report).</figcaption></figure><figure class="frame dark"><div class="phone-wrap"><div class="phone long"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><div class="nav-head"><span class="back-link"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg>Me</span></div>
+<h2 class="sec" style="margin-top:var(--sp-3)">Your rights</h2>
+<div class="rlist">
+<div class="rrow"><span class="bul"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#file-down"/></svg></span><div class="grow"><div class="t">Download my data</div><div class="s">Get a copy of everything in your diary.</div></div><svg class="i i-sm chev" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></div>
+<div class="rrow"><span class="bul"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#notebook-pen"/></svg></span><div class="grow"><div class="t">Change anything you wrote</div><div class="s">Open the entry and edit it. No request needed.</div></div></div>
+<div class="rrow"><span class="bul"><svg class="i i-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><div class="grow"><div class="t">Delete my account</div><div class="s">Erases your diary and account.</div></div><svg class="i i-sm chev" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></div>
+<div class="rrow"><span class="bul"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#scale"/></svg></span><div class="grow"><div class="t">Make a complaint</div><div class="s">You can complain to the data protection authority in your country. In Denmark that is Datatilsynet (datatilsynet.dk).</div></div></div>
+</div>
+<h2 class="sec">Your agreement</h2>
+<div class="card"><p>You agreed on <b>18 Oct 2026</b> · version 1</p><button class="drow" style="margin-top:var(--sp-3)">Read the text you agreed to<svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#chevron-right"/></svg></button></div>
+<h2 class="sec">Good to know</h2>
+<div class="note"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#key-round"/></svg><p><b>If you lose both your passphrase and your recovery key, nobody can open your diary.</b> Not even us. Keep your recovery key somewhere safe.</p></div>
+<div class="note plain"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#heart-pulse"/></svg><p>MyDaybook is a diary, not a medical device. It gives no advice and no diagnoses.</p></div>
+<h2 class="sec">Who runs this server</h2>
+<div class="card operator"><span class="bul"><svg class="i i-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg></span><div><div class="t">The Lory family</div><div class="s">Questions about your data? <a href="#" class="link inl">family@example.org</a></div></div></div>
+</main><nav class="tabbar" aria-label="Main"><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab on"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>4. Privacy page, lower part.</b> Download and Delete rows are links (/me/export; the Delete card on Me); the other two are plain text. Agreement date and version come from the stored consent. &ldquo;Who runs this server&rdquo; comes from proposed <code>OPERATOR_NAME</code> / <code>OPERATOR_CONTACT</code> (optional; hidden when empty).</figcaption></figure></div>
+</body>
+</html>
