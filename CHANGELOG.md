@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 (2026-10-23)
+
+### Fixes
+
+- **entries:** keep an entry's own date and time when editing it (#90)
+
 ## 0.9.0 (2026-10-23)
 
 ### Features
