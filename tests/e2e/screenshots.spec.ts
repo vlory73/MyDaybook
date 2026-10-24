@@ -1904,4 +1904,27 @@ for (const scheme of ['light', 'dark'] as const) {
 			clip: { x: box.x, y: box.y, width: box.width, height: box.height }
 		});
 	});
+
+	test(`edit keeps time ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'edit-keeps-time', 'edit-keeps-time screenshots only');
+		await prepare(page, scheme);
+		const account = await signUpApiAccount(page.request);
+		await seedRecords(page.request, account, [
+			{ v: 1, type: 'feeling', at: at(1, 8, 15), mood: 4, energy: 3, stress: 2, symptoms: [] }
+		]);
+		await page.goto('/');
+		await unlockWith(page, account.passphrase);
+		const days = page.getByRole('group', { name: 'Choose a day' }).locator('button[aria-pressed]');
+		const marks = await Promise.all((await days.all()).map((b) => b.getAttribute('aria-current')));
+		const idx = marks.indexOf('date');
+		if (idx > 0) await days.nth(idx - 1).click();
+		else {
+			await page.getByRole('button', { name: 'Previous week' }).click();
+			await days.last().click();
+		}
+		await page.getByText(/Mood 4 · Energy 3 · Stress 2/).click();
+		await page.getByRole('dialog').getByLabel('Time of the entry').waitFor();
+		await page.waitForTimeout(400);
+		await snap(page, 'edit-sheet-original-time', scheme);
+	});
 }

@@ -66,7 +66,9 @@
 		if (!current) return;
 		untrack(() => {
 			const existing = current.id ? (store.items[current.id]?.payload ?? null) : null;
-			time = current.at && !current.id ? toLocalInput(current.at) : toLocalInput(formatAt(new Date()));
+			// An existing entry keeps its own date and time; a new one uses the given time, else now.
+			const own = existing && 'at' in existing && typeof existing.at === 'string' ? existing.at : null;
+			time = toLocalInput(own ?? (current.id ? undefined : current.at) ?? formatAt(new Date()));
 			const same = existing && existing.type === kind ? existing : null;
 			kept = same?.attachments;
 			photos?.reset(kept);
