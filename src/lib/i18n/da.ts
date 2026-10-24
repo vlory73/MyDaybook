@@ -99,8 +99,6 @@ export const da: Record<MessageKey, string> = {
 		'{app} er en personlig dagbog, hvor du selv kan føre optegnelser over mad, trivsel, helbredsmålinger, smerter og medicin.',
 	'me.about.notMedical':
 		'Den er ikke medicinsk udstyr. Den giver ingen råd, ingen diagnoser, ingen dosisberegninger og ingen advarsler ud fra dine værdier. Tal med en læge eller et apotek om alt, der bekymrer dig.',
-	'me.about.privacy':
-		'Alt, hvad du skriver, krypteres på din enhed, før det gemmes. Ingen andre kan læse det, heller ikke den, der driver serveren.',
 	'me.about.version': 'Version {version}',
 	'me.about.licence': 'Licenseret under PolyForm Noncommercial License 1.0.0.',
 	'me.theme.heading': 'Udseende',
@@ -373,7 +371,7 @@ export const da: Record<MessageKey, string> = {
 	'admin.error.notFound': 'Den konto findes ikke mere.',
 	'admin.delete.title': 'Slet {name}',
 	'admin.delete.lead': 'Det sletter {name}s konto og alt i dagbogen for altid. Det kan ikke fortrydes.',
-	'admin.delete.backups': 'Krypterede sikkerhedskopier gemmes i op til 14 dage og forsvinder derefter.',
+	'admin.delete.backups': 'Krypterede sikkerhedskopier gemmes i op til {days} dage og forsvinder derefter.',
 	'admin.delete.passphrase': 'Din adgangssætning',
 	'admin.delete.confirm': 'Slet for altid',
 	'admin.delete.wrong': 'Adgangssætningen passer ikke.',
@@ -397,7 +395,7 @@ export const da: Record<MessageKey, string> = {
 		'Linket vises kun én gang og udløber {when}. Send det selv til personen; det virker til én tilmelding.',
 	'me.danger.heading': 'Slet konto',
 	'me.danger.lead': 'Det sletter din dagbog og din konto fra serveren. Det kan ikke fortrydes.',
-	'me.danger.backups': 'Krypterede sikkerhedskopier gemmes i op til 14 dage og forsvinder derefter.',
+	'me.danger.backups': 'Krypterede sikkerhedskopier gemmes i op til {days} dage og forsvinder derefter.',
 	'me.danger.export': 'Hent en kopi af din dagbog først.',
 	'me.danger.withdraw':
 		'Når du sletter din konto, trækker du også det samtykke tilbage, du gav ved oprettelsen.',
@@ -1516,5 +1514,69 @@ export const da: Record<MessageKey, string> = {
 		'Kolonnenavne er på engelsk. Lister er adskilt med "; ". Tidspunkter er lokal tid med forskel til UTC. Et smertenotat har én række for hvert punkt.',
 	'export.readme.photos': 'dine fotos ({count}) som JPEG-filer. Datafilerne henviser til dem med filnavn.',
 	'export.readme.noPhotos': 'Der er ingen fotos med.',
-	'export.readme.readme': 'denne tekst.'
+	'export.readme.readme': 'denne tekst.',
+
+	'consent.v2.title': 'Før du går i gang',
+	'consent.v2.age': '{app} er for personer på 13 år og derover.',
+	'consent.v2.p1':
+		'{app} gemmer dine dagbogsnotater, som kan indeholde oplysninger om din helbredstilstand. Alt, hvad du skriver, bliver krypteret på din enhed, før det gemmes, så kun du kan læse det. Serveren og den, der driver den, ser kun uforståelige data.',
+	'consent.v2.p2':
+		'Ud over dine krypterede notater gemmer serveren kun det, der skal til for at drive din konto: dit brugernavn, hvornår du blev oprettet og sidst loggede ind, og en registrering af dette samtykke.',
+	'consent.v2.p3':
+		'Du kan til enhver tid trække dit samtykke tilbage ved at slette din konto under Mig. Din dagbog og din konto bliver så slettet. Krypterede sikkerhedskopier forsvinder inden for {days} dage.',
+	'consent.v2.checkbox':
+		'Jeg er 13 år eller derover. Jeg forstår det og samtykker til, at min dagbog gemmes på denne måde.',
+	'join.consent.read': 'Læs, hvordan dine data bliver behandlet',
+
+	'me.privacy.heading': 'Privatliv',
+	'me.privacy.lead': 'Hvem der kan se hvad, hvor længe ting gemmes, og dine rettigheder.',
+	'me.privacy.open': 'Sådan behandles dine data',
+
+	'privacy.title': 'Dit privatliv',
+	'privacy.back': 'Tilbage',
+	'privacy.promise': 'Kun du kan læse din dagbog. Heller ikke den, der driver denne server, kan.',
+	'privacy.kept.heading': 'Det, der gemmes',
+	'privacy.kept.entries': 'Dine notater og fotos, gøres uforståelige, så kun du kan åbne dem.',
+	'privacy.kept.account':
+		'Til din konto: dit brugernavn, hvornår du blev oprettet, hvornår du sidst loggede ind, og dit samtykke.',
+	'privacy.seen.heading': 'Det, serveren kan se',
+	'privacy.seen.body': 'At du har en konto. Hvornår noget gemmes, og omtrent hvor stort det er.',
+	'privacy.seen.never': 'Aldrig, hvad der står.',
+	'privacy.keep.heading': 'Hvor længe ting gemmes',
+	'privacy.keep.ip': 'Internetadresser, noteret når du opretter dig, eller et login går galt',
+	'privacy.keep.ipNone': 'Internetadresser gemmes ikke',
+	'privacy.keep.none': 'Ingen',
+	'privacy.keep.days_one': '{count} dag',
+	'privacy.keep.days_other': '{count} dage',
+	'privacy.keep.backups': 'Sikkerhedskopier, efter du har slettet din konto',
+	'privacy.reminders.heading': 'Påmindelser',
+	'privacy.reminders.body':
+		'Hvis du slår dem til, får serveren kun tidspunkterne, dagene og din tidszone. Beskeden går via Apple eller Google og siger bare “Du har en påmindelse.”',
+	'privacy.rights.heading': 'Dine rettigheder',
+	'privacy.rights.download': 'Hent mine data',
+	'privacy.rights.downloadHint': 'Få en kopi af alt i din dagbog.',
+	'privacy.rights.edit': 'Ret alt, hvad du har skrevet',
+	'privacy.rights.editHint': 'Åbn notatet og ret det. Du behøver ikke at bede om det.',
+	'privacy.rights.delete': 'Slet min konto',
+	'privacy.rights.deleteHint': 'Sletter din dagbog og din konto.',
+	'privacy.rights.complain': 'Klag',
+	'privacy.rights.complainHint':
+		'Du kan klage til tilsynsmyndigheden for databeskyttelse i dit land. I Danmark er det Datatilsynet (datatilsynet.dk).',
+	'privacy.agreement.heading': 'Dit samtykke',
+	'privacy.agreement.line': 'Du samtykkede den {date} · version {version}',
+	'privacy.agreement.read': 'Læs den tekst, du samtykkede til',
+	'privacy.agreement.newer':
+		'Der findes en nyere version af teksten. Den gælder for dem, der tilmelder sig nu. Du skal ikke gøre noget.',
+	'privacy.agreement.unknown': 'Der er ikke registreret noget samtykke for denne konto.',
+	'privacy.text.title': 'Den tekst, du samtykkede til',
+	'privacy.text.note': 'Vist på appens nuværende sprog.',
+	'privacy.know.heading': 'Godt at vide',
+	'privacy.know.keyBold':
+		'Hvis du mister både din adgangssætning og din gendannelsesnøgle, kan ingen åbne din dagbog.',
+	'privacy.know.keyRest':
+		'Heller ikke den, der driver denne server. Gem din gendannelsesnøgle et sikkert sted.',
+	'privacy.know.medical':
+		'{app} er en dagbog, ikke et medicinsk udstyr. Den giver ingen råd og ingen diagnoser.',
+	'privacy.operator.heading': 'Hvem driver denne server',
+	'privacy.operator.questions': 'Spørgsmål om dine data?'
 };

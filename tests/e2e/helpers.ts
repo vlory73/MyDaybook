@@ -63,7 +63,7 @@ export async function signUpViaApi(page: Page, prefix = 'ui'): Promise<TestUser>
 			wrappedMkByRecovery: toB64(b.wrappedMkByRecovery),
 			publicKey: toB64(b.publicKey),
 			wrappedPrivateKey: toB64(b.wrappedPrivateKey),
-			consent: { version: 'consent-v1', textHash: 'synthetic-test-hash', locale: 'en' }
+			consent: { version: 'consent-v2', textHash: 'synthetic-test-hash', locale: 'en' }
 		}
 	});
 	expect(res.status()).toBe(200);
@@ -129,7 +129,7 @@ export async function signUpApiAccount(
 			wrappedMkByRecovery: toB64(b.wrappedMkByRecovery),
 			publicKey: toB64(b.publicKey),
 			wrappedPrivateKey: toB64(b.wrappedPrivateKey),
-			consent: { version: 'consent-v1', textHash: 'synthetic-test-hash', locale: 'en' }
+			consent: { version: 'consent-v2', textHash: 'synthetic-test-hash', locale: 'en' }
 		}
 	});
 	expect(res.status()).toBe(200);

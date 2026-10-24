@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_KDF } from '$lib/crypto/keys';
+import { CONSENT_VERSION } from '$lib/consent';
 import { checkApiRequest, isApiPath } from './guard';
 import { RateLimiter } from './rate-limit';
 import { DEFAULT_KDF_PARAMS, fakeSalt } from './secret';
@@ -196,9 +197,11 @@ describe('input validation', () => {
 	});
 
 	it('validates consent and tokens', () => {
-		expect(parseConsent({ version: '1', textHash: 'abcDEF12-_', locale: 'da' })).not.toBeNull();
-		expect(parseConsent({ version: '1', textHash: 'abc', locale: 'fr' })).toBeNull();
+		expect(parseConsent({ version: CONSENT_VERSION, textHash: 'abcDEF12-_', locale: 'da' })).not.toBeNull();
+		expect(parseConsent({ version: CONSENT_VERSION, textHash: 'abc', locale: 'fr' })).toBeNull();
 		expect(parseConsent({ version: '', textHash: 'abc', locale: 'en' })).toBeNull();
+		// New signups agree to the newest text only; older versions are for display.
+		expect(parseConsent({ version: 'consent-v1', textHash: 'abcDEF12-_', locale: 'en' })).toBeNull();
 		expect(parseToken(newToken())).not.toBeNull();
 		expect(parseToken('short')).toBeNull();
 	});

@@ -30,6 +30,7 @@ export { default as PainThumb } from './PainThumb.svelte';
 export { default as PhotoPicker } from './PhotoPicker.svelte';
 export { default as PhotoThumb } from './PhotoThumb.svelte';
 export { default as PhotoViewer } from './PhotoViewer.svelte';
+export { default as PrivacyView } from './PrivacyView.svelte';
 export { default as PassphraseFields } from './PassphraseFields.svelte';
 export { default as RecoveryConfirm } from './RecoveryConfirm.svelte';
 export { default as RecoveryKey } from './RecoveryKey.svelte';

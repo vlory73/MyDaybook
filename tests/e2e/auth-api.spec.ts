@@ -84,7 +84,7 @@ function signupBody(a: Account, inviteToken: string) {
 		wrappedMkByRecovery: toB64(b.wrappedMkByRecovery),
 		publicKey: toB64(b.publicKey),
 		wrappedPrivateKey: toB64(b.wrappedPrivateKey),
-		consent: { version: '1', textHash: 'synthetic-consent-hash', locale: 'en' }
+		consent: { version: 'consent-v2', textHash: 'synthetic-consent-hash', locale: 'en' }
 	};
 }
 
