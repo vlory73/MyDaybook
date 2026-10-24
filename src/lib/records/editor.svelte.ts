@@ -12,6 +12,8 @@ export const editor = $state<{
 		id: string | null;
 		typeId?: string;
 		same?: boolean;
+		/** With `same`: copy this entry (the one a Today card named) instead of the latest. */
+		sameFrom?: string;
 		/** A new entry starts at this time ("Log nausea" from the Pain sheet) instead of now. */
 		at?: string;
 		/** The Pain sheet comes back from the nausea sheet: refill it from `backToPain.draft`. */
@@ -47,13 +49,21 @@ export const openNote = (id: string | null = null) => {
 };
 export const openLog = (
 	kind: LogKind,
-	options: { id?: string | null; typeId?: string; same?: boolean; at?: string; resume?: boolean } = {}
+	options: {
+		id?: string | null;
+		typeId?: string;
+		same?: boolean;
+		sameFrom?: string;
+		at?: string;
+		resume?: boolean;
+	} = {}
 ) => {
 	editor.log = {
 		kind,
 		id: options.id ?? null,
 		typeId: options.typeId,
 		same: options.same,
+		sameFrom: options.sameFrom,
 		at: options.at,
 		resume: options.resume
 	};

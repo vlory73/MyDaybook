@@ -6,6 +6,7 @@
 import { regionName } from '$lib/bodymap/catalogue';
 import { translate, type Locale } from '$lib/i18n/core';
 import type { StoredRecord } from './codec';
+import { isOpenHeadache } from './headache';
 import { dayDate, dayKey, instant, todayKey } from './time';
 import { MAX_PAIN_POINTS, type PainPayload, type PainPoint } from './pain';
 
@@ -71,7 +72,8 @@ export type StillThere = {
 };
 
 /**
- * What the "Still there?" card shows, or null. It looks only at the latest body map entry: it must be from today or the
+ * What the "Still there?" card shows, or null. It looks only at the latest body map entry that is not an open headache
+ * (those have their own card, `headacheStill.ts`): it must be from today or the
  * two days before (by its own time) and not dismissed. A dismissal is the id of the entry that was dismissed, so a newer
  * entry (a different id) brings the card back.
  */
@@ -80,7 +82,7 @@ export function stillThere(
 	now: Date,
 	dismissedId: string | null
 ): StillThere | null {
-	const latest = latestPain(all);
+	const latest = latestPain([...all].filter((r) => !isOpenHeadache(r.payload)));
 	if (!latest || latest.id === dismissedId) return null;
 	if (instant(latest.payload.at) > now.getTime()) return null;
 	const daysAgo = Math.round(
