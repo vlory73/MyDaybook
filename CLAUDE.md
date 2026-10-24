@@ -137,6 +137,7 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 - **Sub-agents** work best in their own git worktree (`isolation: worktree`), with a precise brief (scope, decisions, tests, screenshots, the full local check) and an instruction not to push. The main session reviews the screenshots, merges develop, runs the full local check, pushes and opens the PR.
 - **Merge conflicts in CLAUDE.md** are common, because every branch updates "Current status". Resolve them by combining both sides.
 - **Pi upgrades:** `sed` reports success even when it changes nothing. The upgrade block therefore checks that the tag changed and stops otherwise (#39, #43).
+- **Issues fixed by a hotfix don't close themselves:** GitHub only closes an issue when the PR that says 'Closes #N' merges into the default branch (develop), and hotfix PRs go into main. After a hotfix is released, close its issues by hand with a one-line comment naming the release (#90 stayed open after 0.9.1).
 
 ## Decisions log
 
@@ -227,6 +228,11 @@ These are the owner's standing preferences, learned over M2–M4. Follow them in
 | 2026-10-23 | #89 headache "Still there?" approved (mockup `design/headache-still.html`): a headache is one entry from start to end; an open headache (no stop time) from the last 2 days gets its own card even after newer pain entries ("Still there" saves `headache.lastSeen` and rests the card 3 h; "It's gone" asks the stop hour and writes `headache.stopped` into the same entry, ending its episode; "Not now" until tomorrow); only headaches, one tap; the "Still going" chip goes (empty Stopped = still going); stop times are never guessed: the report shows the time, "still going" (within 2 days), or "not recorded · still there at HH"; a headache running past midnight marks the following days "continued from <day>" | Owner |
 | 2026-10-24 | #92 merged (`feature/headache-still-there`, closes #89) with its 6 decisions as built: "It's gone" ends the episode at the moment of tapping; only the most recent open headache is asked about; "Log today" on the general card copies the entry it names; a stop time clears `lastSeen`; continued days show "–" without own entries; Danish first draft | Owner |
 | 2026-10-24 | Merge-back after releases: GitHub only merges into develop when the branch is up to date, and "Update branch" on a main→develop PR would write develop into main. So the main session opens the merge-back from a `merge/<version>-into-develop` branch (main with develop merged in) right after the release is published (#93 closed, #94 used). 0.9.1 released (hotfix #91); 0.10.0 release PR #95 | Owner |
+| 2026-10-24 | 0.10.0 released (#95 into main, #96 back into develop) | Owner |
+| 2026-10-24 | M7 plan approved. Branches in order: `feature/gdpr-docs` (templates in `docs/gdpr/`) → `feature/age-and-consent` ("for people aged 13 and over" at signup, consent v2, backup retention in the consent text from a setting instead of a fixed "14 days", a Privacy page on Me; mockup first) → `feature/hardening` (security review, findings list first, then fixes with tests) → `feature/self-hosting` (`docs/SELF_HOSTING.md`, README/SECURITY) → `feature/danish-review` (last) → 1.0.0. 1.0.0 is a family release under the current name; the rename (`brand.config.json`) comes before any public release | Owner |
+| 2026-10-24 | Spec change: no staging compose file and no seeded staging copy (never used, extra work for the owner); the spec's GHCR read-only token for Portainer is only a one-line note, because the image is public | Owner |
+| 2026-10-24 | Consent v2: people who agreed to v1 keep v1 and are not asked again; every new account gets the newest version. The Privacy page on Me must be pretty and easy to understand | Owner |
+| 2026-10-24 | Danish review: no family member to rely on. Sonnet reviews first, a different model reviews separately, the owner gets the short list where they disagree; doctors can give feedback on the report wording later | Owner |
 
 ## Backlog (owner requests to raise later)
 
@@ -237,15 +243,14 @@ Remind the owner of these when planning the next feature milestone; don't build 
 - **Built-in medicine name list** (requested 2026-10-19): name suggestions beyond the person's own history, bundled in the app
   (no runtime lookups). First check the licence (CC0/CC-BY only; e.g. the Danish Medicines Agency's product data) and the size
   (over 1 MB needs approval); names only, never strengths, doses or interactions, and typed text always stays free.
-- **"For people aged 13 and over"** (2026-10-23): one line at signup and in the privacy notice, before any public release,
-  while dependent profiles are parked.
+- **"For people aged 13 and over"** (2026-10-23): now planned in M7 (`feature/gdpr-docs`, `feature/age-and-consent`).
 - **FHIR export** (2026-10-23): idea issue #82; builds on the M6 export.
 - **Pain episodes** (requested 2026-10-19, for the M5 plan): link pain entries over several days into one episode with a start and
   end ("knee pain, 3 Oct → 9 Oct"), for charts and the doctor-visit PDF. Adds an optional episode link to entries; no migration.
 
 ## Current status
 
-_Last updated: 2026-10-24 (handover). Released: **0.9.1** (hotfix: entries keep their time when edited, #90). **0.10.0** release PR #95 (headache "Still there?" card, #89/#92): the owner merges it with a merge commit and publishes `v0.10.0`; the main session then opens the merge-back PR (`merge/0.10.0-into-develop`), which the owner merges before any other PR into develop; then the Pi is upgraded. M6 is done (export #84, naps #85, app version #83). Dependent profiles are parked until after M8; FHIR is idea #82. **Next session:** plan **M7 (Danish i18n review, hardening, GDPR docs incl. the "13 and over" line, self-hosting docs) → v1.0.0**, with a short plan, open decisions and recommendations. Open: family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`); tell the HA session to remove the old :8444 redirect once everyone has moved; stale branches can be deleted on GitHub by the owner (the main session's sandbox cannot delete remote branches)._
+_Last updated: 2026-10-24 (M7 started). Released: **0.10.0** (headache "Still there?" card; #95, merged back #96). **M7 in progress** (plan in the decisions log): `feature/gdpr-docs` first. Open: issue #90 is fixed in 0.9.1 but still open (close by hand); family feedback on the footprint sole (keep, or flip `SOLE_TOES_UP`); tell the HA session to remove the old :8444 redirect once everyone has moved; stale branches (`claude/*`, `feature/ci-e2e-container`, `feature/m6-plan`) can be deleted on GitHub by the owner._
 
 - **M2 done** (all merged into develop): crypto-core (#2), server-db (#3), auth-server (#4), auth-ui (#5), records sync and
   notes (#7), body logging (feeling, sleep, weight/measurements, bowel), meals with watch list and saved meals, photos (#11;
