@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0 (2026-10-24)
+
+### Features
+
+- **pain:** headache "Still there?" card with stop time; report shows "not recorded" and "continued from" days (#89, #92)
+
+### Documentation
+
+- log the #89 and #90 decisions; headache "Still there?" mockup (#92)
+
 ## 0.9.1 (2026-10-23)
 
 ### Fixes

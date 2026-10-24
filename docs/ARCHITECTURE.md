@@ -317,8 +317,14 @@ All fields are optional and unknown keys are refused:
 ```
 
 `started` and `stopped` are full local date-times rounded to the hour (minutes and seconds `00`, offset kept like every
-`at`), so a stop on the next day needs no extra field; `stopped` is not before `started`. `"stillGoing": true` replaces
-`stopped`. `before` lists changes noticed just before it started (`vision`, `feeling`, `speech`, in that order, no
+`at`), so a stop on the next day needs no extra field; `stopped` is not before `started`. An empty `stopped` means the
+headache is still going; Today asks about it later (see below). `"lastSeen"` (same hour format, not before `started`) is
+the hour of the last "Still there" tap on Today. `"stillGoing": true` is **legacy**: old entries still parse and read the
+same as no `stopped`, but nothing writes it any more. Today's headache card (`src/lib/records/headacheStill.ts`) asks about
+the most recent open headache (a headache entry without `stopped`, started within the last 2 calendar days): "Still there"
+writes `lastSeen` on the same entry and rests the card for 3 hours, "It's gone" writes `stopped` on the same entry (and drops
+`lastSeen` and `stillGoing`), "Not now" keeps only an entry id and a day in local storage. No end time is ever guessed; the
+headache report shows "still going" only within that 2-day window, otherwise "not recorded" (with the last `lastSeen`). `before` lists changes noticed just before it started (`vision`, `feeling`, `speech`, in that order, no
 duplicates). `trigger` is 1 to 200 characters. `{}` only marks the entry as a headache (ticked without a point on the
 head). The quality list gained `constant` after `throbbing`. Nausea is not stored here: the report converts the day's
 nausea entries (`gut`) with the helpers in `src/lib/records/headache.ts`, which also derive the day's severity zone (average
