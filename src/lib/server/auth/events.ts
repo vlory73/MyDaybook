@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { lt } from 'drizzle-orm';
+import { and, isNotNull, lt, or } from 'drizzle-orm';
 import { db } from '../db';
-import { securityEvents } from '../db/schema';
+import { logLine } from '../db/log';
+import { invites, recoveryTokens, securityEvents } from '../db/schema';
 import { limiters } from './rate-limit';
+import { removeOrphanBlobs } from './orphans';
 import { pruneExpiredSessions } from './sessions';
 
 const DAY = 86_400_000;
@@ -43,6 +45,25 @@ export function pruneSecurityEvents(now = Date.now()): number {
 		.run().changes;
 }
 
+/** Expired recovery tokens, and invites that are expired or were used more than a week ago. Returns the rows removed. */
+export function pruneSpentTokens(now = Date.now()): number {
+	const tokens = db().delete(recoveryTokens).where(lt(recoveryTokens.expiresAt, now)).run().changes;
+	const spent = db()
+		.delete(invites)
+		.where(or(lt(invites.expiresAt, now), and(isNotNull(invites.usedAt), lt(invites.usedAt, now - 7 * DAY))))
+		.run().changes;
+	return tokens + spent;
+}
+
+/** A housekeeping step must never take the process down. */
+function safely(step: () => unknown): void {
+	try {
+		step();
+	} catch {
+		logLine({ event: 'housekeeping_failed' });
+	}
+}
+
 let timers: NodeJS.Timeout[] = [];
 
 /**
@@ -52,11 +73,15 @@ let timers: NodeJS.Timeout[] = [];
 export function startHousekeeping(): void {
 	if (timers.length) return;
 	pruneSecurityEvents();
+	pruneSpentTokens();
+	safely(removeOrphanBlobs);
 	timers = [
 		setInterval(
 			() => {
-				pruneSecurityEvents();
-				pruneExpiredSessions();
+				safely(pruneSecurityEvents);
+				safely(pruneExpiredSessions);
+				safely(pruneSpentTokens);
+				safely(removeOrphanBlobs);
 			},
 			60 * 60 * 1000
 		),
