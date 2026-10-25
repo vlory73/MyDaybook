@@ -163,7 +163,7 @@ test('the episode texts are in Danish', async ({ page }) => {
 	await dialog.getByLabel('Tidspunkt for registreringen').fill(`${yesterday()}T09:00`);
 	await dialog.locator('svg[role=group]').getByRole('button', { name: 'Dit højre knæ', exact: true }).click();
 	await dialog
-		.getByRole('radiogroup', { name: /^Intensitet/ })
+		.getByRole('radiogroup', { name: /^Styrke/ })
 		.getByRole('radio', { name: '6', exact: true })
 		.click();
 	await dialog.getByRole('button', { name: 'Gem 1 punkt' }).click();
