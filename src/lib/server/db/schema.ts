@@ -162,7 +162,8 @@ export const pushSubscriptions = sqliteTable(
 		schedule: text('schedule').notNull().default('{"tz":"UTC","slots":[]}'), // JSON { tz, slots: [{ time, days }] }
 		lastFired: text('last_fired').notNull().default('[]'), // JSON string[]
 		createdAt: integer('created_at').notNull(),
-		updatedAt: integer('updated_at').notNull().default(0)
+		updatedAt: integer('updated_at').notNull().default(0),
+		failures: integer('failures').notNull().default(0) // consecutive failed sends; the subscription is dropped at 5
 	},
 	(t) => [
 		uniqueIndex('push_subscriptions_endpoint_idx').on(t.endpoint),
