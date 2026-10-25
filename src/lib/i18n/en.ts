@@ -402,6 +402,7 @@ export const en = {
 	'me.danger.wrong': "That passphrase doesn't match.",
 	'me.danger.lastGuardian':
 		'You are the only guardian of a dependent profile. Add another guardian or remove that profile first.',
+	'me.danger.lastAdmin': 'You are the only admin. Invite another admin first.',
 
 	'today.heading.today': 'Today',
 	'today.week.prev': 'Previous week',

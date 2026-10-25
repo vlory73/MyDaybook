@@ -408,6 +408,7 @@ export const da: Record<MessageKey, string> = {
 	'me.danger.wrong': 'Adgangssætningen passer ikke.',
 	'me.danger.lastGuardian':
 		'Du er den eneste værge for en afhængig profil. Tilføj en anden værge eller fjern profilen først.',
+	'me.danger.lastAdmin': 'Du er den eneste administrator. Inviter en anden administrator først.',
 
 	'today.heading.today': 'I dag',
 	'today.week.prev': 'Forrige uge',

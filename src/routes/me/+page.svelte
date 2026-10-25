@@ -119,7 +119,9 @@
 					? 'me.danger.wrong'
 					: err instanceof ApiError && err.code === 'last_guardian'
 						? 'me.danger.lastGuardian'
-						: commonErrorKey(err);
+						: err instanceof ApiError && err.code === 'last_admin'
+							? 'me.danger.lastAdmin'
+							: commonErrorKey(err);
 		} finally {
 			deleteBusy = false;
 		}
