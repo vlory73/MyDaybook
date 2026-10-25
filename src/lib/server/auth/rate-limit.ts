@@ -11,6 +11,8 @@ export type LimiterOptions = {
 	backoffBaseMs?: number;
 	backoffMaxMs?: number;
 	now?: () => number;
+	/** Most buckets kept at once; when full, idle buckets go first, then the least recently used. */
+	maxKeys?: number;
 };
 
 type Bucket = { tokens: number; updated: number; fails: number; lockedUntil: number; notified: number };
@@ -27,6 +29,7 @@ export class RateLimiter {
 			backoffBaseMs: 1000,
 			backoffMaxMs: 15 * 60_000,
 			now: Date.now,
+			maxKeys: 10_000,
 			...options
 		};
 	}
@@ -34,13 +37,24 @@ export class RateLimiter {
 	private bucket(key: string, now: number): Bucket {
 		let b = this.buckets.get(key);
 		if (!b) {
+			if (this.buckets.size >= this.o.maxKeys) this.makeRoom();
 			b = { tokens: this.o.burst, updated: now, fails: 0, lockedUntil: 0, notified: 0 };
-			this.buckets.set(key, b);
+		} else {
+			this.buckets.delete(key); // re-insert below: the Map's order then runs from least to most recently used
 		}
+		this.buckets.set(key, b);
 		const refill = ((now - b.updated) / this.o.windowMs) * this.o.burst;
 		b.tokens = Math.min(this.o.burst, b.tokens + refill);
 		b.updated = now;
 		return b;
+	}
+
+	/** Frees space for a new key: first the idle buckets, then (if still full) the least recently used one. */
+	private makeRoom(): void {
+		this.sweep();
+		if (this.buckets.size < this.o.maxKeys) return;
+		const oldest = this.buckets.keys().next();
+		if (!oldest.done) this.buckets.delete(oldest.value);
 	}
 
 	/** Takes one token. */

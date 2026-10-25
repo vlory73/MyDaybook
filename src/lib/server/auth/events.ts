@@ -43,20 +43,30 @@ export function pruneSecurityEvents(now = Date.now()): number {
 		.run().changes;
 }
 
-let timer: NodeJS.Timeout | undefined;
+let timers: NodeJS.Timeout[] = [];
 
-/** Hourly prune of old security events and idle rate-limit buckets. The timer never keeps the process alive. */
+/**
+ * Hourly prune of old security events, sessions and spent tokens; idle rate-limit buckets every 5 minutes.
+ * The timers never keep the process alive.
+ */
 export function startHousekeeping(): void {
-	if (timer) return;
+	if (timers.length) return;
 	pruneSecurityEvents();
-	timer = setInterval(
-		() => {
-			pruneSecurityEvents();
-			pruneExpiredSessions();
-			limiters.user.sweep();
-			limiters.ip.sweep();
-		},
-		60 * 60 * 1000
-	);
-	timer.unref();
+	timers = [
+		setInterval(
+			() => {
+				pruneSecurityEvents();
+				pruneExpiredSessions();
+			},
+			60 * 60 * 1000
+		),
+		setInterval(
+			() => {
+				limiters.user.sweep();
+				limiters.ip.sweep();
+			},
+			5 * 60 * 1000
+		)
+	];
+	for (const t of timers) t.unref();
 }
