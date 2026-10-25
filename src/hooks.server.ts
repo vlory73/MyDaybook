@@ -62,15 +62,22 @@ export const handleError: HandleServerError = ({ event, status }) => {
 
 let peerLogged = false;
 
+export const handleError: HandleServerError = ({ event, status }) => {
+	if (status !== 404) logLine({ event: 'error', route: event.route.id ?? 'unmatched' });
+	return { message: 'error' };
+};
+
+let peerLogged = false;
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const started = performance.now();
-	// Once per process: the socket peer of the first real request, so the owner can check TRUSTED_PROXY against it.
-	// It is the proxy's address when the deployment is right (HOME_DEPLOYMENT.md); /healthz comes from loopback.
+	// Once per process: whether the socket peer of the first real request is a trusted proxy, so the owner can check
+	// TRUSTED_PROXY (HOME_DEPLOYMENT.md). Only the yes/no is logged, never an address.
 	if (!peerLogged && event.route.id !== '/healthz') {
 		peerLogged = true;
 		try {
 			const peer = event.getClientAddress();
-			logLine({ event: 'first_peer', peer, trusted: trustedProxies().has(peer.replace(/^::ffff:/, '')) });
+			logLine({ event: 'first_peer', trusted: trustedProxies().has(peer.replace(/^::ffff:/, '')) });
 		} catch {
 			/* no peer address available */
 		}
