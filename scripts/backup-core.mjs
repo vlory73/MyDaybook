@@ -152,7 +152,11 @@ export function pruneDumps(dir, keep) {
 	for (const old of files.slice(0, Math.max(0, files.length - keep))) rmSync(join(dir, old), { force: true });
 }
 
-/** Best effort: makes `path` owner-only (a folder or file from before this was enforced, or one we do not own, is left). */
+/**
+ * Best effort: makes `path` owner-only (a folder or file from before this was enforced, or one we do not own, is left).
+ * @param {string} path
+ * @param {number} mode
+ */
 function restrict(path, mode) {
 	try {
 		chmodSync(path, mode);
