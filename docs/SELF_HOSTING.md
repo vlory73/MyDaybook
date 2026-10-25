@@ -256,7 +256,7 @@ All go in `.env`. Restart with `docker compose up -d` after a change.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `PUBLIC_URL` | `.env.example`: `https://myday.lory-home.duckdns.org` | Address people open, with `https://`. Change it. Do not set `ORIGIN`. |
+| `PUBLIC_URL` | none (example: `https://diary.example.org`) | Address people open, with `https://`. Change it. Do not set `ORIGIN`. |
 | `TRUSTED_PROXY` | `172.30.90.1` | Address(es) the proxy connects from, comma-separated. Only these are believed on `X-Forwarded-For`. |
 | `TZ` | `Europe/Copenhagen` | Time zone for the backup time. Reminders use each phone's own zone. |
 | `IP_RETENTION_DAYS` | `7` | Days IP addresses stay in security events. |
@@ -288,7 +288,7 @@ Profiles for dependents are not available yet.
 | --- | --- |
 | The app will not install, or reminders and sign-in fail | No HTTPS, or an address other than `PUBLIC_URL`. Open the exact `PUBLIC_URL` over HTTPS. |
 | Sign-in is refused with a 403 error | `PUBLIC_URL` does not match the address in the browser. |
-| The log shows `first_peer` with `"trusted":false` | `TRUSTED_PROXY` is not the proxy's address. Use the `peer` value from that line. |
+| The log shows `first_peer` with `"trusted":false` | `TRUSTED_PROXY` is not the proxy's address as the app sees it. For a proxy on the same machine that is usually the gateway of the app's Docker network: `docker network inspect <folder>_default` (look for `Gateway`). The log never shows the address itself. |
 | The container stops at once and the log mentions `SESSION_SECRET` | The secret is missing. Run the `gen-secrets` step (2.3). Hardening release and later. |
 | "Pre-migration backup failed, refusing to migrate" | `data` is full or not writable by user 1000. Fix it and start again. Nothing was changed. |
 | Docker warns that the memory limit is not supported | Some Raspberry Pi kernels lack memory control. Harmless: the limit is ignored. |
