@@ -1,4 +1,5 @@
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit';
+import { building } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { dataDir, migrationsFolder, sqliteHandle } from '$lib/server/db';
 import { migrateWithBackup } from '$lib/server/db/migrate';
@@ -41,7 +42,8 @@ const STATIC_HEADERS: Record<string, string> = {
  */
 export const init: ServerInit = async () => {
 	try {
-		assertSessionSecret();
+		// The build runs this init too (SvelteKit analyse step), without runtime secrets.
+		if (!building) assertSessionSecret();
 		const sqlite = sqliteHandle();
 		await migrateWithBackup(sqlite, dataDir(), migrationsFolder());
 		sessionSecret(); // dev/test only: warns once and generates one when SESSION_SECRET is missing
