@@ -9,7 +9,7 @@ import { startHousekeeping } from '$lib/server/auth/events';
 import { checkApiRequest, isApiPath } from '$lib/server/auth/guard';
 import { errorResponse } from '$lib/server/auth/http';
 import { trustedProxies } from '$lib/server/auth/proxy';
-import { sessionSecret } from '$lib/server/auth/secret';
+import { assertSessionSecret, sessionSecret } from '$lib/server/auth/secret';
 import { validateSession } from '$lib/server/auth/sessions';
 
 /**
@@ -34,9 +34,10 @@ const STATIC_HEADERS: Record<string, string> = {
  */
 export const init: ServerInit = async () => {
 	try {
+		assertSessionSecret();
 		const sqlite = sqliteHandle();
 		await migrateWithBackup(sqlite, dataDir(), migrationsFolder());
-		sessionSecret(); // warns once if SESSION_SECRET is missing
+		sessionSecret(); // dev/test only: warns once and generates one when SESSION_SECRET is missing
 		startHousekeeping();
 		startPushScheduler();
 		scheduleNightlyBackup(() => ({ sqlite, dataDir: dataDir() }));
