@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.0 (2026-10-25)
+
+### Features
+
+- **privacy:** consent v2 with the 13+ line, Privacy page and backup-days setting (M7) (#98)
+
+### Fixes
+
+- **i18n:** keep the headache form's wording in rows 4 and 13 (#102)
+- **i18n:** Danish review of all texts (M7) (#101)
+- **security:** M7 hardening from the security review (#99)
+
+### Documentation
+
+- self-hosting guide (M7) (#100)
+- **gdpr:** GDPR templates for operators (M7) (#97)
+- session handover (M6 done, 0.9.0 released to main, next: M7) (#87)
+
 ## 0.10.0 (2026-10-24)
 
 ### Features
