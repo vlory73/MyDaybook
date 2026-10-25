@@ -194,8 +194,25 @@ stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API call
   request's own origin (`ORIGIN` when set, as adapter-node does); otherwise 403 `bad_origin` / `bad_content_type`.
 - **Unknown, wrong and disabled** all return 401 `invalid_credentials`; unknown users get a dummy hash comparison.
 - **Environment:** `SESSION_SECRET` (random per process with a logged warning if missing, which only changes fake salts after a
-  restart), `COOKIE_SECURE`, `IP_RETENTION_DAYS` (§8), `AUTH_RATE_USER_BURST`, `AUTH_RATE_IP_BURST`, `AUTH_RATE_WINDOW_S` (§8).
+  restart), `COOKIE_SECURE`, `IP_RETENTION_DAYS` (§8), `BACKUP_RETENTION_DAYS`, `OPERATOR_NAME`, `OPERATOR_CONTACT` (§3.3a), `AUTH_RATE_USER_BURST`, `AUTH_RATE_IP_BURST`, `AUTH_RATE_WINDOW_S` (§8).
 - **First admin:** `node scripts/cli.mjs invite --admin` (§10). The invite URL carries the token in the fragment.
+
+### 3.3a Consent versions and the Privacy page
+
+- **Consent text** is versioned (`src/lib/consent.ts`, keys `consent.v1.*`, `consent.v2.*`). `consentText(locale, version, days)` renders
+  any bundled version; old versions stay bundled forever and are never edited. **v2** (current, `consent-v2`) adds the age line
+  ("is for people aged 13 and over"), a "13 or older" checkbox and the real number of backup days. The stored `textHash` is the
+  SHA-256 of the rendered text (title, age line, paragraphs, checkbox), so the v2 hash depends on `BACKUP_RETENTION_DAYS`. The
+  "Read how your data is handled" link is not part of the hashed text.
+- **Who gets which version:** every new account agrees to the newest version (`parseConsent` accepts only `CONSENT_VERSION`).
+  People who agreed to an older version keep it and are not asked again; a new text means a new version, never re-consent by surprise.
+- **Settings** (`src/lib/server/settings.ts`, bad values fall back): `BACKUP_RETENTION_DAYS` (whole days, 2 or more, default 14: the
+  operator's NAS/off-site retention), optional `OPERATOR_NAME` and `OPERATOR_CONTACT` (one line each, 120 characters).
+- **`GET /api/privacy`** is public and read-only and returns only `{ ipRetentionDays, backupRetentionDays, operatorName, operatorContact }`
+  (cache 60 s). **`GET /api/account/consent`** (signed in) returns the caller's own `{ version, acceptedAt }`. The session endpoint stays
+  about keys.
+- **`/privacy`** works signed out (public view), locked and unlocked (inside the app shell). The same `PrivacyView` component is rendered
+  inside the join flow, so reading it keeps everything typed there. "Your agreement" and the links to export and delete need a session.
 
 ### 3.4 Optional TOTP
 

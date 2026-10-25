@@ -149,7 +149,7 @@ test.describe('joining', () => {
 			username
 		);
 		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({ version: 'consent-v1', locale: 'en', actor: 'self' });
+		expect(rows[0]).toMatchObject({ version: 'consent-v2', locale: 'en', actor: 'self' });
 		expect(rows[0]!.text_hash).toMatch(/^[0-9a-f]{64}$/);
 
 		// After a reload the diary is locked until the passphrase is typed again.

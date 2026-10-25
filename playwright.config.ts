@@ -45,7 +45,10 @@ export default defineConfig({
 			// Per-user-name burst is small enough for a quick rate-limit test; the IP bucket is loose because every
 			// test shares 127.0.0.1.
 			AUTH_RATE_USER_BURST: '20',
-			AUTH_RATE_IP_BURST: '10000'
+			AUTH_RATE_IP_BURST: '10000',
+			// Shown on the Privacy page (privacy.spec.ts); synthetic.
+			OPERATOR_NAME: 'Example operator',
+			OPERATOR_CONTACT: 'privacy@example.invalid'
 		}
 	},
 	projects: [
