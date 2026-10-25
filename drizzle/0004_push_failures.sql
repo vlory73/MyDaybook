@@ -1,0 +1,1 @@
+ALTER TABLE `push_subscriptions` ADD `failures` integer DEFAULT 0 NOT NULL;

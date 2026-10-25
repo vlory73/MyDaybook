@@ -387,6 +387,10 @@ export const da: Record<MessageKey, string> = {
 	'admin.invite.heading': 'Inviter nogen',
 	'admin.invite.role': 'Personen tilmelder sig som',
 	'admin.invite.create': 'Lav invitationslink',
+	'admin.invite.adminHint':
+		'En administrator kan styre alle konti. Skriv din adgangssætning for at bekræfte.',
+	'admin.invite.passphrase': 'Din adgangssætning',
+	'admin.invite.wrong': 'Adgangssætningen passer ikke.',
 	'admin.invite.linkLabel': 'Invitationslink',
 	'admin.invite.copy': 'Kopiér link',
 	'admin.invite.copied': 'Invitationslinket er kopieret',
@@ -406,6 +410,7 @@ export const da: Record<MessageKey, string> = {
 	'me.danger.wrong': 'Adgangssætningen passer ikke.',
 	'me.danger.lastGuardian':
 		'Du er den eneste værge for en afhængig profil. Tilføj en anden værge eller fjern profilen først.',
+	'me.danger.lastAdmin': 'Du er den eneste administrator. Inviter en anden administrator først.',
 
 	'today.heading.today': 'I dag',
 	'today.week.prev': 'Forrige uge',

@@ -100,11 +100,18 @@ For the first deployment you are both the operator and a user, so case d reduces
 | T14 | Guardian keeps access after handover | Master key rotation at handover (headers re-wrapped); guardian rows deleted after explicit confirmation. **Residual:** anything the guardian already saw or exported |
 | T15 | Lost passphrase and recovery key | Unrecoverable by design; clear warning; recovery key confirmed by re-typing groups; printable sheet; recovery key rotated after use |
 | T16 | Logs leak content or identity | No request bodies logged; no IPs on stdout; IPs only in `security_events` with retention; reverse-proxy access log off; client logger stripped in production |
-| T17 | Deleted account lingers | Hard delete, `secure_delete`, `VACUUM`. **Residual:** persists in backups until rotation (about 14 days on the home NAS), still encrypted; stated in the privacy notice |
+| T17 | Deleted account lingers | Hard delete in one transaction, `secure_delete` (freed pages are overwritten), a WAL checkpoint (`TRUNCATE`) and removal of the photo folder; a folder left behind by a crash is removed at the next start or hourly housekeeping. **Residual:** persists in backups until rotation (about 14 days on the home NAS), still encrypted; stated in the privacy notice |
 | T18 | Stolen phone | Locked app needs the passphrase. The IndexedDB cache holds only ciphertext and wrapped keys. iOS data protection adds encryption at rest |
 | T19 | Network attacker on LAN/VPN | TLS everywhere; HSTS; VPN-only exposure |
 | T20 | Denial of service against the Pi | Argon2id runs on the client (no server memory spike); rate limits; body size limits; 256 MB memory limit isolates other services (Home Assistant, Pi-hole) |
-| T21 | Losing `.env` secrets | No secret is needed to decrypt user data. Losing `.env` only invalidates sessions, TOTP secrets and VAPID subscriptions. Documented in the backup guide |
+| T21 | Losing `.env` secrets | No secret is needed to decrypt user data. Sessions are random tokens stored as SHA-256 hashes and do not depend on `SESSION_SECRET`. `SESSION_SECRET` protects the sealed TOTP secrets and the fake prelogin salt: losing or changing it locks two-step users out (the recovery key still works, and switches two-step off) and lets prelogin tell real from fake accounts until the salts settle. A lost VAPID key pair only ends the reminder subscriptions. Because of this, the server refuses to start in production without `SESSION_SECRET` (a random per-process one would silently break two-step sign-in at every restart). Documented in the backup guide |
+
+### 4.1 Accepted residual risks (owner decisions, no code change)
+
+The numbering continues the security review of October 2026.
+
+10. **Sessions slide for 30 days with no absolute cap.** Each use of the app extends the session. A stolen session cookie therefore keeps working for as long as it is used at least monthly. Accepted for the family deployment. Signing out and changing the passphrase end the person's other sessions, and an admin can disable an account.
+11. **A passphrase change re-wraps the same master key.** An old backup together with the old passphrase therefore still opens the data that existed when the backup was made. This is inherent to the design (it is also how the recovery key works) and is the reason the privacy notice speaks of backup rotation rather than instant erasure.
 
 ## 5. Out of scope
 

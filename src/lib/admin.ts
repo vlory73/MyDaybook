@@ -1,6 +1,7 @@
 /** Client for the admin API (ARCHITECTURE §7). Everything here is account metadata; never diary content. */
 import { apiGet, apiPost } from '$lib/api';
 import type { Role } from '$lib/api';
+import { withAuthKey } from '$lib/auth';
 
 export type AdminUser = {
 	id: string;
@@ -24,8 +25,18 @@ export const setDisabled = (id: string, off: boolean) =>
 	apiPost(`/api/admin/users/${id}/${off ? 'disable' : 'enable'}`);
 export const revokeInvite = (id: string) => apiPost(`/api/admin/invites/${id}/revoke`);
 
-/** Creates an invite and returns the one-time join link (the token lives only in the URL fragment). */
-export async function createInviteLink(role: Role): Promise<{ link: string; expiresAt: number }> {
-	const res = await apiPost<{ token: string; expiresAt: number }>('/api/invites', { role });
+/**
+ * Creates an invite and returns the one-time join link (the token lives only in the URL fragment). An invite for an
+ * admin needs your passphrase; throws ApiError 401 `invalid_credentials` when it is wrong.
+ */
+export async function createInviteLink(
+	role: Role,
+	passphrase = ''
+): Promise<{ link: string; expiresAt: number }> {
+	type Made = { token: string; expiresAt: number };
+	const res =
+		role === 'admin'
+			? await withAuthKey(passphrase, (authKey) => apiPost<Made>('/api/invites', { role, authKey }))
+			: await apiPost<Made>('/api/invites', { role });
 	return { link: `${location.origin}/join#t=${res.token}`, expiresAt: res.expiresAt };
 }

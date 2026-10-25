@@ -197,6 +197,33 @@ describe('runTick', () => {
 		expect(left.map((r) => r.userId)).toEqual(['u2']);
 	});
 
+	it('skips subscriptions of disabled accounts', async () => {
+		upsertSubscription(db, 'u1', body());
+		db.update(users).set({ status: 'disabled' }).where(eq(users.id, 'u1')).run();
+		const send = vi.fn(async () => 'sent' as const);
+		expect(await runTick(at('2026-10-20T06:00:05Z'), { db, config, send })).toBe(0);
+		expect(send).not.toHaveBeenCalled();
+	});
+
+	it('drops a subscription after 5 failures in a row, and a success resets the count', async () => {
+		upsertSubscription(
+			db,
+			'u1',
+			body({ schedule: { tz: 'UTC', slots: [{ time: '08:00', days: [0, 1, 2, 3, 4, 5, 6] }] } })
+		);
+		const count = () => db.select().from(pushSubscriptions).all()[0]?.failures;
+		const failing = vi.fn(async () => 'failed' as const);
+		const day = (d: number) => at(`2026-10-${String(d).padStart(2, '0')}T08:00:05Z`);
+		for (let d = 10; d < 14; d++) await runTick(day(d), { db, config, send: failing });
+		expect(count()).toBe(4);
+		await runTick(day(14), { db, config, send: vi.fn(async () => 'sent' as const) });
+		expect(count()).toBe(0);
+		for (let d = 15; d < 19; d++) await runTick(day(d), { db, config, send: failing });
+		expect(count()).toBe(4);
+		await runTick(day(19), { db, config, send: failing });
+		expect(db.select().from(pushSubscriptions).all()).toHaveLength(0);
+	});
+
 	it('forgets old keys and ignores empty schedules', async () => {
 		upsertSubscription(db, 'u1', body());
 		upsertSubscription(

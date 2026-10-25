@@ -513,6 +513,15 @@ test('account deletion: wrong key refused, last guardian blocked, then user and 
 	cleanup.pragma('busy_timeout = 5000');
 	cleanup.pragma('foreign_keys = ON');
 	cleanup.prepare('DELETE FROM users WHERE id = ?').run(depId);
+	// The last active admin may not delete themselves (unit-tested), so make sure another admin exists.
+	const spare = randomUUID();
+	cleanup
+		.prepare(
+			`INSERT INTO users (id, username, kind, role, status, created_at, kdf_salt, kdf_params, auth_scheme, auth_verifier,
+			 recovery_verifier, wrapped_mk_pw, wrapped_mk_rk, public_key, wrapped_private_key, storage_bytes)
+			 VALUES (?, ?, 'adult', 'admin', 'active', 1, ?, '{}', 'derived-v1', ?, ?, ?, ?, ?, ?, 0)`
+		)
+		.run(spare, 'spare-' + spare.slice(0, 8), b, b, b, b, b, b, b);
 	cleanup.close();
 	const delAdmin = await post(adminCtx, '/api/account/delete', { authKey: toB64(authKey) });
 	expect(delAdmin.status()).toBe(200);
@@ -526,6 +535,10 @@ test('account deletion: wrong key refused, last guardian blocked, then user and 
 		expect(n).toBe(auditBefore);
 	});
 	expect(eventsFor(admin.userId)).toBe(0);
+	const tidy = new Database(resolve(DATA_DIR, 'app.db'));
+	tidy.pragma('busy_timeout = 5000');
+	tidy.prepare('DELETE FROM users WHERE id = ?').run(spare);
+	tidy.close();
 	await adminCtx.dispose();
 	await ctx.dispose();
 });

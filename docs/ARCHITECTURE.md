@@ -193,8 +193,8 @@ stores only its SHA-256 hash, with a 30-day idle expiry. State-changing API call
 - **Origin guard:** every non-GET request under `/api/` needs `Content-Type: application/json` and an `Origin` equal to the
   request's own origin (`ORIGIN` when set, as adapter-node does); otherwise 403 `bad_origin` / `bad_content_type`.
 - **Unknown, wrong and disabled** all return 401 `invalid_credentials`; unknown users get a dummy hash comparison.
-- **Environment:** `SESSION_SECRET` (random per process with a logged warning if missing, which only changes fake salts after a
-  restart), `COOKIE_SECURE`, `IP_RETENTION_DAYS` (§8), `BACKUP_RETENTION_DAYS`, `OPERATOR_NAME`, `OPERATOR_CONTACT` (§3.3a), `AUTH_RATE_USER_BURST`, `AUTH_RATE_IP_BURST`, `AUTH_RATE_WINDOW_S` (§8).
+- **Environment:** `SESSION_SECRET` (required in production: `NODE_ENV=production` with a missing or empty value stops startup with one log line
+  and a non-zero exit, `assertSessionSecret` in `secret.ts`; dev and test generate a random one per process with a logged warning), `COOKIE_SECURE`, `IP_RETENTION_DAYS` (§8), `BACKUP_RETENTION_DAYS`, `OPERATOR_NAME`, `OPERATOR_CONTACT` (§3.3a), `AUTH_RATE_USER_BURST`, `AUTH_RATE_IP_BURST`, `AUTH_RATE_WINDOW_S` (§8).
 - **First admin:** `node scripts/cli.mjs invite --admin` (§10). The invite URL carries the token in the fragment.
 
 ### 3.3a Consent versions and the Privacy page
@@ -305,7 +305,7 @@ configuration from diary entries.
 | `attachments` | id, user_id, size, created_at (the link to a record lives **only inside the encrypted record**) |
 | `consents` | user_id, version, text_hash, locale, actor, accepted_at, withdrawn_at |
 | `invites`, `sessions`, `handovers`, `recovery_tokens` | hashes of tokens, expiry, minimal metadata |
-| `push_subscriptions` | user_id, endpoint (unique), keys (p256dh/auth, stored but unused), **schedule** (JSON: IANA time zone and `{ time, days }` slots, **not linked to any medication**, see the threat model), last_fired, created_at, updated_at |
+| `push_subscriptions` | user_id, endpoint (unique), keys (p256dh/auth, stored but unused), **schedule** (JSON: IANA time zone and `{ time, days }` slots, **not linked to any medication**, see the threat model), last_fired, created_at, updated_at, **failures** (consecutive failed sends; the subscription is dropped at 5 and the count resets on a success; only active accounts are served) |
 | `security_events` | type (login_failed, rate_limited, …), user_id?, ip?, at. Pruned after `IP_RETENTION_DAYS` (default 7) |
 | `admin_audit` | admin actions (invite, disable, enable, delete); no content |
 
@@ -596,17 +596,20 @@ outbound request is not subject to it. The server never sends pushes based on me
   - `GET /api/admin/invites` (200): open invites `{ id, role, createdAt, expiresAt }`, never the token.
     `POST /api/admin/invites/:id/revoke` (200, 404) deletes an unused invite. Creating invites is `POST /api/invites` (token returned once).
   - UI: Me shows an Admin card only for admins; it opens `/me/admin` (people, invites, "Invite someone" with the one-time link).
-    Disable/enable use an Undo toast; delete needs a confirmation sheet and the admin's passphrase.
+    Disable/enable use an Undo toast; delete needs a confirmation sheet and the admin's passphrase. An invite for another admin also needs the creating
+    admin's passphrase (`POST /api/invites` with `role: admin` takes `authKey`; 400 without, 401 if wrong).
 - **Account deletion (Art. 17):** the user re-authenticates, gets an export offered, and confirms. Then, in one transaction, the server deletes
   records, attachment files, wrapped keys, sessions, push subscriptions (with their schedules) and guardianships. With `PRAGMA secure_delete=ON`
-  plus `VACUUM` and a WAL checkpoint, the freed pages are overwritten. Deleting the wrapped keys is the crypto-shredding step. **Honest
+  and a WAL checkpoint (`TRUNCATE`), the freed pages are overwritten. Deleting the wrapped keys is the crypto-shredding step. **Honest
   caveat:** backups made before the deletion still contain the ciphertext *and* the wrapped keys until rotation (still only
   openable with the user's passphrase or recovery key). The privacy notice will say this, with the backup retention period.
 - **Implemented (auth-server):** `POST /api/account/delete` verifies the auth key, then in one transaction deletes the user (foreign keys
   cascade to records, sessions, consents, guardianships, push subscriptions, recovery tokens) **and the user's
   `security_events` rows**. `admin_audit` rows are kept for accountability (D23). Afterwards it removes `<DATA_DIR>/blobs/<userId>/`
   and runs `PRAGMA wal_checkpoint(TRUNCATE)`. Deletion is refused with 409 `last_guardian` when the user is the only guardian of a
-  dependent (D12). `VACUUM` is left to the maintenance work in the Docker branch.
+  dependent (D12) and with 409 `last_admin` when the caller is the only active admin (`checkSelfDelete`). There is no `VACUUM`: `secure_delete`
+  plus the checkpoint overwrite the freed pages. A crash between the database commit and the folder removal leaves an orphan
+  `blobs/<userId>` folder; `removeOrphanBlobs` (`orphans.ts`) deletes folders whose user no longer exists at startup and in the hourly housekeeping.
 - **Data export (`/me/export`, `src/lib/export/`):** built entirely on the device, no server endpoint. The person re-types the passphrase
   (checked locally by unwrapping the master key, `verifyPassphrase`), then `buildExport` takes the decrypted records from memory and writes
   one .zip with `fflate` (MIT, ~30 KB minified): `mydaybook.json` (`format: "mydaybook-export"`, `version: 1`, `exportedAt`, app version and every
@@ -631,7 +634,14 @@ outbound request is not subject to it. The server never sends pushes based on me
   Defaults: per username `AUTH_RATE_USER_BURST=10` attempts per `AUTH_RATE_WINDOW_S=60` seconds, refilling evenly, plus an exponential
   lock-out (1 s, 2 s, 4 s, … up to 15 min) after 5 consecutive failures; per IP `AUTH_RATE_IP_BURST=30` per window with no lock-out
   (looser, since one NAT address serves several people). Over the limit: 429 with `Retry-After` and a `rate_limited` security event
-  (at most one per key per window). State is per process.
+  (at most one per key per window). The IP bucket is taken first: a request it blocks answers 429 without touching (or creating) a user-name
+  bucket. Each limiter keeps at most 10 000 buckets (idle ones are dropped first, then the least recently used) and sweeps idle buckets every
+  5 minutes. State is per process.
+- Housekeeping (`startHousekeeping`, `events.ts`): at startup and hourly it prunes old security events, expired sessions, expired recovery
+  tokens, expired invites and invites used more than a week ago, and removes orphan photo folders. A failing step is logged and never stops the process.
+- Files: the server and the CLI set `umask 077`; the data folder is created 0700 and the database 0600 (also tightened if it already existed),
+  photos 0600 in 0700 folders, pre-migration backups, nightly dumps and the mirrored photos 0600 in 0700 folders.
+- The startup log line `first_peer` says only whether the first request's socket peer is a trusted proxy, never the address.
 - Logs: structured JSON to stdout with method, route template, status, duration and user ID. **No bodies, no IPs on stdout.** IPs appear
   only in `security_events`, which is pruned hourly after `IP_RETENTION_DAYS` (default 7; 0 stores no IPs, events are then still kept 7 days). The reverse proxy's access log
   is turned off in the shipped Caddyfile, because it would otherwise keep IPs outside our retention control.
@@ -685,7 +695,7 @@ The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md
     reports ready only after migrations.
 - **Configuration:** `.env` on the host only (mode 600). `docker run --rm <image> gen-secrets` writes `SESSION_SECRET`, `VAPID_PUBLIC_KEY`
   and `VAPID_PRIVATE_KEY` directly into `.env`, so the values never appear on screen. `SESSION_SECRET` also keys the fake-salt HMAC and
-  encrypts TOTP secrets. Losing `.env` costs sessions, TOTP enrolments and push subscriptions, never diary data.
+  encrypts TOTP secrets; the server will not start in production without it. Losing `.env` costs sessions, TOTP enrolments and push subscriptions, never diary data.
 - **Startup migrations:** before applying any pending migration, the server writes
   `/data/backups/pre-migrate-<UTC timestamp>-<from>-<to>.db` using SQLite's online backup API. **If the backup fails, startup aborts**
   with a clear log line. The last 5 pre-migration backups are kept.
