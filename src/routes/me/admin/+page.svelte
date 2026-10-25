@@ -126,6 +126,7 @@
 	// ---- Invites ----
 	let inviteRole = $state<Role>('member');
 	let inviteBusy = $state(false);
+	let invitePassphrase = $state('');
 	let inviteError = $state<MessageKey | null>(null);
 	let created = $state<{ link: string; expiresAt: number } | null>(null);
 	const roleOptions = $derived<{ value: Role; label: string }[]>([
@@ -135,13 +136,18 @@
 
 	async function createInvite() {
 		if (inviteBusy) return;
+		if (inviteRole === 'admin' && invitePassphrase === '') return (inviteError = 'auth.error.fillIn');
 		inviteBusy = true;
 		inviteError = null;
 		try {
-			created = await createInviteLink(inviteRole);
+			created = await createInviteLink(inviteRole, invitePassphrase);
+			invitePassphrase = '';
 			invites = await listInvites();
 		} catch (err) {
-			inviteError = errorKey(err);
+			inviteError =
+				err instanceof ApiError && err.code === 'invalid_credentials'
+					? 'admin.invite.wrong'
+					: errorKey(err);
 		} finally {
 			inviteBusy = false;
 		}
@@ -254,6 +260,19 @@
 		<Card title={t('admin.invite.heading')}>
 			<div class="form">
 				<Segmented label={t('admin.invite.role')} options={roleOptions} bind:value={inviteRole} />
+				{#if inviteRole === 'admin'}
+					<p class="small muted">{t('admin.invite.adminHint')}</p>
+					<TextField
+						label={t('admin.invite.passphrase')}
+						name="admin-invite-passphrase"
+						type="password"
+						autocomplete="current-password"
+						autocapitalize="off"
+						spellcheck="false"
+						disabled={inviteBusy}
+						bind:value={invitePassphrase}
+					/>
+				{/if}
 				{#if inviteError}<Notice tone="error">{t(inviteError)}</Notice>{/if}
 				<Button variant="soft" onclick={createInvite} disabled={inviteBusy}>
 					<Icon name="plus" size={18} />{t('admin.invite.create')}
