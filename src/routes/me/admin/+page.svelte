@@ -145,9 +145,7 @@
 			invites = await listInvites();
 		} catch (err) {
 			inviteError =
-				err instanceof ApiError && err.code === 'invalid_credentials'
-					? 'admin.invite.wrong'
-					: errorKey(err);
+				err instanceof ApiError && err.code === 'invalid_credentials' ? 'admin.invite.wrong' : errorKey(err);
 		} finally {
 			inviteBusy = false;
 		}

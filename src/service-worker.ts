@@ -52,7 +52,8 @@ sw.addEventListener('fetch', (event) => {
 		event.respondWith(
 			fetch(request)
 				.then(async (response) => {
-					if (isCacheableShell(url.pathname, response)) await (await caches.open(CACHE)).put(SHELL_KEY, response.clone());
+					if (isCacheableShell(url.pathname, response))
+						await (await caches.open(CACHE)).put(SHELL_KEY, response.clone());
 					return response;
 				})
 				.catch(async () => (await caches.match(SHELL_KEY)) ?? Response.error())

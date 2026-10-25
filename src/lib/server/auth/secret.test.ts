@@ -9,7 +9,9 @@ describe('assertSessionSecret', () => {
 	});
 
 	it('accepts a secret in production and anything outside production', () => {
-		expect(() => assertSessionSecret({ NODE_ENV: 'production', SESSION_SECRET: 'x'.repeat(32) })).not.toThrow();
+		expect(() =>
+			assertSessionSecret({ NODE_ENV: 'production', SESSION_SECRET: 'x'.repeat(32) })
+		).not.toThrow();
 		expect(() => assertSessionSecret({ NODE_ENV: 'development' })).not.toThrow();
 		expect(() => assertSessionSecret({})).not.toThrow();
 	});

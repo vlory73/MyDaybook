@@ -389,7 +389,8 @@ export const da: Record<MessageKey, string> = {
 	'admin.invite.heading': 'Inviter nogen',
 	'admin.invite.role': 'Personen tilmelder sig som',
 	'admin.invite.create': 'Lav invitationslink',
-	'admin.invite.adminHint': 'En administrator kan styre alle konti. Skriv din adgangssætning for at bekræfte.',
+	'admin.invite.adminHint':
+		'En administrator kan styre alle konti. Skriv din adgangssætning for at bekræfte.',
 	'admin.invite.passphrase': 'Din adgangssætning',
 	'admin.invite.wrong': 'Adgangssætningen passer ikke.',
 	'admin.invite.linkLabel': 'Invitationslink',
