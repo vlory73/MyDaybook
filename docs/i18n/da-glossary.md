@@ -1,6 +1,6 @@
 # Danish word list
 
-The app's Danish terms, so the wording stays the same everywhere. Tone: "du", short sentences, plain everyday words, suitable for older users. Imperatives ending in -ere keep the accent (Redigér, Kopiér, Markér, Registrér, Annullér, Arkivér).
+The app's Danish terms, so the wording stays the same everywhere. Tone: "du", short sentences, plain everyday words, suitable for older users. Imperatives ending in -ere keep the accent (Redigér, Kopiér, Markér, Registrér, Annullér, Arkivér, Invitér, Administrér).
 
 ## App and navigation
 
@@ -58,7 +58,14 @@ The app's Danish terms, so the wording stays the same everywhere. Tone: "du", sh
 | Last time | Sidst | |
 | Time | Tidspunkt | Report column: "Kl." |
 | Quality | Kvalitet | |
-| Strength (of a feeling) | Styrke | |
+| Strength (of a feeling, and the 0-10 pain value) | Styrke | Not "intensitet" |
+| Hour of the day (field) | Klokkeslæt | Not "Time" (reads as the unit) |
+| Crustaceans | Krebsdyr (rejer, krabber) | Not "skaldyr" |
+| Sudden urge (bowel) | Pludselig trang | Not "akut" |
+| As needed | ved behov | Never "efter behov" |
+| Sensation (aura) | følesans | In the report; the app says "følelsen"; "følelse" is emotion |
+| Disturbances before the headache | forstyrrelser | One term in both report layouts |
+| Health measurements / wellbeing | sundhedsmålinger / trivsel | Not "helbredsmålinger" / "velbefindende" |
 
 ## Body
 
@@ -66,7 +73,7 @@ The app's Danish terms, so the wording stays the same everywhere. Tone: "du", sh
 | --- | --- | --- |
 | Pain | Smerter | Tile and cards |
 | Where do you feel it? | Hvor mærker du det? | |
-| Intensity | Intensitet | "0 ingen · 10 værst tænkelige" |
+| Intensity | Styrke | "0 ingen · 10 værst tænkelige"; the report also says Styrke |
 | mild / moderate / severe | let / moderat / svær | As on the paper form |
 | Point | Punkt | |
 | Your left / your right | Din venstre / din højre | "Dit" for neuter: dit venstre knæ, dit håndled, dit lår |
@@ -144,7 +151,7 @@ The app's Danish terms, so the wording stays the same everywhere. Tone: "du", sh
 | Invite | Invitation | |
 | Admin | Administrator / Administration | |
 | Disabled | Spærret | |
-| Dependent profile | Pårørendeprofil | Parked feature |
+| Dependent profile | Profil, du passer | Parked feature; not "pårørendeprofil" |
 | Guardian | Værge | |
 | Your privacy | Dit privatliv | |
 | Agreement (consent) | Samtykke | |

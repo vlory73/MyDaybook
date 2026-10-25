@@ -191,5 +191,77 @@ Checked in the Danish screenshots (375 px wide). Nothing was clipped except the 
 - `dr.col.skipped` "Sprunget over" in the doctor report table: wraps to two lines in the narrow column.
 - `bodymap.region.*overmave/undermave` in the heat map list: "Din venstre overmave" wraps to two lines.
 - Tab bar: "Udvikling" (9 characters) fits at 375 px; longest label of the five.
-- `headache.card.when` is now "kl. {time} {day}" (reads "Siden kl. 15 for 2 dage siden").
+- `headache.card.when` is now "{day} kl. {time}" (reads "Siden i går kl. 15"; see Second review).
 - Not checked on screen (no screenshot): `meds.reminders.hint`, `export.*`, admin screens. Long sentences only, so they wrap.
+
+## Second review
+
+A second reviewer checked `da.ts`. 61 strings changed; keys and placeholders are unchanged, `consent.v1.*` is untouched. `consent.v2.*` may still change because v2 is unreleased. Code change: `exposure.no` is now lowercased with `inline()` when the Danish text does not start with the name (English output is unchanged).
+
+Pain-sheet and report choices picked from the reviewer's recommendations (the owner can override in the PR): `headache.light`/`headache.sound` "Generet af lys/lyd?" (report rows keep Lysfølsomhed/Lydfølsomhed), `bowel.flag.urgent` "Pludselig trang", "profil, du passer" instead of "pårørendeprofil", toes "Anden tå på din højre fod" (report keeps "tå nr. 2"), "Styrke" for the 0-10 pain value (the report already said Styrke).
+
+The Today headache card reads "Siden i går kl. 15" (`headache.card.when` is "{day} kl. {time}", and `pain.still.day.2` is now "i forgårs").
+
+| Key | Before | After | Reason |
+| --- | --- | --- | --- |
+| `meds.often.everyN` | Hver få dage | Hvert par dage | "Hver få dage" is not idiomatic |
+| `meds.reminders.hint` | Sendes som en neutral notifikation på disse tidspunkter, på de enheder, hvor du har slået påmindelser til under Mig. Medicin, der tages hver få dage eller kun ved behov, får ingen. | Sendes som en neutral notifikation på disse tidspunkter, på de enheder, hvor du har slået påmindelser til under Mig. Medicin, der tages hvert par dage eller kun ved behov, får ingen. | Same wording as the often-label |
+| `headache.before` | Lige før den startede, mærkede du ændringer i: | Mærkede du ændringer i noget af dette, lige før den startede? | Reads as a question, like the other Pain sheet questions |
+| `sleep.problem.nap` | Hver lur skal slutte efter, den begynder. | En lur skal slutte senere, end den begyndte. | Original was ungrammatical |
+| `headache.card.when` | kl. {time} {day} | {day} kl. {time} | Today card: "Siden i går kl. 15" instead of "Siden kl. 15 for 2 dage siden" |
+| `pain.still.day.2` | for 2 dage siden | i forgårs | Reads naturally after "Siden" and before "kl." |
+| `rep.fn.severity` | * Dagens sværhedsgrad: gennemsnit af de hovedsmerter, der er noteret den dag: 1–3 let, 4–6 moderat, 7–10 svær. | * Dagens sværhedsgrad er gennemsnittet af de smerter i hovedet, der er noteret den dag (0–10): 1–3 let, 4–6 moderat, 7–10 svær. | "hovedsmerter" -> "smerter i hovedet", full sentence |
+| `rep.fn.severityForm` | * Sværhedsgrad: gennemsnit af de noterede hovedsmerter (0–10) den dag: 1–3 let, 4–6 moderat, 7–10 svær. | * Sværhedsgrad: gennemsnittet af de smerter i hovedet, der er noteret den dag (0–10): 1–3 let, 4–6 moderat, 7–10 svær. | Same wording as the table footnote |
+| `rep.v.feeling` | følelse | følesans | "følelse" means emotion; the form asks about sensation |
+| `rep.row.before` | Forandringer lige før start | Forstyrrelser lige før start | One term (forstyrrelser) in both report layouts |
+| `dr.asNeeded` | Taget efter behov | Taget ved behov | "ved behov" is the term used everywhere else |
+| `adhoc.known.archived` | Logget sammen med dine tidligere registreringer | Findes i dine tidligere registreringer | "Logget sammen med" was English-sounding |
+| `pain.still.dismiss` | Afvis | Skjul | "Afvis" is too strong for hiding a card |
+| `episode.sub.open` | {range} · {entries} over {days} | {range} · {entries} på {days} | "over {days}" -> "på {days}" |
+| `reports.n.medicines_one` | {count} medicin | {count} slags medicin | "medicin" is uncountable |
+| `recoveryKey.next` | Jeg har gemt den. Tjek mig | Jeg har gemt den. Test mig | "Tjek mig" is odd; the next step is a test |
+| `admin.enable` | Åbn igen | Ophæv spærring | Pairs with the block action |
+| `admin.enable.for` | Åbn {name} igen | Ophæv spærring af {name} | Same |
+| `auth.error.usernameInvalid` | Brugernavne har 3 til 32 tegn: bogstaverne a–z, tal, punktum, understreg eller bindestreg. | Brugernavne har 3 til 32 tegn: bogstaverne a–z, tal, punktum, bundstreg eller bindestreg. | The character is called "bundstreg" |
+| `headache.hour` | Time | Klokkeslæt | "Time" is read as the unit; this is the hour of the day |
+| `rep.fn.disclaimer` | Lavet ud fra personens egne registreringer i dagbogen. Den stiller ingen diagnoser. | Lavet ud fra personens egne registreringer i dagbogen. Rapporten stiller ingen diagnoser. | "Den" had no clear referent |
+| `privacy.seen.never` | Aldrig, hvad der står. | Men aldrig, hvad der står i dem. | Complete sentence |
+| `bodymap.quality.title` | Hvordan det føles | Hvordan føles det? | Question form |
+| `bodymap.region.chest.left` | Venstre side af brystet | Venstre side af dit bryst | "bryst" is neuter: "dit" |
+| `bodymap.region.chest.right` | Højre side af brystet | Højre side af dit bryst | Same |
+| `bodymap.region.rear_head.right` | Bagsiden af højre side af hovedet | Højre side af dit baghoved | "Bagsiden af højre side af hovedet" is clumsy |
+| `bodymap.region.rear_head.left` | Bagsiden af venstre side af hovedet | Venstre side af dit baghoved | Same |
+| `dr.place.rear_head.right` | Bagsiden af højre side af hovedet | Højre side af baghovedet | Same (report, no "dit") |
+| `dr.place.rear_head.left` | Bagsiden af venstre side af hovedet | Venstre side af baghovedet | Same |
+| `bodymap.region.inner_ankle.right` | Indersiden af anklen på din højre fod | Indersiden af din højre ankel | Shorter, same pattern as the ankle |
+| `bodymap.region.outer_ankle.right` | Ydersiden af anklen på din højre fod | Ydersiden af din højre ankel | Same |
+| `dr.place.inner_ankle.right` | Indersiden af anklen på højre fod | Indersiden af højre ankel | Same (report) |
+| `dr.place.outer_ankle.right` | Ydersiden af anklen på højre fod | Ydersiden af højre ankel | Same (report) |
+| `bodymap.region.second_toe.right` | Din højre tå nr. 2 | Anden tå på din højre fod | "tå nr. 2" is not how people talk (report keeps it) |
+| `bodymap.region.third_toe.right` | Din højre tå nr. 3 | Tredje tå på din højre fod | "tå nr. 2" is not how people talk (report keeps it) |
+| `bodymap.region.fourth_toe.right` | Din højre tå nr. 4 | Fjerde tå på din højre fod | "tå nr. 2" is not how people talk (report keeps it) |
+| `bodymap.region.inner_ankle.left` | Indersiden af anklen på din venstre fod | Indersiden af din venstre ankel | Shorter, same pattern as the ankle |
+| `bodymap.region.outer_ankle.left` | Ydersiden af anklen på din venstre fod | Ydersiden af din venstre ankel | Same |
+| `dr.place.inner_ankle.left` | Indersiden af anklen på venstre fod | Indersiden af venstre ankel | Same (report) |
+| `dr.place.outer_ankle.left` | Ydersiden af anklen på venstre fod | Ydersiden af venstre ankel | Same (report) |
+| `bodymap.region.second_toe.left` | Din venstre tå nr. 2 | Anden tå på din venstre fod | "tå nr. 2" is not how people talk (report keeps it) |
+| `bodymap.region.third_toe.left` | Din venstre tå nr. 3 | Tredje tå på din venstre fod | "tå nr. 2" is not how people talk (report keeps it) |
+| `bodymap.region.fourth_toe.left` | Din venstre tå nr. 4 | Fjerde tå på din venstre fod | "tå nr. 2" is not how people talk (report keeps it) |
+| `sens.crustaceans` | Skaldyr | Krebsdyr (rejer, krabber) | "Skaldyr" also covers molluscs; the allergen group is crustaceans |
+| `consent.v2.p1` | {app} gemmer dine dagbogsnotater, som kan indeholde oplysninger om din helbredstilstand. Alt, hvad du skriver, bliver krypteret på din enhed, før det gemmes, så kun du kan læse det. Serveren og den, der driver den, ser kun uforståelige data. | {app} gemmer dine registreringer, som kan indeholde oplysninger om din helbredstilstand. Alt, hvad du skriver, bliver krypteret på din enhed, før det gemmes, så kun du kan læse det. Serveren og den, der driver den, ser kun uforståelige data. | "dagbogsnotater" -> the app word (v2 is unreleased) |
+| `consent.v2.p2` | Ud over dine krypterede notater gemmer serveren kun det, der skal til for at drive din konto: dit brugernavn, hvornår du blev oprettet og sidst loggede ind, og en optegnelse over dette samtykke. | Ud over dine krypterede registreringer gemmer serveren kun det, der skal til for at drive din konto: dit brugernavn, hvornår du blev oprettet og sidst loggede ind, og en optegnelse over dette samtykke. | Same |
+| `today.empty.title` | En frisk side | En ny side | "En frisk side" is odd |
+| `headache.light` | Lysfølsomhed? | Generet af lys? | Plain question wording (report row keeps "Lysfølsomhed") |
+| `headache.sound` | Lydfølsomhed? | Generet af lyd? | Same |
+| `bowel.flag.urgent` | Akut trang | Pludselig trang | "Akut" sounds medical/alarming |
+| `admin.invite.heading` | Inviter nogen | Invitér nogen | Imperative accent |
+| `me.danger.lastAdmin` | Du er den eneste administrator. Inviter en anden administrator først. | Du er den eneste administrator. Invitér en anden administrator først. | Imperative accent |
+| `me.admin.lead` | Administrer konti og invitationer på denne server. | Administrér konti og invitationer på denne server. | Imperative accent |
+| `admin.dependent` | Pårørendeprofil | Profil, du passer | "Pårørendeprofil" -> "profil, du passer" |
+| `me.danger.lastGuardian` | Du er den eneste værge for en pårørendeprofil. Tilføj en anden værge eller fjern profilen først. | Du er den eneste værge for en profil, du passer. Tilføj en anden værge eller fjern profilen først. | Same |
+| `bodymap.intensity.title` | Intensitet | Styrke | One word for the 0-10 value |
+| `bodymap.intensity.group` | Intensitet, 0 ingen til 10 værst tænkelige | Styrke, 0 ingen til 10 værst tænkelige | Same |
+| `episode.dots.title` | Højeste intensitet hver dag | Højeste styrke hver dag | Same |
+| `admin.delete.lastGuardian` | Denne person er eneste værge for en pårørendeprofil. Tilføj en anden værge eller slet profilen først. | Denne person er eneste værge for en profil, vedkommende passer. Tilføj en anden værge eller slet profilen først. | "Pårørendeprofil" -> "profil, du passer" |
+| `me.about.purpose` | {app} er en personlig dagbog, hvor du selv kan føre optegnelser over mad, trivsel, helbredsmålinger, smerter og medicin. | {app} er en personlig dagbog, hvor du selv kan føre optegnelser over mad, trivsel, sundhedsmålinger, smerter og medicin. | One word: sundhedsmålinger |
+| `join.welcome.lead` | En privat dagbog til dine måltider, dit velbefindende, dine sundhedsmålinger og din medicin. | En privat dagbog til dine måltider, din trivsel, dine sundhedsmålinger og din medicin. | One word: trivsel |

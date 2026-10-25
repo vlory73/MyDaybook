@@ -69,7 +69,11 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 				summary: firstLine(p.text),
 				tags: exposureTags(p.exposures, names.sensitivity ?? (() => undefined), {
 					yes: (name) => t('exposure.yes', { name: inline(name) }),
-					no: (name) => t('exposure.no', { name }),
+					// "Gluten-free" opens with the name, so it keeps its capital; "Uden gluten" has it mid-sentence.
+					no: (name) =>
+						t('exposure.no', {
+							name: t('exposure.no', { name: '\u0000' }).startsWith('\u0000') ? name : inline(name)
+						}),
 					unsure: (name) => t('exposure.unsure', { name: inline(name) })
 				})
 			};

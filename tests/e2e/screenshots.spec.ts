@@ -2114,7 +2114,7 @@ test('danish review screens', async ({ page }) => {
 	await page.waitForTimeout(400);
 	await sheet.locator('svg[role=group]').getByRole('button', { name: 'Dit højre knæ', exact: true }).click();
 	await sheet
-		.getByRole('radiogroup', { name: /^Intensitet/ })
+		.getByRole('radiogroup', { name: /^Styrke/ })
 		.getByRole('radio', { name: '6', exact: true })
 		.click();
 	await sheet.getByRole('button', { name: 'Pulserende', exact: true }).click();
