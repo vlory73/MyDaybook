@@ -244,14 +244,14 @@ test('the close-up and wider-area names are in Danish', async ({ page }) => {
 	await page.getByRole('button', { name: 'Registrér noget' }).click();
 	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
 	const dlg = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
-	await dlg.getByRole('button', { name: 'Hænder, tæt på', exact: true }).click();
+	await dlg.getByRole('button', { name: 'Hænder, nærbillede', exact: true }).click();
 	await dlg
 		.locator('svg[role=group]')
 		.getByRole('button', { name: 'Din højre tommelfinger', exact: true })
 		.click();
 	await expect(dlg.getByRole('heading', { name: 'Din højre tommelfinger' })).toBeVisible();
 	await dlg.getByRole('button', { name: 'Tilbage til kroppen' }).click();
-	await dlg.locator('svg[role=group]').getByRole('button', { name: 'Din venstre øvre mave' }).click();
+	await dlg.locator('svg[role=group]').getByRole('button', { name: 'Din venstre overmave' }).click();
 	await dlg
 		.getByRole('group', { name: 'Hvor stort et område' })
 		.getByRole('button', { name: 'Hele maven', exact: true })
@@ -402,7 +402,7 @@ test('head zones: the names are in Danish', async ({ page }) => {
 	await page.getByRole('button', { name: 'Registrér noget' }).click();
 	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
 	const dlg = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
-	await dlg.getByRole('button', { name: 'Hoved, tæt på', exact: true }).click();
+	await dlg.getByRole('button', { name: 'Hoved, nærbillede', exact: true }).click();
 	const fig = dlg.locator('svg[role=group]');
 	await expect(fig).toHaveAccessibleName('Hovedet set forfra. Vælg en del af hovedet.');
 	await fig.getByRole('button', { name: 'Bag dit højre øje', exact: true }).click();

@@ -236,7 +236,7 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	await page.getByRole('button', { name: 'Registrér noget' }).click();
 	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
 	const dialog = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
-	await dialog.getByRole('button', { name: 'Hoved, tæt på' }).click();
+	await dialog.getByRole('button', { name: 'Hoved, nærbillede' }).click();
 	await expect(dialog.getByLabel('Det er hovedpine')).toBeVisible();
 	await dialog
 		.locator('svg[role=group]')
@@ -246,14 +246,14 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 		.getByRole('radiogroup', { name: /^Intensitet/ })
 		.getByRole('radio', { name: '4', exact: true })
 		.click();
-	for (const zone of ['let', 'middel', 'svær'])
+	for (const zone of ['let', 'moderat', 'svær'])
 		await expect(dialog.getByText(zone, { exact: true })).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Konstant', exact: true })).toBeVisible();
 	await expect(dialog.getByLabel('Det er hovedpine')).toBeHidden();
 	await expect(dialog.getByRole('button', { name: 'Detaljer om hovedpinen' })).toBeVisible();
 	await expect(dialog.getByText('Lige før den startede, mærkede du ændringer i:')).toBeVisible();
-	await expect(dialog.getByRole('group', { name: 'Lysfølsom?' })).toBeVisible();
-	await expect(dialog.getByRole('group', { name: 'Lydfølsom?' })).toBeVisible();
+	await expect(dialog.getByRole('group', { name: 'Lysfølsomhed?' })).toBeVisible();
+	await expect(dialog.getByRole('group', { name: 'Lydfølsomhed?' })).toBeVisible();
 	await expect(dialog.getByText('Kvalme: ingen')).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Registrér kvalme' })).toBeVisible();
 });
