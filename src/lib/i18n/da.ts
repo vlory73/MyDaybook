@@ -1301,7 +1301,7 @@ export const da: Record<MessageKey, string> = {
 	'rep.more': '+{count} flere',
 	'rep.row.started': 'Begyndt',
 	'rep.row.stopped': 'Stoppet',
-	'rep.row.before': 'Forstyrrelser lige før start',
+	'rep.row.before': 'Forandringer lige før start',
 	'rep.row.side': 'Side',
 	'rep.row.quality': 'Konstant eller pulserende',
 	'rep.row.severity': 'Sværhedsgrad *',
@@ -1313,7 +1313,7 @@ export const da: Record<MessageKey, string> = {
 	'rep.row.medicine': 'Medicin taget',
 	'rep.v.none': '–',
 	'rep.v.vision': 'syn',
-	'rep.v.feeling': 'følesans',
+	'rep.v.feeling': 'følelse',
 	'rep.v.speech': 'tale',
 	'rep.v.both': 'begge',
 	'rep.v.right': 'højre',
@@ -1351,7 +1351,7 @@ export const da: Record<MessageKey, string> = {
 	'rep.f.medicine': 'Medicin taget:',
 	'rep.f.name': 'Navn',
 	'rep.f.amount': 'Mængde',
-	'rep.f.time': 'Kl.',
+	'rep.f.time': 'Tid',
 	'rep.fn.severity':
 		'* Dagens sværhedsgrad er gennemsnittet af de smerter i hovedet, der er noteret den dag (0–10): 1–3 let, 4–6 moderat, 7–10 svær.',
 	'rep.fn.severityForm':
