@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { checkDelete, checkDisable, dayOf } from './admin';
+import { checkDelete, checkSelfDelete, checkDisable, dayOf } from './admin';
 
 const member = { id: 'm', role: 'member', status: 'active' } as const;
 const admin = { id: 'a2', role: 'admin', status: 'active' } as const;
 
 describe('admin guards', () => {
+	it('the last active admin cannot delete their own account', () => {
+		expect(checkSelfDelete(admin, 1)).toBe('last_admin');
+		expect(checkSelfDelete(admin, 2)).toBeNull();
+		expect(checkSelfDelete(member, 1)).toBeNull();
+	});
+
 	it('an admin cannot disable or delete themselves', () => {
 		expect(checkDisable('a2', admin, 2)).toBe('cannot_disable_self');
 		expect(checkDelete('a2', admin, 2)).toBe('cannot_delete_self');

@@ -1,4 +1,5 @@
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit';
+import { building } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { dataDir, migrationsFolder, sqliteHandle } from '$lib/server/db';
 import { migrateWithBackup } from '$lib/server/db/migrate';
@@ -9,8 +10,15 @@ import { startHousekeeping } from '$lib/server/auth/events';
 import { checkApiRequest, isApiPath } from '$lib/server/auth/guard';
 import { errorResponse } from '$lib/server/auth/http';
 import { trustedProxies } from '$lib/server/auth/proxy';
-import { sessionSecret } from '$lib/server/auth/secret';
+import { assertSessionSecret, sessionSecret } from '$lib/server/auth/secret';
 import { validateSession } from '$lib/server/auth/sessions';
+
+// Files and folders the server creates (database, photos, backups) are owner-only.
+try {
+	process.umask(0o077);
+} catch {
+	/* not available in a worker */
+}
 
 /**
  * Security headers that are not part of the CSP (svelte.config.js), the API origin guard, session lookup and a
@@ -34,9 +42,11 @@ const STATIC_HEADERS: Record<string, string> = {
  */
 export const init: ServerInit = async () => {
 	try {
+		// The build runs this init too (SvelteKit analyse step), without runtime secrets.
+		if (!building) assertSessionSecret();
 		const sqlite = sqliteHandle();
 		await migrateWithBackup(sqlite, dataDir(), migrationsFolder());
-		sessionSecret(); // warns once if SESSION_SECRET is missing
+		sessionSecret(); // dev/test only: warns once and generates one when SESSION_SECRET is missing
 		startHousekeeping();
 		startPushScheduler();
 		scheduleNightlyBackup(() => ({ sqlite, dataDir: dataDir() }));
@@ -56,13 +66,13 @@ let peerLogged = false;
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const started = performance.now();
-	// Once per process: the socket peer of the first real request, so the owner can check TRUSTED_PROXY against it.
-	// It is the proxy's address when the deployment is right (HOME_DEPLOYMENT.md); /healthz comes from loopback.
+	// Once per process: whether the socket peer of the first real request is a trusted proxy, so the owner can check
+	// TRUSTED_PROXY (HOME_DEPLOYMENT.md). Only the yes/no is logged, never an address.
 	if (!peerLogged && event.route.id !== '/healthz') {
 		peerLogged = true;
 		try {
 			const peer = event.getClientAddress();
-			logLine({ event: 'first_peer', peer, trusted: trustedProxies().has(peer.replace(/^::ffff:/, '')) });
+			logLine({ event: 'first_peer', trusted: trustedProxies().has(peer.replace(/^::ffff:/, '')) });
 		} catch {
 			/* no peer address available */
 		}

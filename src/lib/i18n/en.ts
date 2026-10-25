@@ -382,6 +382,9 @@ export const en = {
 	'admin.invite.heading': 'Invite someone',
 	'admin.invite.role': 'They join as',
 	'admin.invite.create': 'Create invite link',
+	'admin.invite.adminHint': 'An admin can manage every account. Type your passphrase to confirm.',
+	'admin.invite.passphrase': 'Your passphrase',
+	'admin.invite.wrong': "That passphrase doesn't match.",
 	'admin.invite.linkLabel': 'Invite link',
 	'admin.invite.copy': 'Copy link',
 	'admin.invite.copied': 'Invite link copied',
@@ -400,6 +403,7 @@ export const en = {
 	'me.danger.wrong': "That passphrase doesn't match.",
 	'me.danger.lastGuardian':
 		'You are the only guardian of a dependent profile. Add another guardian or remove that profile first.',
+	'me.danger.lastAdmin': 'You are the only admin. Invite another admin first.',
 
 	'today.heading.today': 'Today',
 	'today.week.prev': 'Previous week',

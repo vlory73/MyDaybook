@@ -151,6 +151,23 @@ test('disable ends sessions and blocks sign-in; enable restores it; guards; audi
 	expect(rows.map((r) => r.action)).toEqual(['disable', 'enable']);
 });
 
+test('an invite for another admin needs the admin passphrase (re-authentication)', async () => {
+	const { adminCtx, admin, memberCtx } = await adminAndMember();
+	const noKey = await postJson(adminCtx, '/api/invites', { role: 'admin' });
+	expect(noKey.status()).toBe(400);
+	const wrong = await postJson(adminCtx, '/api/invites', { role: 'admin', authKey: toB64(randomBytes(32)) });
+	expect(wrong.status()).toBe(401);
+	expect(await wrong.json()).toEqual({ error: 'invalid_credentials' });
+	const ok = await postJson(adminCtx, '/api/invites', { role: 'admin', authKey: toB64(admin.authKey) });
+	expect(ok.status()).toBe(200);
+	expect((await ok.json()).token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+	// Member invites stay one tap, and a member still cannot mint either kind.
+	expect((await postJson(adminCtx, '/api/invites', { role: 'member' })).status()).toBe(200);
+	expect(
+		(await postJson(memberCtx, '/api/invites', { role: 'admin', authKey: toB64(admin.authKey) })).status()
+	).toBe(403);
+});
+
 test('invites: create, list without token, revoke; a revoked invite cannot sign up', async () => {
 	const { adminCtx, admin } = await adminAndMember();
 	const before = (await (await adminCtx.get('/api/admin/invites')).json()).invites as { id: string }[];
@@ -300,6 +317,11 @@ test('admin: people list, disable with Undo, delete with passphrase, invite link
 
 	// Invite someone: the link shows once, with Copy and an expiry note; then it is listed and can be revoked.
 	await page.getByRole('radio', { name: 'Admin' }).click();
+	const invitePass = page.locator('input[name="admin-invite-passphrase"]');
+	await invitePass.fill('wrong passphrase');
+	await page.getByRole('button', { name: 'Create invite link' }).click();
+	await expect(page.getByText("That passphrase doesn't match.")).toBeVisible();
+	await invitePass.fill(admin.passphrase);
 	const created = page.waitForResponse(
 		(r) => r.url().endsWith('/api/invites') && r.request().method() === 'POST'
 	);

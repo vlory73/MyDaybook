@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
-import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { logLine, utcStamp } from './log';
 
@@ -79,8 +79,9 @@ export async function migrateWithBackup(
 		const name = `pre-migrate-${utcStamp()}-${from}-${to}.db`;
 		const tmp = join(dir, `${name}.partial`);
 		try {
-			mkdirSync(dir, { recursive: true });
+			mkdirSync(dir, { recursive: true, mode: 0o700 });
 			await sqlite.backup(tmp);
+			chmodSync(tmp, 0o600);
 			renameSync(tmp, join(dir, name));
 			pruneBackups(dir, PRE_MIGRATE_KEEP);
 		} catch (err) {

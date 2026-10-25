@@ -79,12 +79,15 @@ function keys(event: RequestEvent, scope: Scope, username: string | null) {
 }
 
 /**
- * Takes a token from the IP bucket and the user-name bucket (VPN users may share one NAT address, so both exist).
+ * Takes a token from the IP bucket and then the user-name bucket (VPN users may share one NAT address, so both exist).
+ * The IP bucket is checked first: a request it already blocks never touches (or creates) a user bucket.
  * Throws 429 with Retry-After when either is empty.
  */
 export function rateGuard(event: RequestEvent, scope: Scope, username: string | null = null): void {
 	const k = keys(event, scope, username);
-	const results = [limiters.ip.take(k.ip), k.user ? limiters.user.take(k.user) : ({ ok: true } as const)];
+	const ipResult = limiters.ip.take(k.ip);
+	const results = [ipResult];
+	if (ipResult.ok && k.user) results.push(limiters.user.take(k.user));
 	const blocked = results.find((r) => !r.ok);
 	if (blocked && !blocked.ok) {
 		if (results.some((r) => !r.ok && r.firstBlock)) {

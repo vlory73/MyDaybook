@@ -4,6 +4,7 @@
 /// <reference lib="webworker" />
 import { build, files, prerendered, version } from '$service-worker';
 import { brand } from '$lib/brand';
+import { isCacheableShell } from '$lib/pwa-shell';
 import { PREFS_CACHE, TEXT_KEY } from '$lib/push/locale';
 
 // Caches the app shell only: every build chunk is precached so that navigating between screens
@@ -51,7 +52,8 @@ sw.addEventListener('fetch', (event) => {
 		event.respondWith(
 			fetch(request)
 				.then(async (response) => {
-					if (response.ok) await (await caches.open(CACHE)).put(SHELL_KEY, response.clone());
+					if (isCacheableShell(url.pathname, response))
+						await (await caches.open(CACHE)).put(SHELL_KEY, response.clone());
 					return response;
 				})
 				.catch(async () => (await caches.match(SHELL_KEY)) ?? Response.error())

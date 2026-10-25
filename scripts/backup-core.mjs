@@ -5,6 +5,7 @@
 //   <backupDir>/blobs/                              mirror of <dataDir>/blobs (encrypted photos)
 import Database from 'better-sqlite3';
 import {
+	chmodSync,
 	copyFileSync,
 	lstatSync,
 	mkdirSync,
@@ -83,7 +84,8 @@ export function mirrorDir(src, dest) {
 	const out = { files: 0, copied: 0, deleted: 0 };
 	const destStat = lstatOrNull(dest);
 	if (destStat && !destStat.isDirectory()) rmSync(dest, { force: true, recursive: true });
-	mkdirSync(dest, { recursive: true });
+	mkdirSync(dest, { recursive: true, mode: 0o700 });
+	restrict(dest, 0o700);
 	const wanted = new Map(dirEntries(src).map((e) => [e.name, e]));
 	for (const [name, entry] of wanted) {
 		const from = join(src, name);
@@ -102,9 +104,12 @@ export function mirrorDir(src, dest) {
 				if (d) rmSync(to, { force: true, recursive: true });
 				const tmp = `${to}.partial`;
 				copyFileSync(from, tmp);
+				chmodSync(tmp, 0o600);
 				utimesSync(tmp, s.atime, s.mtime);
 				renameSync(tmp, to);
 				out.copied++;
+			} else {
+				restrict(to, 0o600);
 			}
 		}
 	}
@@ -148,6 +153,19 @@ export function pruneDumps(dir, keep) {
 }
 
 /**
+ * Best effort: makes `path` owner-only (a folder or file from before this was enforced, or one we do not own, is left).
+ * @param {string} path
+ * @param {number} mode
+ */
+function restrict(path, mode) {
+	try {
+		chmodSync(path, mode);
+	} catch {
+		/* not the owner: the operator sets the mode */
+	}
+}
+
+/**
  * @typedef {{ file: string, name: string, bytes: number, blobs: number, blobsCopied: number, blobsDeleted: number, ms: number }} BackupResult
  * @typedef {{ sqlite: import('better-sqlite3').Database, dataDir: string, backupDir: string, keep?: number, now?: Date }} BackupOptions
  */
@@ -178,7 +196,9 @@ async function doBackup(opts) {
 	const started = Date.now();
 	const keep = Math.max(1, opts.keep ?? DEFAULT_KEEP);
 	const dbDir = join(opts.backupDir, 'db');
-	mkdirSync(dbDir, { recursive: true });
+	mkdirSync(dbDir, { recursive: true, mode: 0o700 });
+	restrict(opts.backupDir, 0o700);
+	restrict(dbDir, 0o700);
 	// Leftovers of a crashed run (a running one is younger than an hour).
 	for (const f of readdirSync(dbDir)) {
 		if (f.endsWith('.partial') && Date.now() - statSync(join(dbDir, f)).mtimeMs > 3_600_000) {
@@ -191,6 +211,7 @@ async function doBackup(opts) {
 	const tmp = `${file}.partial`; // never matches DUMP_PATTERN, so the NAS job cannot pick it up
 	try {
 		await opts.sqlite.backup(tmp);
+		chmodSync(tmp, 0o600);
 		finaliseAndVerify(tmp);
 		renameSync(tmp, file);
 	} catch (err) {
@@ -198,6 +219,7 @@ async function doBackup(opts) {
 		throw err;
 	}
 	pruneDumps(dbDir, keep);
+	for (const f of readdirSync(dbDir)) if (DUMP_PATTERN.test(f)) restrict(join(dbDir, f), 0o600);
 
 	// Blobs are immutable and written atomically, so mirroring after the snapshot is consistent.
 	const blobs = mirrorDir(join(opts.dataDir, 'blobs'), join(opts.backupDir, 'blobs'));

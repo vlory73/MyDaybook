@@ -22,6 +22,12 @@ export function checkDelete(adminId: string, target: Target, activeAdmins: numbe
 	return null;
 }
 
+/** Deleting your own account: the last active admin may not, or nobody could run the instance. Null means allowed. */
+export function checkSelfDelete(self: Target, activeAdmins: number): GuardError | null {
+	if (self.role === 'admin' && self.status === 'active' && activeAdmins <= 1) return 'last_admin';
+	return null;
+}
+
 /** The calendar day (UTC, YYYY-MM-DD) of a timestamp. Admins only ever see the day, never the time. */
 export function dayOf(ms: number): string {
 	return new Date(ms).toISOString().slice(0, 10);
