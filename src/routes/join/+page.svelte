@@ -8,6 +8,7 @@
 		Icon,
 		Notice,
 		PassphraseFields,
+		PrivacyView,
 		RecoveryConfirm,
 		RecoveryKey,
 		Spinner,
@@ -33,6 +34,7 @@
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { checkNewPassphrase } from '$lib/passphrase';
+	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
 	import { establish, nextFrame } from '$lib/session.svelte';
 
 	type Step = 'welcome' | 'account' | 'creating' | 'key' | 'confirm' | 'consent' | 'sending';
@@ -64,7 +66,10 @@
 	let createdFor = '';
 	let confirmed = false;
 
-	const consent = $derived(consentText(i18n.locale));
+	/** The "Read how your data is handled" view. It replaces the step, so everything typed so far is kept. */
+	let readingPrivacy = $state(false);
+	const backupDays = $derived(privacy.settings.backupRetentionDays);
+	const consent = $derived(consentText(i18n.locale, CONSENT_VERSION, backupDays));
 
 	onMount(() => {
 		// The invite token travels in the URL fragment so it never reaches server logs (ARCHITECTURE §3.1).
@@ -76,6 +81,7 @@
 		}
 		token = match[1]!;
 		void checkInvite();
+		void loadPrivacySettings();
 	});
 
 	onDestroy(forgetAccount);
@@ -145,10 +151,13 @@
 		event.preventDefault();
 		if (!account) return go('account');
 		if (!agreed) return (error = 'join.consent.required');
+		// The text names the server's backup period; it must be the real one before it is hashed and stored.
+		if (!privacy.loaded) await loadPrivacySettings();
+		if (!privacy.loaded) return (error = 'auth.error.network');
 		const locale = i18n.locale;
 		go('sending');
 		try {
-			const textHash = await consentHash(locale);
+			const textHash = await consentHash(locale, CONSENT_VERSION, backupDays);
 			const identity = await apiPost<Identity>(
 				'/api/auth/signup',
 				signupBody(token, userId, normalizeUsername(username), account.bundle, {
@@ -201,6 +210,8 @@
 			<p class="muted auth-lead">{t('join.invalid.body')}</p>
 			<a class="link-button" href={resolve('/login')}>{t('join.invalid.signIn')}</a>
 		</div>
+	{:else if readingPrivacy}
+		<PrivacyView onback={() => (readingPrivacy = false)} />
 	{:else}
 		<StepDots total={5} current={DOT[step]} />
 
@@ -281,13 +292,29 @@
 			</div>
 			<h1 class="large-title" tabindex="-1" use:focusOnMount>{consent.title}</h1>
 			<form onsubmit={submitConsent} class="auth-form consent" novalidate>
+				{#if consent.age}
+					<p class="agepill" data-testid="consent-age"><Icon name="user-round" size={18} />{consent.age}</p>
+				{/if}
 				{#each consent.paragraphs as paragraph (paragraph)}<p class="para">{paragraph}</p>{/each}
+				<button
+					type="button"
+					class="readlink"
+					onclick={() => (readingPrivacy = true)}
+					data-testid="consent-read"
+				>
+					<Icon name="shield-check" size={18} />{t('join.consent.read')}<Icon
+						name="chevron-right"
+						size={18}
+					/>
+				</button>
 				<label class="agree">
 					<input type="checkbox" name="consent" bind:checked={agreed} />
 					<span>{consent.checkbox}</span>
 				</label>
 				{#if error}<Notice tone="error">{t(error)}</Notice>{/if}
-				<Button type="submit" block size="lg">{t('join.consent.create')}</Button>
+				<Button type="submit" block size="lg" disabled={!privacy.loaded && !privacy.failed}>
+					{t('join.consent.create')}
+				</Button>
 			</form>
 		{:else if step === 'sending'}
 			<div class="auth-center working" role="status">
@@ -348,6 +375,39 @@
 	}
 	.para {
 		color: var(--text-2);
+	}
+	.agepill {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+		width: fit-content;
+		margin: 0;
+		padding: 10px var(--sp-4);
+		border-radius: var(--r-full);
+		background: var(--primary-soft);
+		color: var(--primary-press);
+		font-size: var(--fs-callout);
+		font-weight: var(--fw-semibold);
+	}
+	.readlink {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+		min-height: var(--tap);
+		padding: 0;
+		background: none;
+		border: 0;
+		color: var(--primary-press);
+		font: inherit;
+		font-weight: var(--fw-semibold);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		text-align: left;
+		cursor: pointer;
+	}
+	.readlink:focus-visible {
+		outline: 3px solid var(--focus);
+		outline-offset: 2px;
 	}
 	.agree {
 		display: flex;

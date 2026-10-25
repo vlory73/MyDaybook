@@ -1927,4 +1927,53 @@ for (const scheme of ['light', 'dark'] as const) {
 		await page.waitForTimeout(400);
 		await snap(page, 'edit-sheet-original-time', scheme);
 	});
+
+	test(`age and consent ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'age-and-consent', 'age-and-consent screenshots only');
+		test.setTimeout(120_000);
+		await prepare(page, scheme);
+		await page.goto(`/join#t=${createInvite()}`);
+		await page.getByRole('button', { name: 'Get started' }).click();
+		await page.getByLabel('Username').fill(newUsername('shot'));
+		const passphrase = newPassphrase();
+		await page.getByLabel('Passphrase', { exact: true }).fill(passphrase);
+		await page.getByLabel('Repeat passphrase').fill(passphrase);
+		await page.getByRole('button', { name: 'Continue' }).click();
+		await page.getByRole('heading', { name: 'Your recovery key' }).waitFor({ timeout: 30_000 });
+		const groups = await page.getByTestId('recovery-key').locator('span').allTextContents();
+		await page.getByRole('button', { name: "I've stored it. Check me" }).click();
+		const lead = (await page.getByText(/Type group \d+ and group \d+/).textContent()) ?? '';
+		const [a, b] = [...lead.matchAll(/group (\d+)/g)].map((m) => Number(m[1]));
+		await page.getByLabel(`Group ${a} (4 characters)`).fill(groups[a! - 1]!);
+		await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
+		await page.getByRole('button', { name: 'Confirm' }).click();
+		await page.getByRole('heading', { name: 'Before you start' }).waitFor();
+		await page.getByRole('checkbox').check();
+		await snap(page, 'consent', scheme, true);
+		await page.getByTestId('consent-read').click();
+		await page.getByRole('heading', { name: 'Your privacy', level: 1 }).waitFor();
+		await snap(page, 'consent-privacy-in-join', scheme);
+		await page.getByTestId('privacy-back').click();
+		await page.getByRole('button', { name: 'Create my diary' }).click();
+		await page.getByRole('navigation', { name: 'Main' }).waitFor({ timeout: 30_000 });
+		await page.getByRole('link', { name: 'Me', exact: true }).click();
+		await page.getByTestId('privacy-link').waitFor();
+		await snap(page, 'me-with-privacy-card', scheme, true);
+		await page.getByTestId('privacy-link').click();
+		await page.getByTestId('agreement').waitFor();
+		await page.getByTestId('agreement-line').waitFor();
+		await snap(page, 'privacy-top', scheme);
+		await snap(page, 'privacy-full', scheme, true);
+		await page.getByTestId('agreement-read').click();
+		await page.getByTestId('agreement-text').waitFor();
+		await snap(page, 'privacy-agreement-text', scheme);
+	});
+
+	test(`privacy signed out ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'age-and-consent', 'age-and-consent screenshots only');
+		await prepare(page, scheme);
+		await page.goto('/privacy');
+		await page.getByRole('heading', { name: 'Your privacy', level: 1 }).waitFor();
+		await snap(page, 'privacy-signed-out', scheme, true);
+	});
 }

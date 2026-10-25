@@ -28,6 +28,7 @@
 	import { commonErrorKey, deleteUserAsAdmin } from '$lib/auth';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
+	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
 	import { session } from '$lib/session.svelte';
 
 	let users = $state<AdminUser[] | null>(null);
@@ -52,6 +53,7 @@
 	}
 
 	onMount(() => {
+		void loadPrivacySettings();
 		// Members have no business here; the API refuses them anyway (403).
 		if (!isAdmin) void goto(resolve('/me'), { replaceState: true });
 		else void load();
@@ -296,7 +298,7 @@
 	{#if deleting}
 		<form onsubmit={confirmDelete} class="form" novalidate>
 			<p>{t('admin.delete.lead', { name: nameOf(deleting) })}</p>
-			<p class="small muted">{t('admin.delete.backups')}</p>
+			<p class="small muted">{t('admin.delete.backups', { days: privacy.settings.backupRetentionDays })}</p>
 			<TextField
 				label={t('admin.delete.passphrase')}
 				name="admin-delete-passphrase"

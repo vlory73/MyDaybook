@@ -96,8 +96,6 @@ export const en = {
 		'{app} is a personal diary for keeping your own records of food, well-being, health measurements, pain and medication.',
 	'me.about.notMedical':
 		'It is not a medical device. It gives no advice, no diagnosis, no dose calculations and no alerts based on your values. Talk to a doctor or pharmacist about anything that worries you.',
-	'me.about.privacy':
-		'Everything you write is encrypted on your device before it is saved. Nobody else can read it, including the person who runs the server.',
 	'me.about.version': 'Version {version}',
 	'me.about.licence': 'Licensed under the PolyForm Noncommercial License 1.0.0.',
 	'me.theme.heading': 'Appearance',
@@ -368,7 +366,7 @@ export const en = {
 	'admin.delete.title': 'Delete {name}',
 	'admin.delete.lead':
 		"This permanently deletes {name}'s account and everything in their diary. It can't be undone.",
-	'admin.delete.backups': 'Encrypted backups are kept for up to 14 days and then disappear.',
+	'admin.delete.backups': 'Encrypted backups are kept for up to {days} days and then disappear.',
 	'admin.delete.passphrase': 'Your passphrase',
 	'admin.delete.confirm': 'Delete permanently',
 	'admin.delete.wrong': "That passphrase doesn't match.",
@@ -395,7 +393,7 @@ export const en = {
 		'This link is shown only once and expires {when}. Send it to the person yourself; it works for one sign-up.',
 	'me.danger.heading': 'Delete account',
 	'me.danger.lead': 'This erases your diary and your account from the server. It cannot be undone.',
-	'me.danger.backups': 'Encrypted backup copies are kept for up to 14 days and then disappear.',
+	'me.danger.backups': 'Encrypted backup copies are kept for up to {days} days and then disappear.',
 	'me.danger.export': 'Download a copy of your diary first.',
 	'me.danger.withdraw': 'Deleting your account also withdraws the agreement you gave when you joined.',
 	'me.danger.open': 'Delete my account…',
@@ -1512,7 +1510,68 @@ export const en = {
 		'Column names are in English. Lists are joined with "; ". Times are local time with the offset from UTC. A pain entry has one row for each point.',
 	'export.readme.photos': 'your photos ({count}) as JPEG files. The data files refer to them by file name.',
 	'export.readme.noPhotos': 'No photos are included.',
-	'export.readme.readme': 'this text.'
+	'export.readme.readme': 'this text.',
+
+	'consent.v2.title': 'Before you start',
+	'consent.v2.age': '{app} is for people aged 13 and over.',
+	'consent.v2.p1':
+		'{app} keeps your diary entries, which can include information about your health. Everything you write is encrypted on your device before it is saved, so only you can read it. The server, and the person running it, only ever see scrambled data.',
+	'consent.v2.p2':
+		'Besides your encrypted entries, the server keeps only what it needs to run your account: your username, when you joined and last signed in, and a record of this agreement.',
+	'consent.v2.p3':
+		'You can withdraw this agreement at any time by deleting your account under Me. Your diary and account are then erased. Encrypted backup copies disappear within {days} days.',
+	'consent.v2.checkbox': 'I am 13 or older. I understand, and I agree to my diary being stored this way.',
+	'join.consent.read': 'Read how your data is handled',
+
+	'me.privacy.heading': 'Privacy',
+	'me.privacy.lead': 'Who can see what, how long things are kept, and your rights.',
+	'me.privacy.open': 'How your data is handled',
+
+	'privacy.title': 'Your privacy',
+	'privacy.back': 'Back',
+	'privacy.promise': 'Only you can read your diary. Not even the person who runs this server can.',
+	'privacy.kept.heading': 'What is kept',
+	'privacy.kept.entries': 'Your entries and photos, scrambled so only you can open them.',
+	'privacy.kept.account':
+		'For your account: your username, when you joined, when you last signed in, and your agreement.',
+	'privacy.seen.heading': 'What the server can see',
+	'privacy.seen.body': 'That you have an account. When something is saved, and roughly how big it is.',
+	'privacy.seen.never': 'Never what it says.',
+	'privacy.keep.heading': 'How long things are kept',
+	'privacy.keep.ip': 'Internet addresses, noted when you sign up or a sign-in goes wrong',
+	'privacy.keep.ipNone': 'Internet addresses are not kept',
+	'privacy.keep.none': 'None',
+	'privacy.keep.days_one': '{count} day',
+	'privacy.keep.days_other': '{count} days',
+	'privacy.keep.backups': 'Backup copies, after you delete your account',
+	'privacy.reminders.heading': 'Reminders',
+	'privacy.reminders.body':
+		'If you turn them on, the server gets only the times, days and your time zone. The message goes through Apple or Google and says just “You have a reminder.”',
+	'privacy.rights.heading': 'Your rights',
+	'privacy.rights.download': 'Download my data',
+	'privacy.rights.downloadHint': 'Get a copy of everything in your diary.',
+	'privacy.rights.edit': 'Change anything you wrote',
+	'privacy.rights.editHint': 'Open the entry and edit it. No request needed.',
+	'privacy.rights.delete': 'Delete my account',
+	'privacy.rights.deleteHint': 'Erases your diary and account.',
+	'privacy.rights.complain': 'Make a complaint',
+	'privacy.rights.complainHint':
+		'You can complain to the data protection authority in your country. In Denmark that is Datatilsynet (datatilsynet.dk).',
+	'privacy.agreement.heading': 'Your agreement',
+	'privacy.agreement.line': 'You agreed on {date} · version {version}',
+	'privacy.agreement.read': 'Read the text you agreed to',
+	'privacy.agreement.newer':
+		'A newer version of this text exists. It applies to people who join now. You do not need to do anything.',
+	'privacy.agreement.unknown': 'No agreement is recorded for this account.',
+	'privacy.text.title': 'The text you agreed to',
+	'privacy.text.note': 'Shown in the app’s current language.',
+	'privacy.know.heading': 'Good to know',
+	'privacy.know.keyBold':
+		'If you lose both your passphrase and your recovery key, nobody can open your diary.',
+	'privacy.know.keyRest': 'Not even the person who runs this server. Keep your recovery key somewhere safe.',
+	'privacy.know.medical': '{app} is a diary, not a medical device. It gives no advice and no diagnoses.',
+	'privacy.operator.heading': 'Who runs this server',
+	'privacy.operator.questions': 'Questions about your data?'
 } as const;
 
 export type MessageKey = keyof typeof en;
