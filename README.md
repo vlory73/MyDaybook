@@ -12,6 +12,7 @@ Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
 
 - [Spec](docs/SPEC.md) (source of truth) · [Architecture](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md)
 - [Design proposal](design/README.md) with phone-width mockups
+- [GDPR templates](docs/gdpr/README.md) for operators: privacy notice, record of processing, DPIA, breach response, transfers
 
 ## Developer quick start
 
