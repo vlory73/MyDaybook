@@ -251,7 +251,9 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	await expect(dialog.getByRole('button', { name: 'Konstant', exact: true })).toBeVisible();
 	await expect(dialog.getByLabel('Det er hovedpine')).toBeHidden();
 	await expect(dialog.getByRole('button', { name: 'Detaljer om hovedpinen' })).toBeVisible();
-	await expect(dialog.getByText('Mærkede du ændringer i noget af dette, lige før den startede?')).toBeVisible();
+	await expect(
+		dialog.getByText('Mærkede du ændringer i noget af dette, lige før den startede?')
+	).toBeVisible();
 	await expect(dialog.getByRole('group', { name: 'Generet af lys?' })).toBeVisible();
 	await expect(dialog.getByRole('group', { name: 'Generet af lyd?' })).toBeVisible();
 	await expect(dialog.getByText('Kvalme: ingen')).toBeVisible();
