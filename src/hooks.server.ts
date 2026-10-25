@@ -62,13 +62,6 @@ export const handleError: HandleServerError = ({ event, status }) => {
 
 let peerLogged = false;
 
-export const handleError: HandleServerError = ({ event, status }) => {
-	if (status !== 404) logLine({ event: 'error', route: event.route.id ?? 'unmatched' });
-	return { message: 'error' };
-};
-
-let peerLogged = false;
-
 export const handle: Handle = async ({ event, resolve }) => {
 	const started = performance.now();
 	// Once per process: whether the socket peer of the first real request is a trusted proxy, so the owner can check
