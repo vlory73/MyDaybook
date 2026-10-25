@@ -19,4 +19,5 @@ Reports that restate a documented limit are welcome as discussion, but are not t
 
 ## Supported versions
 
-Until 1.0 only the latest release receives fixes.
+Only the latest release receives fixes. Please update (see [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md)) before reporting,
+and say which version you run.
