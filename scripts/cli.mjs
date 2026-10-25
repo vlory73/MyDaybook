@@ -15,6 +15,9 @@ import { existsSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { resolveBackupDir, resolveKeep, runBackup } from './backup-core.mjs';
 
+// Everything this process creates (dumps, the mirrored photos) is owner-only.
+process.umask(0o077);
+
 function die(message) {
 	process.stderr.write(`${message}\n`);
 	process.exit(1);

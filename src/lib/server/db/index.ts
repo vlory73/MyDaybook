@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { mkdirSync } from 'node:fs';
+import { chmodSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import * as schema from './schema';
 
@@ -8,8 +8,20 @@ export type Db = BetterSQLite3Database<typeof schema>;
 
 /** Opens `<dataDir>/app.db` (creating the directory) with the pragmas from ARCHITECTURE §10. */
 export function openDatabase(dataDir: string): Database.Database {
-	mkdirSync(dataDir, { recursive: true });
-	const sqlite = new Database(join(dataDir, 'app.db'));
+	mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+	const file = join(dataDir, 'app.db');
+	const sqlite = new Database(file);
+	// Owner-only, also for a database created before this was enforced. The -wal and -shm files copy the main file's mode.
+	for (const [path, mode] of [
+		[dataDir, 0o700],
+		[file, 0o600]
+	] as const) {
+		try {
+			chmodSync(path, mode);
+		} catch {
+			/* not the owner (a mounted volume): the operator sets the modes */
+		}
+	}
 	sqlite.pragma('journal_mode = WAL');
 	sqlite.pragma('foreign_keys = ON');
 	sqlite.pragma('secure_delete = ON');

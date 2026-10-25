@@ -12,6 +12,13 @@ import { trustedProxies } from '$lib/server/auth/proxy';
 import { assertSessionSecret, sessionSecret } from '$lib/server/auth/secret';
 import { validateSession } from '$lib/server/auth/sessions';
 
+// Files and folders the server creates (database, photos, backups) are owner-only.
+try {
+	process.umask(0o077);
+} catch {
+	/* not available in a worker */
+}
+
 /**
  * Security headers that are not part of the CSP (svelte.config.js), the API origin guard, session lookup and a
  * minimal access log. The log never contains request bodies, query strings, cookies, user names or IP addresses
