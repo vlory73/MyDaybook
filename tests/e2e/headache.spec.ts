@@ -243,7 +243,7 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 		.getByRole('button', { name: 'Din venstre tinding', exact: true })
 		.click();
 	await dialog
-		.getByRole('radiogroup', { name: /^Intensitet/ })
+		.getByRole('radiogroup', { name: /^Styrke/ })
 		.getByRole('radio', { name: '4', exact: true })
 		.click();
 	for (const zone of ['let', 'moderat', 'svær'])
@@ -251,9 +251,9 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	await expect(dialog.getByRole('button', { name: 'Konstant', exact: true })).toBeVisible();
 	await expect(dialog.getByLabel('Det er hovedpine')).toBeHidden();
 	await expect(dialog.getByRole('button', { name: 'Detaljer om hovedpinen' })).toBeVisible();
-	await expect(dialog.getByText('Lige før den startede, mærkede du ændringer i:')).toBeVisible();
-	await expect(dialog.getByRole('group', { name: 'Lysfølsomhed?' })).toBeVisible();
-	await expect(dialog.getByRole('group', { name: 'Lydfølsomhed?' })).toBeVisible();
+	await expect(dialog.getByText('Mærkede du ændringer i noget af dette, lige før den startede?')).toBeVisible();
+	await expect(dialog.getByRole('group', { name: 'Generet af lys?' })).toBeVisible();
+	await expect(dialog.getByRole('group', { name: 'Generet af lyd?' })).toBeVisible();
 	await expect(dialog.getByText('Kvalme: ingen')).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Registrér kvalme' })).toBeVisible();
 });

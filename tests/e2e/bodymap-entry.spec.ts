@@ -333,11 +333,11 @@ test('the body map entry screen and the card are in Danish', async ({ page }) =>
 	await dialog.locator('svg[role=group]').getByRole('button', { name: 'Dit højre knæ', exact: true }).click();
 	await expect(dialog.getByRole('heading', { name: 'Dit højre knæ' })).toBeVisible();
 	await expect(dialog.getByText('Punkt 1 af 1')).toBeVisible();
-	await expect(dialog.getByRole('radiogroup', { name: /^Intensitet/ })).toBeVisible();
+	await expect(dialog.getByRole('radiogroup', { name: /^Styrke/ })).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Følelsesløs', exact: true })).toBeVisible();
 	await expect(dialog.getByRole('button', { name: 'Kløende', exact: true })).toBeVisible();
 	await dialog
-		.getByRole('radiogroup', { name: /^Intensitet/ })
+		.getByRole('radiogroup', { name: /^Styrke/ })
 		.getByRole('radio', { name: '6', exact: true })
 		.click();
 	await dialog.getByRole('button', { name: 'Gem 1 punkt' }).click();
@@ -345,5 +345,5 @@ test('the body map entry screen and the card are in Danish', async ({ page }) =>
 	const card = page.getByRole('region', { name: 'Stadig der?' });
 	await expect(card).toContainText('Dit højre knæ · senest noteret i dag: 6');
 	await expect(card.getByRole('button', { name: 'Notér i dag' })).toBeVisible();
-	await expect(card.getByRole('button', { name: 'Afvis' })).toBeVisible();
+	await expect(card.getByRole('button', { name: 'Skjul' })).toBeVisible();
 });
