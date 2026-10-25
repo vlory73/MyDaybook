@@ -1,11 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { db as openDb, type Db } from '../db';
 import { logLine } from '../db/log';
-import { pushSubscriptions } from '../db/schema';
+import { pushSubscriptions, users } from '../db/schema';
 import { dueKeys } from './schedule';
 import { sendPush, type SendOutcome } from './send';
 import { parseStoredSchedule } from './subscriptions';
 import { vapidConfig, type VapidConfig } from './vapid';
+
+/** A subscription is dropped after this many failed sends in a row. */
+export const MAX_CONSECUTIVE_FAILURES = 5;
 
 export interface TickDeps {
 	db: Db;
@@ -16,11 +19,18 @@ export interface TickDeps {
 /**
  * One scheduler pass: for every subscription, sends one empty push when a slot of its schedule falls in the last
  * few minutes of its own time zone and has not been sent yet. Returns how many pushes went out.
- * A subscription the push service reports as gone (404/410) is deleted.
+ * Only active accounts are served. A subscription the push service reports as gone (404/410) is deleted, and so is
+ * one that failed MAX_CONSECUTIVE_FAILURES times in a row (a success resets the count).
  */
 export async function runTick(now: Date, deps: TickDeps): Promise<number> {
 	const send = deps.send ?? ((endpoint, config) => sendPush(endpoint, config));
-	const rows = deps.db.select().from(pushSubscriptions).all();
+	const rows = deps.db
+		.select({ sub: pushSubscriptions })
+		.from(pushSubscriptions)
+		.innerJoin(users, eq(users.id, pushSubscriptions.userId))
+		.where(eq(users.status, 'active'))
+		.all()
+		.map((r) => r.sub);
 	let sent = 0;
 	for (const row of rows) {
 		const schedule = parseStoredSchedule(row.schedule);
@@ -52,7 +62,17 @@ export async function runTick(now: Date, deps: TickDeps): Promise<number> {
 			.run();
 		const outcome = await send(row.endpoint, deps.config);
 		if (outcome === 'sent') sent++;
-		if (outcome === 'gone') deps.db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, row.id)).run();
+		if (outcome === 'gone' || (outcome === 'failed' && row.failures + 1 >= MAX_CONSECUTIVE_FAILURES)) {
+			deps.db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, row.id)).run();
+		} else if (outcome === 'failed') {
+			deps.db
+				.update(pushSubscriptions)
+				.set({ failures: row.failures + 1 })
+				.where(eq(pushSubscriptions.id, row.id))
+				.run();
+		} else if (row.failures > 0) {
+			deps.db.update(pushSubscriptions).set({ failures: 0 }).where(eq(pushSubscriptions.id, row.id)).run();
+		}
 	}
 	return sent;
 }

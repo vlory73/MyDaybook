@@ -29,6 +29,13 @@
       "when": 1792406093398,
       "tag": "0003_push_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792900615395,
+      "tag": "0004_push_failures",
+      "breakpoints": true
     }
   ]
 }

@@ -19,7 +19,9 @@
 		showToast
 	} from '$lib/components';
 	import { ApiError } from '$lib/api';
+	import { onMount } from 'svelte';
 	import { brand } from '$lib/brand';
+	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
 	import { changePassphrase, commonErrorKey, deleteAccount } from '$lib/auth';
 	import { i18n, setLocale, t, type Locale } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
@@ -33,6 +35,10 @@
 		signOut
 	} from '$lib/session.svelte';
 	import { theme, type Theme } from '$lib/theme.svelte';
+
+	onMount(() => {
+		void loadPrivacySettings();
+	});
 
 	let locale = $state<Locale>(i18n.locale);
 	$effect(() => setLocale(locale));
@@ -119,7 +125,9 @@
 					? 'me.danger.wrong'
 					: err instanceof ApiError && err.code === 'last_guardian'
 						? 'me.danger.lastGuardian'
-						: commonErrorKey(err);
+						: err instanceof ApiError && err.code === 'last_admin'
+							? 'me.danger.lastAdmin'
+							: commonErrorKey(err);
 		} finally {
 			deleteBusy = false;
 		}
@@ -180,9 +188,15 @@
 		<p class="small muted">{t('me.about.version', { version: __APP_VERSION__ })}</p>
 		<p>{t('me.about.purpose', { app: brand.displayName })}</p>
 		<p>{t('me.about.notMedical')}</p>
-		<p>{t('me.about.privacy')}</p>
 		<p class="small muted">{t('me.about.licence')}</p>
 	</div>
+</Card>
+
+<Card title={t('me.privacy.heading')}>
+	<p class="small muted hint">{t('me.privacy.lead')}</p>
+	<a class="drow" href={resolve('/privacy')} data-testid="privacy-link">
+		<span>{t('me.privacy.open')}</span><Icon name="chevron-right" size={20} />
+	</a>
 </Card>
 
 <Card title={t('me.export.heading')}>
@@ -192,11 +206,11 @@
 	</a>
 </Card>
 
-<div class="danger">
+<div class="danger" id="delete-account">
 	<Card title={t('me.danger.heading')}>
 		<div class="about">
 			<p>{t('me.danger.lead')}</p>
-			<p class="small muted">{t('me.danger.backups')}</p>
+			<p class="small muted">{t('me.danger.backups', { days: privacy.settings.backupRetentionDays })}</p>
 			<p class="small muted">
 				{t('me.danger.export')}
 				<a class="inline-link" href={resolve('/me/export')}>{t('me.danger.exportLink')}</a>
@@ -235,7 +249,7 @@
 <Sheet bind:open={deleteOpen} title={t('me.danger.confirmTitle')}>
 	<form onsubmit={submitDelete} class="form" novalidate>
 		<p>{t('me.danger.lead')}</p>
-		<p class="small muted">{t('me.danger.backups')}</p>
+		<p class="small muted">{t('me.danger.backups', { days: privacy.settings.backupRetentionDays })}</p>
 		<p class="small muted">{t('me.danger.withdraw')}</p>
 		<TextField
 			label={t('me.danger.passphrase')}

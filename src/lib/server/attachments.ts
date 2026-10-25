@@ -33,7 +33,7 @@ export function putBlob(userId: string, id: string, bytes: Buffer, now = Date.no
 	const early = db().select().from(attachments).where(eq(attachments.id, id)).get();
 	if (early && early.userId !== userId) return { ok: false, reason: 'not_found' };
 
-	mkdirSync(blobDir(userId), { recursive: true });
+	mkdirSync(blobDir(userId), { recursive: true, mode: 0o700 });
 	const target = blobPath(userId, id);
 	const tmp = `${target}.${process.pid}.tmp`;
 	writeFileSync(tmp, bytes, { mode: 0o600 });

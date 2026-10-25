@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_KDF } from '$lib/crypto/keys';
+import { CONSENT_VERSION } from '$lib/consent';
 import { checkApiRequest, isApiPath } from './guard';
 import { RateLimiter } from './rate-limit';
 import { DEFAULT_KDF_PARAMS, fakeSalt } from './secret';
@@ -109,6 +110,19 @@ describe('rate limiter', () => {
 		expect(l.take('u').ok).toBe(true);
 	});
 
+	it('never keeps more than maxKeys buckets: idle ones go first, then the least recently used', () => {
+		const { l, clock } = limiter({ maxKeys: 3 });
+		for (const k of ['a', 'b', 'c']) l.take(k);
+		l.take('a'); // a is now the most recently used
+		l.take('d'); // full and nothing idle: evicts b
+		expect(l.size()).toBe(3);
+		clock.t += 120_000; // everything is idle again
+		l.take('e');
+		expect(l.size()).toBe(1);
+		for (let i = 0; i < 50; i++) l.fail(`flood${i}`);
+		expect(l.size()).toBeLessThanOrEqual(3);
+	});
+
 	it('sweeps idle buckets', () => {
 		const { l, clock } = limiter();
 		l.take('x');
@@ -196,9 +210,11 @@ describe('input validation', () => {
 	});
 
 	it('validates consent and tokens', () => {
-		expect(parseConsent({ version: '1', textHash: 'abcDEF12-_', locale: 'da' })).not.toBeNull();
-		expect(parseConsent({ version: '1', textHash: 'abc', locale: 'fr' })).toBeNull();
+		expect(parseConsent({ version: CONSENT_VERSION, textHash: 'abcDEF12-_', locale: 'da' })).not.toBeNull();
+		expect(parseConsent({ version: CONSENT_VERSION, textHash: 'abc', locale: 'fr' })).toBeNull();
 		expect(parseConsent({ version: '', textHash: 'abc', locale: 'en' })).toBeNull();
+		// New signups agree to the newest text only; older versions are for display.
+		expect(parseConsent({ version: 'consent-v1', textHash: 'abcDEF12-_', locale: 'en' })).toBeNull();
 		expect(parseToken(newToken())).not.toBeNull();
 		expect(parseToken('short')).toBeNull();
 	});

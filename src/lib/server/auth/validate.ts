@@ -1,4 +1,5 @@
 /** Input validation for the auth API. Every function returns the parsed value, or null when invalid. */
+import { CONSENT_VERSION } from '$lib/consent';
 
 export const USERNAME_RE = /^[a-z0-9._-]{3,32}$/;
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -63,7 +64,7 @@ export function parseKdfParams(v: unknown): KdfParamsIn | null {
 export function parseConsent(v: unknown): { version: string; textHash: string; locale: 'en' | 'da' } | null {
 	if (!isObject(v)) return null;
 	const { version, textHash, locale } = v;
-	if (typeof version !== 'string' || version.length < 1 || version.length > 32) return null;
+	if (version !== CONSENT_VERSION) return null; // new accounts always agree to the newest text
 	if (typeof textHash !== 'string' || !HASH_RE.test(textHash)) return null;
 	if (locale !== 'en' && locale !== 'da') return null;
 	return { version, textHash, locale };

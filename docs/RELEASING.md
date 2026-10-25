@@ -160,9 +160,25 @@ docker manifest inspect ghcr.io/vlory73/mydaybook:0.2.0 | grep architecture    #
 
 ### Step 8: Merge main back into develop
 
+Do this straight after publishing the release, before any other pull request is merged into `develop`.
+
 On GitHub, open a pull request with **base: `develop`** and **compare: `main`**, titled
 `Merge main back into develop after 0.2.0`. Wait for CI, then merge it with **"Create a merge commit"** (not squash). This
 brings the version bump and changelog into `develop`.
+
+**If GitHub says "This branch is out-of-date" and won't merge**, `develop` got a new commit in the meantime. Do **not** click
+"Update branch": on this pull request the branch being updated is `main`, so it would put unreleased work into `main`. Close
+the pull request instead and use a helper branch that starts from `main` and already contains `develop` (or ask a Claude
+session to do it):
+
+```sh
+git fetch origin
+git switch -c merge/0.2.0-into-develop origin/main
+git merge origin/develop
+git push -u origin merge/0.2.0-into-develop
+```
+
+Then open a pull request from `merge/0.2.0-into-develop` into `develop` and merge it with **"Create a merge commit"**.
 
 Afterwards, delete the `release/v0.2.0` branch if GitHub didn't do it automatically.
 

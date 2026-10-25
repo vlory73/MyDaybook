@@ -428,7 +428,7 @@ describe('wider areas', () => {
 		expect(regionName('en', 'belly', 'midline')).toBe('Whole belly');
 		expect(regionName('da', 'belly', 'midline')).toBe('Hele maven');
 		expect(regionName('en', 'upper_belly', 'midline')).toBe('Upper belly');
-		expect(regionName('da', 'lower_belly', 'midline')).toBe('Nedre mave');
+		expect(regionName('da', 'lower_belly', 'midline')).toBe('Undermave');
 		expect(regionName('en', 'back', 'midline')).toBe('Whole back');
 		expect(regionName('da', 'back', 'midline')).toBe('Hele ryggen');
 		expect(regionName('en', 'upper_belly', 'left')).toBe('Your left upper belly'); // old data keeps its name

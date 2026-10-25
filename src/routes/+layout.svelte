@@ -70,12 +70,15 @@
 	const path = $derived(page.url.pathname.replace(/\/+$/, '') || '/');
 	const isPublic = $derived(path === '/login' || path === '/join' || path === '/recover');
 	const isOpen = $derived(path === '/styleguide');
+	// The Privacy page is for everyone: signed out, locked (no keys needed) and unlocked (with the tab bar).
+	const isPrivacy = $derived(path === '/privacy');
 	const signedIn = $derived(session.status === 'locked' || session.status === 'unlocked');
 
 	type View = 'loading' | 'unreachable' | 'blank' | 'public' | 'open' | 'locked' | 'app';
 	const view = $derived.by<View>(() => {
 		if (session.status === 'loading') return session.loadFailed ? 'unreachable' : 'loading';
 		if (isOpen) return 'open';
+		if (isPrivacy) return session.status === 'unlocked' ? 'app' : 'public';
 		if (isPublic) {
 			// A signed-in person has no business on /login or /join; /recover stays reachable from the Unlock view.
 			if (signedIn && (path !== '/recover' || session.status === 'unlocked')) return 'blank';

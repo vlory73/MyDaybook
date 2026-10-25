@@ -133,6 +133,16 @@ async function currentAuthKey(passphrase: string): Promise<Uint8Array> {
 	return authKey;
 }
 
+/** Runs `fn` with the base64 auth key for the passphrase (re-authentication), and wipes the key afterwards. */
+export async function withAuthKey<T>(passphrase: string, fn: (authKey: string) => Promise<T>): Promise<T> {
+	const key = await currentAuthKey(passphrase);
+	try {
+		return await fn(toB64(key));
+	} finally {
+		zero(key);
+	}
+}
+
 /** Throws ApiError 401 `invalid_credentials` when the current passphrase is wrong. */
 export async function changePassphrase(current: string, next: string): Promise<void> {
 	const identity = session.identity;

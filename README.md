@@ -11,7 +11,9 @@ Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
 ## Documents
 
 - [Spec](docs/SPEC.md) (source of truth) · [Architecture](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md)
+- [Self-hosting guide](docs/SELF_HOSTING.md) · [Home Pi agreement](docs/HOME_DEPLOYMENT.md) · [Releasing](docs/RELEASING.md)
 - [Design proposal](design/README.md) with phone-width mockups
+- [GDPR templates](docs/gdpr/README.md) for operators: privacy notice, record of processing, DPIA, breach response, transfers
 
 ## Developer quick start
 
@@ -28,20 +30,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and checks, and [SECURIT
 
 ## Run on a Raspberry Pi (Docker)
 
-The full self-hosting guide (`docs/SELF_HOSTING.md`) arrives in M7. The home setup is described in
-[docs/HOME_DEPLOYMENT.md](docs/HOME_DEPLOYMENT.md). You need a reverse proxy with HTTPS in front (the app speaks plain HTTP on
-`127.0.0.1:8090` only).
+The full guide is [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md): HTTPS and proxy, install, updates, rollback, backups, moving,
+settings and troubleshooting. You need a reverse proxy with HTTPS in front (the app speaks plain HTTP on `127.0.0.1:8090` only).
+Short version, from `~/mydaybook` with `compose.yaml` and `.env` (from `.env.example`) of the release you want:
 
 ```sh
-mkdir -p ~/mydaybook/data ~/mydaybook/backup && cd ~/mydaybook
-sudo chown 1000:1000 data backup                 # the container runs as uid:gid 1000:1000 (PUID/PGID in .env if different)
-# copy compose.yaml and .env.example (as .env) from this repo at the release tag, then edit PUBLIC_URL, VAPID_SUBJECT etc. in .env
-docker run --rm ghcr.io/vlory73/mydaybook:0.10.0 gen-secrets >> .env   # appends the session secret and VAPID key pair without printing them
+docker run --rm ghcr.io/vlory73/mydaybook:1.0.0 gen-secrets >> .env   # appends the secrets without printing them
 chmod 600 .env
 docker compose up -d
-curl -s http://127.0.0.1:8090/healthz            # {"status":"ok"}
 docker compose exec app cli invite --admin       # first admin: run in your own terminal, the link is a one-time credential
 ```
 
-Upgrades are deliberate: change the image tag in `compose.yaml`, then `docker compose up -d`. Releasing and upgrading step
-by step: [docs/RELEASING.md](docs/RELEASING.md).
+Upgrades are deliberate: change the image tag in `compose.yaml`, then `docker compose up -d`.

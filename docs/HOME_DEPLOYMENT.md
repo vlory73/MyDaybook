@@ -53,6 +53,11 @@ adjustable: `BACKUP_TIME=HH:MM` in `~/mydaybook/.env` (Pi local time, apply with
 30 minutes after the dump. File names, folders, retention and the "newer than 26 h" check are unchanged. The NAS is off from
 01:00 until the morning; both times also stay clear of the 02:00–03:00 hour that daylight-saving changes skip or repeat.
 
+**Stated backup period (`BACKUP_RETENTION_DAYS`, default 14):** the sign-up text, the Privacy page and the Delete account text tell
+people how long encrypted backup copies live after an account is deleted. That number is the NAS retention above (14 days), which is
+also the setting's default, so **no change on the Pi is needed**. Only if the NAS retention ever changes, set `BACKUP_RETENTION_DAYS`
+to the same number in `~/mydaybook/.env`. `OPERATOR_NAME` / `OPERATOR_CONTACT` (optional) fill "Who runs this server" on the Privacy page.
+
 **Commands in the container:** the image has a `cli` command (`/usr/local/bin/cli`, which runs `node /app/scripts/cli.mjs`).
 There is no `build/cli.js`. From `~/mydaybook` on the Pi:
 
