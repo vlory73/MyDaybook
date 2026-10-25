@@ -1977,3 +1977,228 @@ for (const scheme of ['light', 'dark'] as const) {
 		await snap(page, 'privacy-signed-out', scheme, true);
 	});
 }
+
+// Danish review (SCREENSHOTS=danish-review): the main screens with the app language set to Dansk, light only.
+test('danish review screens', async ({ page }) => {
+	test.skip(folder !== 'danish-review', 'danish-review screenshots only');
+	test.setTimeout(240_000);
+	await prepare(page, 'light');
+	await page.addInitScript(() => localStorage.setItem('locale', 'da'));
+	const account = await signUpApiAccount(page.request);
+	const start = addDays(todayKey(), -60);
+	const medBase = { v: 1, type: 'medication', times: [], start, reminders: false, archived: false };
+	const [gluten, , heartRate, mg, omep, para] = await seedRecords(page.request, account, [
+		watchRecord,
+		watchRecord2,
+		heartRateType,
+		{
+			...medBase,
+			name: 'Magnesium',
+			strength: 250,
+			unit: 'mg',
+			form: 'tablet',
+			schedule: { kind: 'daily' },
+			times: [
+				{ time: '08:00', amount: '1' },
+				{ time: '20:00', amount: '1' }
+			],
+			reminders: true
+		},
+		{
+			...medBase,
+			name: 'Omeprazol',
+			strength: 20,
+			unit: 'mg',
+			form: 'capsule',
+			schedule: { kind: 'weekdays', days: [1, 3, 5] },
+			times: [{ time: '07:30', amount: '1' }]
+		},
+		{
+			...medBase,
+			name: 'Paracetamol',
+			strength: 500,
+			unit: 'mg',
+			form: 'tablet',
+			schedule: { kind: 'as_needed' }
+		}
+	]);
+	const head = (side: string, intensity: number, qualities: string[] = []) => ({
+		region: 'temple',
+		side,
+		space: '2d-head-front-v2',
+		u: 0.5,
+		v: 0.5,
+		intensity,
+		qualities
+	});
+	const extra: object[] = [];
+	[1, 2, 4, 5, 7, 9, 10, 12, 13].forEach((d, i) => {
+		const h = 7 + (i % 5) * 3;
+		extra.push({
+			v: 1,
+			type: 'pain',
+			at: at(d, h),
+			points: [head(i % 2 ? 'left' : 'right', 3 + (i % 4) * 2, i % 2 ? ['constant'] : ['throbbing'])],
+			headache: {
+				started: at(d, h),
+				stopped: at(d, Math.min(h + 4, 23)),
+				...(i % 3 === 0 ? { before: ['vision'] } : {}),
+				worseWithActivity: i % 2 === 0,
+				light: i % 2 === 0,
+				sound: i % 4 === 0,
+				...(i % 3 === 0 ? { trigger: 'Dårlig søvn' } : {})
+			}
+		});
+		if (i % 2 === 0)
+			extra.push({
+				v: 1,
+				type: 'gut',
+				at: at(d, h + 1),
+				symptoms: [{ kind: 'nausea', intensity: 1 + (i % 5) }],
+				flags: []
+			});
+		extra.push({
+			v: 1,
+			type: 'dose',
+			at: at(d, h + 1, 10),
+			medicationId: para!,
+			status: 'taken',
+			amount: '500 mg'
+		});
+	});
+	for (let ago = 1; ago <= 29; ago++) {
+		const day = addDays(todayKey(), -ago);
+		extra.push({
+			v: 1,
+			type: 'dose',
+			at: at(ago, 8, ago % 11 === 0 ? 40 : 3),
+			medicationId: mg!,
+			status: ago % 11 === 0 ? 'late' : 'taken',
+			amount: '1',
+			slot: { date: day, time: '08:00' }
+		});
+		const weekday = new Date(day + 'T12:00:00').getDay();
+		if ([1, 3, 5].includes(weekday))
+			extra.push({
+				v: 1,
+				type: 'dose',
+				at: at(ago, 7, 33),
+				medicationId: omep!,
+				status: ago === 9 ? 'skipped' : 'taken',
+				amount: '1',
+				slot: { date: day, time: '07:30' }
+			});
+	}
+	extra.push(
+		...[
+			[2, 'Sov dårligt, vågnede to gange. Knæet var stift om morgenen.'],
+			[9, 'Lang gåtur med hunden, ingen problemer bagefter.']
+		].map(([ago, text]) => ({ v: 1, type: 'note', at: at(ago as number, 20), text, tags: [] }))
+	);
+	await seedRecords(page.request, account, [...month(gluten!, heartRate!), ...heatSet(), ...extra]);
+
+	await page.goto('/');
+	await page.getByLabel('Adgangssætning', { exact: true }).fill(account.passphrase);
+	await page.getByRole('button', { name: 'Lås op' }).click();
+	await expect(page.getByRole('heading', { name: 'Din dagbog er låst' })).toBeHidden({ timeout: 30_000 });
+	await page.getByRole('navigation', { name: 'Hovedmenu' }).waitFor();
+	await page.waitForTimeout(800);
+	await snap(page, 'today', 'light');
+
+	await page.getByRole('button', { name: 'Registrér noget' }).click();
+	await page.waitForTimeout(400);
+	await snap(page, 'quicklog', 'light');
+
+	const sheet = page.getByRole('dialog', { name: 'Hvor mærker du det?' });
+	await page.getByRole('button', { name: 'Smerter', exact: true }).click();
+	await page.waitForTimeout(400);
+	await sheet.locator('svg[role=group]').getByRole('button', { name: 'Dit højre knæ', exact: true }).click();
+	await sheet
+		.getByRole('radiogroup', { name: /^Intensitet/ })
+		.getByRole('radio', { name: '6', exact: true })
+		.click();
+	await sheet.getByRole('button', { name: 'Pulserende', exact: true }).click();
+	await page.waitForTimeout(300);
+	await snap(page, 'pain-sheet', 'light');
+	await sheet.getByRole('button', { name: 'Luk' }).first().click();
+	await page.waitForTimeout(400);
+
+	await page.getByRole('link', { name: 'Medicin', exact: true }).click();
+	await page.getByRole('heading', { name: 'Medicin', level: 1 }).waitFor();
+	await page.waitForTimeout(500);
+	await snap(page, 'meds', 'light', true);
+
+	await page.getByRole('link', { name: 'Udvikling', exact: true }).click();
+	await page.getByRole('heading', { name: 'Udvikling', level: 1 }).waitFor();
+	await page.waitForTimeout(800);
+	await snap(page, 'trends', 'light', true);
+
+	await page.getByRole('link', { name: 'Mig', exact: true }).click();
+	await page.getByTestId('privacy-link').waitFor();
+	await snap(page, 'me', 'light', true);
+	await page.getByTestId('privacy-link').click();
+	await page.getByTestId('agreement').waitFor();
+	await snap(page, 'privacy', 'light', true);
+
+	// Reports: print views, report language Dansk.
+	await page.getByRole('link', { name: 'Udvikling', exact: true }).click();
+	await page
+		.getByRole('link', { name: 'Rapporter' })
+		.or(page.getByRole('button', { name: 'Rapporter' }))
+		.first()
+		.click();
+	await page.getByRole('heading', { name: 'Rapporter', level: 1 }).waitFor();
+	await snap(page, 'reports', 'light');
+
+	await page.getByTestId('report-headache').click();
+	await page.getByRole('heading', { name: 'Hovedpinedagbog', level: 1 }).waitFor();
+	await page.getByLabel('Navn på rapporten').fill('Sam Eksempel');
+	await snap(page, 'headache-options', 'light', true);
+	const shoot = async (
+		layout: RegExp | null,
+		file: string,
+		make: string,
+		sheetsSel: string,
+		size: [number, number]
+	) => {
+		await page.emulateMedia({ media: 'screen', colorScheme: 'light' });
+		if (layout) await page.getByRole('radio', { name: layout }).click();
+		await page.getByRole('radio', { name: 'Dansk' }).click();
+		await page.getByRole('button', { name: make }).click();
+		await page.waitForTimeout(500);
+		await page.emulateMedia({ media: 'print', colorScheme: 'light' });
+		await page.setViewportSize({ width: size[0], height: size[1] });
+		await page.waitForTimeout(300);
+		const sheets = page.locator(sheetsSel);
+		const total = await sheets.count();
+		for (let i = 0; i < total; i++) {
+			await page.evaluate(() => window.scrollTo(0, 0));
+			const box = (await sheets.nth(i).boundingBox())!;
+			await page.screenshot({
+				path: `docs/screenshots/${folder}/${file}-side${i + 1}.png`,
+				fullPage: true,
+				clip: { x: box.x, y: box.y, width: box.width, height: box.height }
+			});
+		}
+		await page.setViewportSize({ width: 375, height: 812 });
+		await page.emulateMedia({ media: 'screen', colorScheme: 'light' });
+		await page.waitForTimeout(200);
+		await page.getByRole('button', { name: /^Tilbage$/ }).click();
+	};
+	await page.getByRole('button', { name: 'Seneste 28 dage' }).click();
+	await shoot(/Overskuelig tabel/, 'headache-table', 'Lav rapport', '.report-sheet', [1122, 793]);
+	await shoot(/Som papirskemaet/, 'headache-form', 'Lav rapport', '.report-sheet', [793, 1122]);
+
+	await page.getByRole('link', { name: 'Tilbage til Rapporter' }).click();
+	await page.getByTestId('report-doctor').click();
+	await page.getByRole('heading', { name: 'Lægebesøg', level: 1 }).waitFor();
+	await page.getByLabel('Navn på rapporten').fill('Sam Eksempel');
+	await page
+		.getByLabel(/^Spørgsmål til din læge/)
+		.fill('Kan jeg flytte tidspunktet for omeprazol? Rygsmerterne er værre om aftenen.');
+	await page.waitForTimeout(500);
+	await page.setViewportSize({ width: 375, height: 1500 });
+	await snap(page, 'doctor-options', 'light', true);
+	await page.setViewportSize({ width: 375, height: 812 });
+	await shoot(null, 'doctor', 'Se rapporten', '.dsheet, .report-sheet', [794, 1123]);
+});
