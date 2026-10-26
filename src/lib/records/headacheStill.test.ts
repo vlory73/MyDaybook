@@ -4,9 +4,8 @@ import { isHeadacheDetails, isOpenHeadache } from './headache';
 import {
 	NOT_NOW_KEY,
 	REST_HOURS,
-	floorHour,
 	headacheCard,
-	hourOf,
+	minuteOf,
 	isResting,
 	openHeadache,
 	readNotNow,
@@ -107,15 +106,15 @@ describe('open headache selection', () => {
 describe('resting and Not now', () => {
 	const open = rec('h', pain(local(23, 9), [head(5)]));
 
-	it('rests for three hours counted from the noted hour', () => {
+	it('rests for three hours counted from the noted time', () => {
 		expect(REST_HOURS).toBe(3);
-		const seen = withLastSeen(open.payload as PainPayload, hourOf(NOW)); // 17:00
+		const seen = withLastSeen(open.payload as PainPayload, formatAt(NOW)); // 17:20
 		expect(isResting(seen, NOW)).toBe(true);
-		expect(isResting(seen, new Date(2026, 9, 23, 19, 59))).toBe(true);
-		expect(isResting(seen, new Date(2026, 9, 23, 20, 0))).toBe(false);
+		expect(isResting(seen, new Date(2026, 9, 23, 20, 19))).toBe(true);
+		expect(isResting(seen, new Date(2026, 9, 23, 20, 20))).toBe(false);
 		expect(isResting(open.payload as PainPayload, NOW)).toBe(false);
 		expect(headacheCard([{ ...open, payload: seen }], NOW, null)).toBeNull();
-		expect(headacheCard([{ ...open, payload: seen }], new Date(2026, 9, 23, 20, 5), null)?.id).toBe('h');
+		expect(headacheCard([{ ...open, payload: seen }], new Date(2026, 9, 23, 20, 25), null)?.id).toBe('h');
 	});
 
 	it('Not now hides the card for that entry today only', () => {
@@ -147,28 +146,31 @@ describe('resting and Not now', () => {
 	});
 });
 
-describe('stop hours', () => {
-	it('offers now, then up to three earlier hours, never before the start', () => {
-		const chips = stopChoices(local(23, 14), NOW).map(timeOf);
-		expect(chips).toEqual(['17:00', '16:00', '15:00', '14:00']);
-		expect(stopChoices(local(23, 16), NOW).map(timeOf)).toEqual(['17:00', '16:00']);
-		expect(stopChoices(local(23, 17), NOW).map(timeOf)).toEqual(['17:00']);
-		expect(stopChoices(local(23, 9), NOW)).toHaveLength(4);
+describe('stop times', () => {
+	it('offers now, 1 hour ago and 2 hours ago, to the exact minute', () => {
+		const chips = stopChoices(local(23, 14), NOW);
+		expect(chips.map((c) => c.hoursAgo)).toEqual([0, 1, 2]);
+		expect(chips.map((c) => timeOf(c.at))).toEqual(['17:20', '16:20', '15:20']);
 	});
 
-	it('treats a start in the middle of an hour as that hour', () => {
-		const start = local(23, 16, 40);
-		expect(timeOf(floorHour(start))).toBe('16:00');
-		expect(stopChoices(start, NOW).map(timeOf)).toEqual(['17:00', '16:00']);
-		expect(stopOk(start, hourOf(new Date(2026, 9, 23, 16, 50)), new Date(2026, 9, 23, 16, 50))).toBe(true);
+	it('leaves out choices before the start', () => {
+		expect(stopChoices(local(23, 16, 30), NOW).map((c) => timeOf(c.at))).toEqual(['17:20']);
+		expect(stopChoices(local(23, 16, 20), NOW).map((c) => timeOf(c.at))).toEqual(['17:20', '16:20']);
+		expect(stopChoices(local(23, 17, 20), NOW).map((c) => timeOf(c.at))).toEqual(['17:20']);
+		expect(stopChoices(local(23, 9), NOW)).toHaveLength(3);
 	});
 
-	it('accepts a stop from the start hour to the current hour only', () => {
-		const start = local(23, 14);
-		expect(stopOk(start, local(23, 14), NOW)).toBe(true);
-		expect(stopOk(start, local(23, 17), NOW)).toBe(true);
-		expect(stopOk(start, local(23, 13), NOW)).toBe(false);
-		expect(stopOk(start, local(23, 18), NOW)).toBe(false);
+	it('drops the seconds of the current time', () => {
+		expect(timeOf(minuteOf(new Date(2026, 9, 23, 17, 20, 45)))).toBe('17:20');
+		expect(minuteOf(new Date(2026, 9, 23, 17, 20, 45)).slice(17, 19)).toBe('00');
+	});
+
+	it('accepts a stop from the start minute to now only', () => {
+		const start = local(23, 14, 10);
+		expect(stopOk(start, local(23, 14, 10), NOW)).toBe(true);
+		expect(stopOk(start, local(23, 17, 20), NOW)).toBe(true);
+		expect(stopOk(start, local(23, 14, 9), NOW)).toBe(false);
+		expect(stopOk(start, local(23, 17, 21), NOW)).toBe(false);
 	});
 
 	it('writes the stop on the same entry and drops the old flags', () => {
@@ -186,7 +188,7 @@ describe('stop hours', () => {
 		});
 	});
 
-	it('writes the noted hour without touching anything else', () => {
+	it('writes the noted time without touching anything else', () => {
 		const p = pain(local(23, 14), [head(5)], { started: local(23, 14), trigger: 'x' });
 		expect(withLastSeen(p, local(23, 17)).headache).toEqual({
 			started: local(23, 14),
@@ -198,12 +200,12 @@ describe('stop hours', () => {
 
 describe('lastSeen in the record', () => {
 	const started = '2026-10-18T14:00:00+02:00';
-	it('is an hour, not before the start', () => {
+	it('is a time, not before the start', () => {
 		expect(isHeadacheDetails({ started, lastSeen: '2026-10-18T17:00:00+02:00' })).toBe(true);
 		expect(isHeadacheDetails({ started, lastSeen: started })).toBe(true);
 		expect(isHeadacheDetails({ lastSeen: '2026-10-18T17:00:00+02:00' })).toBe(true);
 		expect(isHeadacheDetails({ started, lastSeen: '2026-10-18T13:00:00+02:00' })).toBe(false);
-		expect(isHeadacheDetails({ started, lastSeen: '2026-10-18T17:30:00+02:00' })).toBe(false);
+		expect(isHeadacheDetails({ started, lastSeen: '2026-10-18T17:30:00+02:00' })).toBe(true);
 		expect(isHeadacheDetails({ started, lastSeen: 'later' })).toBe(false);
 	});
 });

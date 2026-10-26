@@ -142,13 +142,26 @@ export function continuedDays(
 	return out;
 }
 
+/**
+ * The time shown in a report column. "Clean table" shows the time as entered ("14:29"). "Like the paper form" asks for
+ * the nearest hour, so it rounds to "HH:00" (minute 30 rounds up). A time from 23:30 would round into the next day,
+ * so it shows 23:00 on its own day instead.
+ */
+export function reportTime(at: string, layout: ReportLayout): string {
+	if (layout === 'table') return timeOf(at);
+	const hour = Number(at.slice(11, 13));
+	const up = Number(at.slice(14, 16)) >= 30 ? 1 : 0;
+	return `${String(Math.min(23, hour + up)).padStart(2, '0')}:00`;
+}
+
 function mergeDay(
 	day: string,
 	entries: PainPayload[],
 	gut: GutPayload[],
 	medicines: MedicineItem[],
 	now: Date,
-	continuedFrom: string | null
+	continuedFrom: string | null,
+	layout: ReportLayout
 ): HeadacheDay {
 	const details = entries.flatMap((e) => (e.headache ? [e.headache] : []));
 	const starts = details
@@ -168,12 +181,12 @@ function mergeDay(
 	const side = headacheSides(points);
 	const triggers = details.flatMap((h) => (h.trigger ? [h.trigger.trim()] : [])).filter((x) => x !== '');
 	return {
-		started: starts[0] ? timeOf(starts[0]) : null,
+		started: starts[0] ? reportTime(starts[0], layout) : null,
 		stopped: lastStop
-			? { time: timeOf(lastStop), plusDays: Math.max(0, daysBetween(day, dayKey(lastStop))) }
+			? { time: reportTime(lastStop, layout), plusDays: Math.max(0, daysBetween(day, dayKey(lastStop))) }
 			: null,
 		stillGoing,
-		lastSeen: !lastStop && !stillGoing && lastSeen ? timeOf(lastSeen) : null,
+		lastSeen: !lastStop && !stillGoing && lastSeen ? reportTime(lastSeen, layout) : null,
 		continuedFrom,
 		continuedOnly: entries.length === 0,
 		before: HEADACHE_BEFORE.filter((b) => details.some((h) => h.before?.includes(b))),
@@ -225,7 +238,8 @@ export function buildHeadacheReport(
 		const meds = medicines.get(day) ?? [];
 		return {
 			day,
-			headache: entries || from ? mergeDay(day, entries ?? [], gut.get(day) ?? [], meds, now, from) : null
+			headache:
+				entries || from ? mergeDay(day, entries ?? [], gut.get(day) ?? [], meds, now, from, layout) : null
 		};
 	});
 	const empty = !columns.some((c) => c.headache);

@@ -1,6 +1,6 @@
 /**
  * The headache card on Today, the pure parts: which open headache to ask about, when to rest the card, and the stop
- * hours it offers. An open headache is a headache entry with no stop time (see `isOpenHeadache`). The card only
+ * times it offers. An open headache is a headache entry with no stop time (see `isOpenHeadache`). The card only
  * asks and repeats what the person entered; no end time is ever guessed or written without the person choosing it.
  * What is kept on the device is an entry id and a day, never health data.
  */
@@ -10,25 +10,22 @@ import type { PainPayload } from './pain';
 import { STILL_THERE_DAYS } from './painEntry';
 import { dayDate, dayKey, formatAt, instant, todayKey } from './time';
 
-/** After "Still there" the card rests until this many hours past the hour that was noted. */
+/** After "Still there" the card rests until this many hours past the time that was noted. */
 export const REST_HOURS = 3;
-/** How many earlier hours the "When did it stop?" card offers next to "Now". */
-export const STOP_CHOICES = 3;
+/** How many "N hours ago" choices the "When did it stop?" card offers next to "Now" (1 hour ago, 2 hours ago). */
+export const STOP_CHOICES = 2;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 
 /** When the headache started: the entered start, else the time the entry was made. */
 export const headacheStart = (p: PainPayload): string => p.headache?.started ?? p.at;
 
-/** The hour of an instant, rounded down, written like `started` ("2026-10-23T17:00:00+02:00"). */
-export function hourOf(at: Date): string {
+/** An instant written like any `at` ("2026-10-23T17:42:00+02:00"), to the minute: the seconds are dropped. */
+export function minuteOf(at: Date): string {
 	const d = new Date(at);
-	d.setMinutes(0, 0, 0);
+	d.setSeconds(0, 0);
 	return formatAt(d);
 }
-
-/** A time rounded down to its hour, keeping its offset ("14:30" becomes "14:00"). */
-export const floorHour = (at: string): string => `${at.slice(0, 13)}:00:00${at.slice(19)}`;
 
 export type OpenHeadache = {
 	id: string;
@@ -94,29 +91,35 @@ export function headacheCard(
 	return open;
 }
 
-/** "Now" (the current hour) first, then up to `max` earlier hours, never before the start's hour. */
-export function stopChoices(start: string, now: Date, max = STOP_CHOICES): string[] {
-	const first = hourOf(now);
-	const floor = instant(floorHour(start));
-	const out = [first];
-	for (let i = 1; i <= max; i++) {
-		const at = hourOf(new Date(instant(first) - i * HOUR_MS));
+export type StopChoice = {
+	/** 0 is "Now", 1 is "1 hour ago", 2 is "2 hours ago". */
+	hoursAgo: number;
+	/** The stop time, to the minute, counted back from now. */
+	at: string;
+};
+
+/** "Now" first, then up to `max` choices of whole hours ago from now, never before the start. */
+export function stopChoices(start: string, now: Date, max = STOP_CHOICES): StopChoice[] {
+	const floor = instant(start) - (instant(start) % 60_000);
+	const out: StopChoice[] = [];
+	for (let i = 0; i <= max; i++) {
+		const at = minuteOf(new Date(now.getTime() - i * HOUR_MS));
 		if (instant(at) < floor) break;
-		out.push(at);
+		out.push({ hoursAgo: i, at });
 	}
 	return out;
 }
 
-/** A stop is fine when it is not before the start's hour and not after the current hour. */
+/** A stop is fine when it is not before the start (to the minute) and not after now. */
 export const stopOk = (start: string, stopped: string, now: Date): boolean =>
-	instant(stopped) >= instant(floorHour(start)) && instant(stopped) <= instant(hourOf(now));
+	instant(stopped) >= instant(start) - (instant(start) % 60_000) && instant(stopped) <= now.getTime();
 
-/** "Still there": the entry with the hour noted. Nothing else changes. */
-export function withLastSeen(p: PainPayload, hour: string): PainPayload {
-	return { ...p, headache: { ...p.headache, lastSeen: hour } };
+/** "Still there": the entry with the time noted. Nothing else changes. */
+export function withLastSeen(p: PainPayload, at: string): PainPayload {
+	return { ...p, headache: { ...p.headache, lastSeen: at } };
 }
 
-/** "It's gone": the entry with its stop hour; the legacy flag and the "last seen" note are no longer needed. */
+/** "It's gone": the entry with its stop time; the legacy flag and the "last seen" note are no longer needed. */
 export function withStopped(p: PainPayload, stopped: string): PainPayload {
 	const { stillGoing, lastSeen, ...rest } = p.headache ?? {};
 	void stillGoing;

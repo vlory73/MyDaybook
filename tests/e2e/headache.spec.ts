@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
+import { addDays, todayKey } from '../../src/lib/records/time';
 import { DATA_DIR, signUpAndSignIn, unlockWith } from './helpers';
 
 // Headache details on the Pain entry (M5, branch 1). Synthetic data only. Each test uses its own account.
@@ -30,11 +31,10 @@ async function templePoint(page: Page, n: number) {
 	await intensity(page, n).click();
 }
 
-const nextDay = (day: string) => {
-	const d = new Date(`${day}T12:00:00Z`);
-	d.setUTCDate(d.getUTCDate() + 1);
-	return d.toISOString().slice(0, 10);
-};
+/** A value for the date-time fields: today plus `days`, at `hhmm`. */
+const when = (days: number, hhmm: string) => `${addDays(todayKey(), days)}T${hhmm}`;
+const started = (page: Page) => sheet(page).getByLabel('Started', { exact: true });
+const stopped = (page: Page) => sheet(page).getByLabel('Stopped', { exact: true });
 
 test('a head point shows the section; every field is saved and shown again', async ({ page }) => {
 	await signUpAndSignIn(page);
@@ -45,10 +45,8 @@ test('a head point shows the section; every field is saved and shown again', asy
 	await button(page, 'Constant').click();
 	await expect(button(page, 'Constant')).toHaveAttribute('aria-pressed', 'true');
 
-	await sheet(page).getByLabel('Hour Started').selectOption('22');
-	const stopDay = sheet(page).getByLabel('Day Stopped');
-	await stopDay.fill(nextDay(await stopDay.inputValue()));
-	await sheet(page).getByLabel('Hour Stopped').selectOption('02');
+	await started(page).fill(when(0, '22:40'));
+	await stopped(page).fill(when(1, '02:15'));
 	await button(page, 'Vision').click();
 	await button(page, 'Speech').click();
 	await group(page, 'Worse with physical activity, e.g. stairs?')
@@ -64,11 +62,8 @@ test('a head point shows the section; every field is saved and shown again', asy
 	await timeline(page).getByText('Your left temple 6', { exact: true }).click();
 	await expect(details(page)).toHaveAttribute('aria-expanded', 'true');
 	await expect(button(page, 'Constant')).toHaveAttribute('aria-pressed', 'true');
-	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('22');
-	await expect(sheet(page).getByLabel('Hour Stopped')).toHaveValue('02');
-	await expect(sheet(page).getByLabel('Day Stopped')).toHaveValue(
-		nextDay(await sheet(page).getByLabel('Day Started').inputValue())
-	);
+	await expect(started(page)).toHaveValue(when(0, '22:40'));
+	await expect(stopped(page)).toHaveValue(when(1, '02:15'));
 	await expect(button(page, 'Vision')).toHaveAttribute('aria-pressed', 'true');
 	await expect(button(page, 'Speech')).toHaveAttribute('aria-pressed', 'true');
 	await expect(button(page, 'Feeling (e.g. tingling, numbness)')).toHaveAttribute('aria-pressed', 'false');
@@ -88,20 +83,20 @@ test('an empty Stopped means still going (with a hint); an entry with no details
 	await signUpAndSignIn(page);
 	await openSheet(page);
 	await templePoint(page, 3);
-	await sheet(page).getByLabel('Hour Started').selectOption('07');
+	await sheet(page).getByLabel('Started', { exact: true }).fill(when(0, '07:05'));
 	// There is no "Still going" chip any more: an empty Stopped says it.
 	await expect(button(page, 'Still going')).toHaveCount(0);
 	await expect(
 		sheet(page).getByText("Leave empty while it's still going. Today will ask you later.")
 	).toBeVisible();
-	await expect(sheet(page).getByLabel('Hour Stopped')).toBeEnabled();
+	await expect(stopped(page)).toBeEnabled();
 	await button(page, 'Save 1 point').click();
 	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 3', { exact: true }).click();
-	await expect(sheet(page).getByLabel('Hour Stopped')).toHaveValue('');
-	await sheet(page).getByLabel('Hour Stopped').selectOption('09');
+	await expect(stopped(page)).toHaveValue('');
+	await stopped(page).fill(when(0, '09:30'));
 	await expect(sheet(page).getByText(/^Leave empty while/)).toBeHidden();
-	await sheet(page).getByLabel('Hour Stopped').selectOption('');
+	await stopped(page).fill('');
 	await expect(sheet(page).getByText(/^Leave empty while/)).toBeVisible();
 
 	// A second entry without any answer is saved without details and reopens collapsed.
@@ -113,7 +108,7 @@ test('an empty Stopped means still going (with a hint); an entry with no details
 	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Your left temple 2', { exact: true }).click();
 	await expect(details(page)).toHaveAttribute('aria-expanded', 'false');
-	await expect(sheet(page).getByLabel('Hour Started')).toBeHidden();
+	await expect(started(page)).toBeHidden();
 });
 
 test('"This is a headache" shows the section without a point on the head', async ({ page }) => {
@@ -127,17 +122,17 @@ test('"This is a headache" shows the section without a point on the head', async
 	await expect(details(page)).toBeHidden();
 	await sheet(page).getByLabel('This is a headache').check();
 	await expect(details(page)).toBeVisible();
-	await sheet(page).getByLabel('Hour Started').selectOption('09');
+	await sheet(page).getByLabel('Started', { exact: true }).fill(when(0, '09:10'));
 	// Back on the body the tick is gone but what was entered stays.
 	await button(page, 'Back to the body').click();
 	await expect(sheet(page).getByLabel('This is a headache')).toBeHidden();
 	await expect(details(page)).toBeVisible();
-	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
+	await expect(started(page)).toHaveValue(when(0, '09:10'));
 	await button(page, 'Save 1 point').click();
 	await expect(sheet(page)).toBeHidden();
 	await timeline(page).getByText('Right side of your neck 4', { exact: true }).click();
 	await expect(details(page)).toBeVisible();
-	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('09');
+	await expect(started(page)).toHaveValue(when(0, '09:10'));
 });
 
 test('"Log nausea" returns to the Pain sheet with the draft, which then shows the nausea', async ({
@@ -147,7 +142,7 @@ test('"Log nausea" returns to the Pain sheet with the draft, which then shows th
 	await openSheet(page);
 	await templePoint(page, 5);
 	await button(page, 'Throbbing').click();
-	await sheet(page).getByLabel('Hour Started').selectOption('10');
+	await sheet(page).getByLabel('Started', { exact: true }).fill(when(0, '10:25'));
 	await sheet(page).getByLabel('Possible trigger').fill('bright screen');
 	await expect(sheet(page).getByText('Nausea: none')).toBeVisible();
 	await button(page, 'Log nausea').click();
@@ -166,7 +161,7 @@ test('"Log nausea" returns to the Pain sheet with the draft, which then shows th
 	await expect(sheet(page).getByRole('heading', { name: 'Your left temple' })).toBeVisible();
 	await expect(intensity(page, 5)).toBeChecked();
 	await expect(button(page, 'Throbbing')).toHaveAttribute('aria-pressed', 'true');
-	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('10');
+	await expect(started(page)).toHaveValue(when(0, '10:25'));
 	await expect(sheet(page).getByLabel('Possible trigger')).toHaveValue('bright screen');
 
 	// Closing the nausea sheet without saving also comes back.
@@ -194,7 +189,7 @@ test('headache details survive reload and unlock, and the server only sees ciphe
 	const trigger = `synthetic trigger ${randomBytes(5).toString('hex')}`;
 	await openSheet(page);
 	await templePoint(page, 7);
-	await sheet(page).getByLabel('Hour Started').selectOption('20');
+	await sheet(page).getByLabel('Started', { exact: true }).fill(when(0, '20:35'));
 	await button(page, 'Vision').click();
 	await sheet(page).getByLabel('Possible trigger').fill(trigger);
 	await button(page, 'Save 1 point').click();
@@ -207,7 +202,7 @@ test('headache details survive reload and unlock, and the server only sees ciphe
 	await unlockWith(page, user.passphrase);
 	await expect(line).toBeVisible({ timeout: 15_000 });
 	await line.click();
-	await expect(sheet(page).getByLabel('Hour Started')).toHaveValue('20');
+	await expect(started(page)).toHaveValue(when(0, '20:35'));
 	await expect(button(page, 'Vision')).toHaveAttribute('aria-pressed', 'true');
 	await expect(sheet(page).getByLabel('Possible trigger')).toHaveValue(trigger);
 
@@ -260,18 +255,14 @@ test('the headache section and zone labels are in Danish', async ({ page }) => {
 	await expect(dialog.getByRole('button', { name: 'Registrér kvalme' })).toBeVisible();
 });
 
-test('an earlier stop hour defaults to the next day, and a stop before the start cannot be saved', async ({
-	page
-}) => {
+test('a stop before the start cannot be saved', async ({ page }) => {
 	await signUpAndSignIn(page);
 	await openSheet(page);
 	await templePoint(page, 4);
-	await sheet(page).getByLabel('Hour Started').selectOption('22');
-	await sheet(page).getByLabel('Hour Stopped').selectOption('02');
-	const start = await sheet(page).getByLabel('Day Started').inputValue();
-	await expect(sheet(page).getByLabel('Day Stopped')).toHaveValue(nextDay(start));
+	await started(page).fill(when(0, '22:40'));
+	await stopped(page).fill(when(1, '02:15'));
 	await expect(button(page, 'Save 1 point')).toBeEnabled();
-	await sheet(page).getByLabel('Day Stopped').fill(start);
+	await stopped(page).fill(when(0, '22:39'));
 	await expect(sheet(page).getByRole('alert')).toHaveText('Stopped is before it started.');
 	await expect(button(page, 'Save 1 point')).toBeDisabled();
 });

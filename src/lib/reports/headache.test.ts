@@ -10,6 +10,7 @@ import {
 	mergeYesNo,
 	numericDayMonth,
 	periodLabel,
+	reportTime,
 	weekdayLabel
 } from './headache';
 
@@ -373,5 +374,40 @@ describe('continued days', () => {
 			['2026-10-13', '2026-10-11'],
 			['2026-10-14', '2026-10-11']
 		]);
+	});
+});
+
+describe('report times', () => {
+	it('rounds to the nearest hour for the paper form, 23:30 and later stays on its day as 23:00', () => {
+		const t = (hhmm: string) => `2026-10-14T${hhmm}:00+02:00`;
+		expect(reportTime(t('14:29'), 'form')).toBe('14:00');
+		expect(reportTime(t('14:30'), 'form')).toBe('15:00');
+		expect(reportTime(t('09:00'), 'form')).toBe('09:00');
+		expect(reportTime(t('23:29'), 'form')).toBe('23:00');
+		expect(reportTime(t('23:40'), 'form')).toBe('23:00');
+		expect(reportTime(t('14:29'), 'table')).toBe('14:29');
+		expect(reportTime(t('23:40'), 'table')).toBe('23:40');
+	});
+
+	it('uses the layout for started, stopped and last seen', () => {
+		const done = pain('2026-10-14T20:00:00+02:00', [point(5)], {
+			started: '2026-10-14T18:29:00+02:00',
+			stopped: '2026-10-14T23:40:00+02:00'
+		});
+		const open = pain('2026-10-14T20:00:00+02:00', [point(5)], {
+			started: '2026-10-14T18:30:00+02:00',
+			lastSeen: '2026-10-14T19:45:00+02:00'
+		});
+		const get = (r: StoredRecord, layout: 'table' | 'form') =>
+			buildHeadacheReport([r], days, layout, NOW)
+				.pages.flat()
+				.find((c) => c.day === '2026-10-14')!.headache!;
+		expect(get(done, 'form').started).toBe('18:00');
+		expect(get(done, 'form').stopped).toEqual({ time: '23:00', plusDays: 0 });
+		expect(get(done, 'table').started).toBe('18:29');
+		expect(get(done, 'table').stopped).toEqual({ time: '23:40', plusDays: 0 });
+		expect(get(open, 'form').started).toBe('19:00');
+		expect(get(open, 'form').lastSeen).toBe('20:00');
+		expect(get(open, 'table').lastSeen).toBe('19:45');
 	});
 });
