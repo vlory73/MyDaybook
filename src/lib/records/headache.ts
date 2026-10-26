@@ -18,7 +18,7 @@ export const MAX_TRIGGER = 200;
  * Optional details on a pain entry (entry level, not per point). Everything is optional; `{}` only says "this is a
  * headache" (the person ticked it without a point on the head).
  *
- * `started` and `stopped` are full local date-times at minute precision ("2026-10-18T22:40:00+02:00"; entries made before 1.1 hold whole hours, which stay valid), so a headache
+ * `started` and `stopped` are full local date-times at minute precision ("2026-10-18T22:40:00+02:00"; entries made before 1.0.1 hold whole hours, which stay valid), so a headache
  * that ended the next day needs no extra field and the offset travels with the value like every `at`. An empty
  * `stopped` means "still going" (Today asks later); `lastSeen` is the time the person last said "Still there" on
  * Today. `stillGoing` is legacy: old entries still parse, nothing writes it any more, and it reads like no `stopped`.

@@ -1137,12 +1137,11 @@
 	}
 	.when {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--sp-2);
+		flex-direction: column;
+		gap: 4px;
+		margin-top: var(--sp-2);
 	}
 	.when .label {
-		width: 5.5rem;
 		margin: 0;
 	}
 	.field {
@@ -1155,7 +1154,7 @@
 		font-size: var(--fs-callout);
 	}
 	.when .field {
-		flex: 1;
+		width: 100%;
 	}
 	.field.text {
 		width: 100%;

@@ -333,7 +333,7 @@ All fields are optional and unknown keys are refused:
   "trigger": "skipped lunch" } }
 ```
 
-`started` and `stopped` are full local date-times at minute precision (like every `at`, offset kept; entries made before 1.1
+`started` and `stopped` are full local date-times at minute precision (like every `at`, offset kept; entries made before 1.0.1
 hold whole hours, which stay valid), so a stop on the next day needs no extra field; `stopped` is not before `started`. An empty `stopped` means the
 headache is still going; Today asks about it later (see below). `"lastSeen"` (same format, not before `started`) is
 the time of the last "Still there" tap on Today. `"stillGoing": true` is **legacy**: old entries still parse and read the
