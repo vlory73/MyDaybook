@@ -278,7 +278,6 @@ export const en = {
 	'outbox.signout.stay': 'Stay signed in',
 	'outbox.signout.go_one': 'Sign out and lose it',
 	'outbox.signout.go_other': 'Sign out and lose them',
-	'photo.offline': 'Photos need a connection.',
 
 	'recover.title': 'Get back into your diary',
 	'recover.lead': 'Enter your username and the recovery key you saved when you joined.',
@@ -649,6 +648,15 @@ export const en = {
 	'watch.remove': 'Remove {name}',
 	'watch.removed': '{name} removed from your list',
 
+	'photo.queued': 'Waiting to upload',
+	'photo.queuedNote': 'Encrypted on this device. It is uploaded together with the entry.',
+	'photo.offlineTile': "Photo shows when you're online",
+	'photo.offlineNote': "Saved photos show when you're online.",
+	'outbox.card.photosRefused_one': "{count} photo couldn't be uploaded",
+	'outbox.card.photosRefused_other': "{count} photos couldn't be uploaded",
+	'outbox.card.photosRefusedBody_one': "The server didn't accept it. It is still saved on this device.",
+	'outbox.card.photosRefusedBody_other':
+		"The server didn't accept them. They are still saved on this device.",
 	'photo.label': 'Photos',
 	'photo.add': 'Add photo',
 	'photo.addAnother': 'Add another photo',

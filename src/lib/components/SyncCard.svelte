@@ -4,6 +4,7 @@
 	import Icon from './Icon.svelte';
 	import Spinner from './Spinner.svelte';
 	import { i18n, t, tn } from '$lib/i18n/index.svelte';
+	import { photoQueue } from '$lib/photos/queue.svelte';
 	import { openEntry } from '$lib/records/openEntry';
 	import { flushOutbox, store } from '$lib/records/store.svelte';
 
@@ -11,6 +12,7 @@
 	const ids = $derived(Object.keys(store.pending));
 	const refusedIds = $derived(ids.filter((id) => store.pending[id] === 'refused'));
 	const waiting = $derived(ids.length - refusedIds.length);
+	const photosRefused = $derived(photoQueue.refused);
 	// "Show entry" needs something to show: a refused delete has no entry on screen any more.
 	const showable = $derived(refusedIds.find((id) => store.items[id]));
 
@@ -24,7 +26,7 @@
 	});
 </script>
 
-{#if ids.length > 0}
+{#if ids.length > 0 || photosRefused > 0}
 	<Card title={t('outbox.card.title')}>
 		<div class="sync" data-testid="sync-card">
 			{#if waiting > 0}
@@ -35,6 +37,24 @@
 						{#if store.flushing}<Spinner size={16} />{/if}{t('outbox.card.tryNow')}
 					</Button>
 				</div>
+			{/if}
+			{#if photosRefused > 0}
+				<p class="line warn" data-testid="photos-refused">
+					<Icon name="clock-alert" size={18} /><strong
+						>{tn('outbox.card.photosRefused', photosRefused)}</strong
+					>
+				</p>
+				<p class="small muted">{tn('outbox.card.photosRefusedBody', photosRefused)}</p>
+				{#if refusedIds.length === 0}
+					<div class="buttons">
+						<Button
+							variant="soft"
+							size="sm"
+							disabled={store.flushing}
+							onclick={() => flushOutbox({ retryRefused: true })}>{t('outbox.card.tryAgain')}</Button
+						>
+					</div>
+				{/if}
 			{/if}
 			{#if refusedIds.length > 0}
 				<p class="line warn">

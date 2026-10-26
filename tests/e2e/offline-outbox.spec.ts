@@ -173,16 +173,3 @@ test('a change the server refuses stays on the device and is shown on the Sync c
 	await card.getByRole('button', { name: 'Try again' }).click();
 	await expect(card).toBeHidden({ timeout: 15_000 });
 });
-
-test('the photo button says photos need a connection while offline', async ({ page }) => {
-	await stubPush(page, endpointOf());
-	await signUpAndSignIn(page);
-	await setOffline(page, true);
-	await page.getByRole('button', { name: 'Log something' }).click();
-	await page.getByRole('button', { name: 'Note', exact: true }).click();
-	const button = sheet(page).getByTestId('photo-offline');
-	await expect(button).toBeDisabled();
-	await expect(button).toContainText('Photos need a connection.');
-	await setOffline(page, false);
-	await expect(button).toBeHidden();
-});
