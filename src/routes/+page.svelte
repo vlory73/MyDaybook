@@ -30,7 +30,8 @@
 	import { noteStillThere, stopHeadache } from '$lib/records/headacheActions';
 	import {
 		headacheCard,
-		hourOf,
+		minuteOf,
+		type StopChoice,
 		readNotNow,
 		stopChoices,
 		stopOk,
@@ -39,7 +40,15 @@
 		type OpenHeadache
 	} from '$lib/records/headacheStill';
 	import { readDismissed, stillThere, writeDismissed, type StillThere } from '$lib/records/painEntry';
-	import { dayDate, formatAt, timeOf, todayKey, weekDays } from '$lib/records/time';
+	import {
+		dayDate,
+		formatAt,
+		fromLocalInput,
+		timeOf,
+		todayKey,
+		toLocalInput,
+		weekDays
+	} from '$lib/records/time';
 
 	const now = new Date();
 	const hour = now.getHours();
@@ -164,28 +173,23 @@
 		writeNotNow(browser ? localStorage : undefined, notNow);
 	}
 	let stopping = $state(false);
-	let stopChips = $state<string[]>([]);
+	let stopChips = $state<StopChoice[]>([]);
 	let stopPick = $state('');
 	let earlier = $state(false);
-	let eDay = $state('');
-	let eHour = $state('');
-	const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-	const hourLabel = (h: string) =>
-		new Date(2000, 0, 1, Number(h)).toLocaleTimeString(i18n.locale, { hour: 'numeric' });
+	/** The "Earlier…" field, as the date-time input writes it. */
+	let eAt = $state('');
 	function hOpen(h: OpenHeadache) {
 		const now = new Date();
 		stopChips = stopChoices(h.start, now);
-		stopPick = stopChips[0]!;
+		stopPick = stopChips[0]!.at;
 		earlier = false;
-		eDay = todayKey(now);
-		eHour = stopChips[0]!.slice(11, 13);
+		eAt = toLocalInput(minuteOf(now));
 		stopping = true;
 	}
-	const stopValue = (): string =>
-		earlier && eDay && eHour !== '' ? `${eDay}T${eHour}:00:00${hourOf(new Date()).slice(19)}` : stopPick;
+	const stopValue = (): string => (earlier ? (fromLocalInput(eAt) ?? '') : stopPick);
 	const stopValid = (h: OpenHeadache) => {
 		const v = stopValue();
-		return v !== '' && !Number.isNaN(Date.parse(v)) && stopOk(h.start, v, new Date());
+		return v !== '' && stopOk(h.start, v, new Date());
 	};
 	async function hGone(h: OpenHeadache) {
 		try {
@@ -267,30 +271,29 @@
 		{#if stopping}
 			<p class="stop-q" id="stopq">{t('headache.card.stopQ')}</p>
 			<div class="chips" role="group" aria-labelledby="stopq">
-				{#each stopChips as c, i (c)}
+				{#each stopChips as c (c.at)}
 					<Chip
-						selected={!earlier && stopPick === c}
+						selected={!earlier && stopPick === c.at}
 						onclick={() => {
-							stopPick = c;
+							stopPick = c.at;
 							earlier = false;
-						}}>{i === 0 ? t('headache.card.now', { time: clock(c) }) : clock(c)}</Chip
+						}}
+						>{c.hoursAgo === 0
+							? t('headache.card.now', { time: clock(c.at) })
+							: t(`headache.card.ago.${c.hoursAgo}` as MessageKey, { time: clock(c.at) })}</Chip
 					>
 				{/each}
 				<Chip selected={earlier} onclick={() => (earlier = !earlier)}>{t('headache.card.earlier')}</Chip>
 			</div>
 			{#if earlier}
-				<div class="pick">
-					<input
-						type="date"
-						class="field"
-						aria-label={t('headache.card.stopDay')}
-						max={todayKey()}
-						bind:value={eDay}
-					/>
-					<select class="field" aria-label={t('headache.card.stopHour')} bind:value={eHour}>
-						{#each hours as hh (hh)}<option value={hh}>{hourLabel(hh)}</option>{/each}
-					</select>
-				</div>
+				<input
+					type="datetime-local"
+					class="field"
+					aria-label={t('headache.card.stopAt')}
+					min={toLocalInput(h.start)}
+					max={toLocalInput(minuteOf(new Date()))}
+					bind:value={eAt}
+				/>
 			{/if}
 			{#if !stopValid(h)}<p class="warn" role="alert">{t('headache.order')}</p>{/if}
 			<div class="hc-actions">
@@ -531,13 +534,9 @@
 		gap: var(--sp-2);
 		margin-bottom: var(--sp-3);
 	}
-	.pick {
-		display: flex;
-		gap: var(--sp-2);
-		margin-bottom: var(--sp-3);
-	}
 	.field {
-		flex: 1;
+		width: 100%;
+		margin-bottom: var(--sp-3);
 		min-width: 0;
 		min-height: 44px;
 		padding: 0 var(--sp-3);

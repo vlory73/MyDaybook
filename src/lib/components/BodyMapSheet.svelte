@@ -61,7 +61,7 @@
 		mostLoggedPlace,
 		type JoinPlan
 	} from '$lib/records/episodes';
-	import { addDays, dayKey, formatAt, fromLocalInput, instant, todayKey } from '$lib/records/time';
+	import { dayKey, formatAt, fromLocalInput, instant, toLocalInput, todayKey } from '$lib/records/time';
 	import type { GutPayload, Payload } from '$lib/records/types';
 
 	/**
@@ -98,15 +98,12 @@
 	let entryNote: string | undefined;
 	let panel: HTMLElement | undefined = $state();
 
-	// Headache details (entry level). Day and hour are kept apart so the hour picker stays simple; an empty day means
-	// "the day of the entry". Hours are "00".."23" or "" (not set).
+	// Headache details (entry level). Started and stopped are date-time fields ("YYYY-MM-DDTHH:mm", or "" when not set).
 	let headacheTick = $state(false);
 	let hOpen = $state(false);
-	let hStartDay = $state('');
-	let hStartHour = $state('');
-	let hStopDay = $state('');
-	let hStopHour = $state('');
-	/** The hour of the last "Still there" on Today. Kept as stored; the sheet never asks for it. */
+	let hStart = $state('');
+	let hStop = $state('');
+	/** The time of the last "Still there" on Today. Kept as stored; the sheet never asks for it. */
 	let hLastSeen = $state<string | undefined>();
 	let hBefore = $state<HeadacheBefore[]>([]);
 	let hActivity = $state<boolean | undefined>();
@@ -164,16 +161,8 @@
 	const hasHead = $derived(points.some((p) => isHeadPoint(p)));
 	const showHeadache = $derived(hasHead || headacheTick);
 	const entryDay = $derived(time.slice(0, 10));
-	const offset = $derived((fromLocalInput(time) ?? formatAt(new Date())).slice(19));
-	const hourAt = (day: string, hour: string) => `${day}T${hour}:00:00${offset}`;
-	const startDay = $derived(hStartDay || entryDay);
-	/** Until the person picks a day, a stop is on the start day, or the day after when its hour is earlier. */
-	const stopDay = $derived(
-		hStopDay ||
-			(hStartHour !== '' && hStopHour !== '' && hStopHour < hStartHour ? addDays(startDay, 1) : startDay)
-	);
-	const startedAt = $derived(hStartHour === '' ? undefined : hourAt(startDay, hStartHour));
-	const stoppedAt = $derived(hStopHour === '' ? undefined : hourAt(stopDay, hStopHour));
+	const startedAt = $derived(hStart === '' ? undefined : (fromLocalInput(hStart) ?? undefined));
+	const stoppedAt = $derived(hStop === '' ? undefined : (fromLocalInput(hStop) ?? undefined));
 	const orderOk = $derived(
 		startedAt === undefined ||
 			stoppedAt === undefined ||
@@ -181,10 +170,6 @@
 			instant(stoppedAt) >= instant(startedAt)
 	);
 	const valid = $derived(complete && fromLocalInput(time) !== null && (!showHeadache || orderOk));
-	const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-	/** The hour as the phone writes it (12 or 24 hour), for the picker. */
-	const hourLabel = (h: string) =>
-		new Date(2000, 0, 1, Number(h)).toLocaleTimeString(i18n.locale, { hour: 'numeric' });
 	/** Nausea logged on the entry's day, in the diary's words (conversion in `headache.ts`). */
 	const nausea = $derived(
 		nauseaLevel(
@@ -211,10 +196,8 @@
 	};
 
 	const headacheDraft = () => ({
-		startDay: hStartDay,
-		startHour: hStartHour,
-		stopDay: hStopDay,
-		stopHour: hStopHour,
+		start: hStart,
+		stop: hStop,
 		lastSeen: hLastSeen,
 		before: [...hBefore],
 		activity: hActivity,
@@ -224,10 +207,8 @@
 	});
 
 	function fillHeadache(h: HeadacheDetails | undefined) {
-		hStartDay = h?.started?.slice(0, 10) ?? '';
-		hStartHour = h?.started?.slice(11, 13) ?? '';
-		hStopDay = h?.stopped?.slice(0, 10) ?? '';
-		hStopHour = h?.stopped?.slice(11, 13) ?? '';
+		hStart = h?.started ? toLocalInput(h.started) : '';
+		hStop = h?.stopped ? toLocalInput(h.stopped) : '';
 		hLastSeen = h?.lastSeen;
 		hBefore = [...(h?.before ?? [])];
 		hActivity = h?.worseWithActivity;
@@ -254,10 +235,8 @@
 			choosing = false;
 			headacheTick = d.tick;
 			hOpen = d.open;
-			hStartDay = d.h.startDay;
-			hStartHour = d.h.startHour;
-			hStopDay = d.h.stopDay;
-			hStopHour = d.h.stopHour;
+			hStart = d.h.start;
+			hStop = d.h.stop;
 			hLastSeen = d.h.lastSeen;
 			hBefore = d.h.before;
 			hActivity = d.h.activity;
@@ -642,33 +621,19 @@
 			</button>
 			{#if hOpen}
 				<div class="hd-body">
-					{#each [{ key: 'started', hourKey: 'start' }, { key: 'stopped', hourKey: 'stop' }] as row (row.key)}
+					{#each [{ key: 'started' }, { key: 'stopped' }] as row (row.key)}
 						{@const isStart = row.key === 'started'}
-						<div class="when" role="group" aria-label={t(`headache.${row.key}` as MessageKey)}>
+						<div class="when">
 							<span class="label">{t(`headache.${row.key}` as MessageKey)}</span>
-							<div class="pick">
-								<input
-									type="date"
-									class="field"
-									aria-label={t('headache.day') + ' ' + t(`headache.${row.key}` as MessageKey)}
-									value={isStart ? startDay : stopDay}
-									onchange={(e) =>
-										isStart ? (hStartDay = e.currentTarget.value) : (hStopDay = e.currentTarget.value)}
-								/>
-								<select
-									class="field"
-									aria-label={t('headache.hour') + ' ' + t(`headache.${row.key}` as MessageKey)}
-									value={isStart ? hStartHour : hStopHour}
-									onchange={(e) =>
-										isStart ? (hStartHour = e.currentTarget.value) : (hStopHour = e.currentTarget.value)}
-								>
-									<option value="">{t('headache.hour.none')}</option>
-									{#each hours as h (h)}
-										<option value={h}>{hourLabel(h)}</option>
-									{/each}
-								</select>
-							</div>
-							{#if !isStart && hStopHour === ''}
+							<input
+								type="datetime-local"
+								class="field"
+								aria-label={t(`headache.${row.key}` as MessageKey)}
+								value={isStart ? hStart : hStop}
+								onchange={(e) =>
+									isStart ? (hStart = e.currentTarget.value) : (hStop = e.currentTarget.value)}
+							/>
+							{#if !isStart && hStop === ''}
 								<p class="warn stop-hint">{t('headache.stopped.hint')}</p>
 							{/if}
 						</div>
@@ -1180,12 +1145,6 @@
 		width: 5.5rem;
 		margin: 0;
 	}
-	.pick {
-		display: flex;
-		gap: var(--sp-2);
-		flex: 1;
-		min-width: 0;
-	}
 	.field {
 		min-height: 44px;
 		min-width: 0;
@@ -1195,7 +1154,7 @@
 		background: var(--surface-2);
 		font-size: var(--fs-callout);
 	}
-	.pick .field {
+	.when .field {
 		flex: 1;
 	}
 	.field.text {
