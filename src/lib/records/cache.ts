@@ -5,8 +5,10 @@
  * If IndexedDB is unavailable every function degrades to "empty cache": the app then re-downloads everything.
  */
 import type { CachedRecord } from './codec';
+import type { OutboxRow } from './outbox';
 
 const STORE = 'records';
+const OUTBOX = 'outbox';
 const META = 'meta';
 const CURSOR_KEY = 'cursor';
 
@@ -29,10 +31,13 @@ function done(tx: IDBTransaction): Promise<void> {
 
 function open(userId: string): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
-		const req = indexedDB.open(cacheName(userId), 1);
+		const req = indexedDB.open(cacheName(userId), 2);
 		req.onupgradeneeded = () => {
-			req.result.createObjectStore(STORE, { keyPath: 'id' });
-			req.result.createObjectStore(META);
+			// Version 1 had records and meta; version 2 adds the outbox. Existing data is kept.
+			const db = req.result;
+			if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
+			if (!db.objectStoreNames.contains(META)) db.createObjectStore(META);
+			if (!db.objectStoreNames.contains(OUTBOX)) db.createObjectStore(OUTBOX, { keyPath: 'id' });
 		};
 		req.onsuccess = () => resolve(req.result);
 		req.onerror = () => reject(req.error);
@@ -86,5 +91,94 @@ export async function deleteCache(userId: string): Promise<void> {
 		});
 	} catch {
 		// IndexedDB unavailable: nothing to delete.
+	}
+}
+
+/**
+ * Session ended on its own (signed out elsewhere, account disabled): the cached records and the cursor go, the outbox
+ * stays, so changes made offline can still be sent when the same person signs in again on this device.
+ */
+export async function clearRecordsKeepOutbox(userId: string): Promise<void> {
+	try {
+		const db = await open(userId);
+		try {
+			const tx = db.transaction([STORE, META], 'readwrite');
+			tx.objectStore(STORE).clear();
+			tx.objectStore(META).clear();
+			await done(tx);
+		} finally {
+			db.close();
+		}
+	} catch {
+		// Nothing to clear.
+	}
+}
+
+// ---- Outbox (ARCHITECTURE §5.1): sealed changes waiting to be sent. Ciphertext and wrapped keys only. ----
+
+/** All waiting changes, oldest first. Empty when IndexedDB is unavailable. */
+export async function readOutbox(userId: string): Promise<OutboxRow[]> {
+	try {
+		const db = await open(userId);
+		try {
+			const rows = (await request(
+				db.transaction(OUTBOX, 'readonly').objectStore(OUTBOX).getAll()
+			)) as OutboxRow[];
+			return rows.sort((a, b) => a.queuedAt - b.queuedAt);
+		} finally {
+			db.close();
+		}
+	} catch {
+		return [];
+	}
+}
+
+/** Stores (or replaces) the row of its record id. Returns false when it could not be stored. */
+export async function putOutboxRow(userId: string, row: OutboxRow): Promise<boolean> {
+	try {
+		const db = await open(userId);
+		try {
+			const tx = db.transaction(OUTBOX, 'readwrite');
+			tx.objectStore(OUTBOX).put(row);
+			await done(tx);
+			return true;
+		} finally {
+			db.close();
+		}
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Removes the row when it is still the version that was sent (same `queuedAt`); a newer change to the same record,
+ * queued while this one was on its way, stays. With `update`, changes the row instead (attempts, refused).
+ */
+export async function settleOutboxRow(
+	userId: string,
+	id: string,
+	queuedAt: number,
+	update?: Partial<OutboxRow>
+): Promise<void> {
+	try {
+		const db = await open(userId);
+		try {
+			const tx = db.transaction(OUTBOX, 'readwrite');
+			const rows = tx.objectStore(OUTBOX);
+			const get = rows.get(id);
+			// Inside the request callback, so the transaction is still active (no awaiting in between).
+			get.onsuccess = () => {
+				const current = get.result as OutboxRow | undefined;
+				if (current && current.queuedAt === queuedAt) {
+					if (update) rows.put({ ...current, ...update });
+					else rows.delete(id);
+				}
+			};
+			await done(tx);
+		} finally {
+			db.close();
+		}
+	} catch {
+		// The row stays and is tried again.
 	}
 }

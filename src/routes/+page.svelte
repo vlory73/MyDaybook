@@ -11,12 +11,14 @@
 		Icon,
 		Notice,
 		Spinner,
+		SyncPill,
 		WeekStrip,
 		type IconName
 	} from '$lib/components';
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { openPhoto } from '$lib/photos/viewer.svelte';
-	import { openDetail, openDose, openEpisode, openLog, openNote } from '$lib/records/editor.svelte';
+	import { openEpisode, openLog } from '$lib/records/editor.svelte';
+	import { openEntry } from '$lib/records/openEntry';
 	import { goneForEntry, markGone } from '$lib/records/episodeActions';
 	import { findProfile, greetingName } from '$lib/records/profile';
 	import { session } from '$lib/session.svelte';
@@ -76,24 +78,7 @@
 	// A plain sum of the day's drinks; shown only when there is one, never compared with anything.
 	const drinkMl = $derived(dayTotalMl(allRecords(), selected));
 
-	function open(id: string, type: string) {
-		if (type === 'note') openNote(id);
-		else if (
-			type === 'feeling' ||
-			type === 'sleep' ||
-			type === 'bowel' ||
-			type === 'gut' ||
-			type === 'food' ||
-			type === 'drink' ||
-			type === 'pain'
-		)
-			openLog(type, { id });
-		else if (type === 'measurement') openLog('measurement', { id });
-		else if (type === 'dose') {
-			const p = store.items[id]?.payload;
-			if (p?.type === 'dose') openDose({ id, medicationId: p.medicationId, slot: p.slot });
-		} else openDetail(id);
-	}
+	const open = openEntry;
 
 	// "Still there?": a quiet convenience when a body map entry is from the last two days. Dismissing it remembers
 	// only the id of that entry on this device; a newer entry brings the card back.
@@ -225,10 +210,10 @@
 
 <WeekStrip bind:selected {marked} />
 
+<SyncPill />
+
 {#if store.skipped > 0}
 	<Notice tone="warn">{tn('today.skipped', store.skipped)}</Notice>
-{:else if store.syncFailed}
-	<Notice>{t('today.syncFailed')}</Notice>
 {/if}
 
 {#if isToday}
@@ -357,12 +342,19 @@
 	</p>
 {/if}
 
-{#snippet lines(d: ReturnType<typeof describe>)}
+{#snippet lines(d: ReturnType<typeof describe>, id: string)}
 	<span class="t">{d.title}</span>
 	{#if d.summary}<span class="s">{d.summary}</span>{/if}
 	{#if d.tags?.length}
 		<span class="tags"
 			>{#each d.tags as tag, i (i)}<span class="tag">{tag}</span>{/each}</span
+		>
+	{/if}
+	{#if store.pending[id]}
+		<span class="unsynced" class:refused={store.pending[id] === 'refused'} data-testid="unsynced"
+			><Icon name={store.pending[id] === 'refused' ? 'clock-alert' : 'cloud-off'} size={14} />{t(
+				store.pending[id] === 'refused' ? 'outbox.marker.refused' : 'outbox.marker.waiting'
+			)}</span
 		>
 	{/if}
 {/snippet}
@@ -378,10 +370,10 @@
 					{#if record.payload.type === 'pain'}
 						<span class="text withfig">
 							<PainThumb points={record.payload.points} />
-							<span class="col">{@render lines(d)}</span>
+							<span class="col">{@render lines(d, record.id)}</span>
 						</span>
 					{:else}
-						<span class="text">{@render lines(d)}</span>
+						<span class="text">{@render lines(d, record.id)}</span>
 					{/if}
 				</button>
 				{#if record.payload.type === 'pain'}
@@ -629,6 +621,21 @@
 		line-clamp: 2;
 		overflow: hidden;
 		overflow-wrap: anywhere;
+	}
+	.unsynced {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		margin-top: 4px;
+		font-size: var(--fs-caption);
+		font-weight: var(--fw-medium);
+		color: var(--text-2);
+	}
+	.unsynced.refused {
+		color: var(--pain-ink);
+	}
+	.unsynced :global(.icon) {
+		flex: none;
 	}
 	.tags {
 		display: flex;

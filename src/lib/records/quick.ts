@@ -3,12 +3,13 @@ import { showToast } from '$lib/components/toast.svelte';
 import { t } from '$lib/i18n/index.svelte';
 import type { MessageKey } from '$lib/i18n/en';
 import { remove, save } from './store.svelte';
+import { savedText } from './syncText';
 import type { Payload } from './types';
 
 export async function quickSave(payload: Payload, message: MessageKey): Promise<void> {
 	try {
 		const id = await save(payload);
-		showToast(t(message), () => {
+		showToast(savedText(t(message), id), () => {
 			remove(id).catch(() => showToast(t('entry.error.delete')));
 		});
 	} catch {

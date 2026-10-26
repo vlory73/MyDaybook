@@ -11,6 +11,7 @@
 	import { asksForTime, initialDoseAt, medicineChoices, storedDoseAt } from '$lib/meds/doseTime';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
 	import { allRecords, remove, save, store } from '$lib/records/store.svelte';
+	import { deletedText, savedText } from '$lib/records/syncText';
 	import { fromLocalInput, toLocalInput, todayKey } from '$lib/records/time';
 	import type { DosePayload, DoseStatus } from '$lib/records/types';
 
@@ -96,9 +97,9 @@
 		busy = true;
 		failed = null;
 		try {
-			await save(p, id ?? undefined);
+			const savedId = await save(p, id ?? undefined);
 			closeEditors();
-			showToast(t('entry.saved'));
+			showToast(savedText(t('entry.saved'), savedId));
 		} catch {
 			failed = 'save';
 		} finally {
@@ -112,8 +113,9 @@
 		failed = null;
 		try {
 			const undo = await remove(id);
+			const message = deletedText(t('dose.toast.cleared'), id); // before the sheet closes: `id` goes with it
 			closeEditors();
-			showToast(t('dose.toast.cleared'), () => {
+			showToast(message, () => {
 				undo().then(
 					() => showToast(t('entry.restored')),
 					() => showToast(t('entry.error.save'))

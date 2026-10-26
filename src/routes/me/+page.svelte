@@ -13,7 +13,9 @@
 		Segmented,
 		SelectField,
 		Sheet,
+		SignOutWarning,
 		Spinner,
+		SyncCard,
 		TextField,
 		TotpCard,
 		WatchList,
@@ -28,6 +30,7 @@
 	import { i18n, setLocale, t, type Locale } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { checkNewPassphrase } from '$lib/passphrase';
+	import { outboxCount } from '$lib/records/store.svelte';
 	import {
 		AUTO_LOCK_CHOICES,
 		afterDeletion,
@@ -135,6 +138,14 @@
 		}
 	}
 
+	// Signing out forgets this device's copy, so changes that have not reached the server yet would be lost: ask first.
+	let warnOpen = $state(false);
+	let waitingCount = $state(0);
+	async function askSignOut() {
+		waitingCount = await outboxCount();
+		if (waitingCount > 0) warnOpen = true;
+		else await doSignOut();
+	}
 	async function doSignOut() {
 		await signOut();
 		await goto(resolve('/login'));
@@ -143,6 +154,7 @@
 
 <header class="page-head"><h1 class="large-title">{t('me.title')}</h1></header>
 
+<SyncCard />
 <Card title={t('me.account.heading')}>
 	<p class="who">
 		<Icon name="user-round" size={20} />
@@ -150,10 +162,11 @@
 	</p>
 	<div class="row">
 		<Button variant="soft" onclick={lock}><Icon name="lock" size={18} />{t('me.account.lockNow')}</Button>
-		<Button variant="quiet" onclick={doSignOut}>{t('me.account.signOut')}</Button>
+		<Button variant="quiet" onclick={askSignOut}>{t('me.account.signOut')}</Button>
 	</div>
 </Card>
 <NameCard />
+<SignOutWarning bind:open={warnOpen} count={waitingCount} onconfirm={doSignOut} />
 {#if session.identity?.role === 'admin'}
 	<Card title={t('me.admin.heading')}>
 		<p class="small muted hint">{t('me.admin.lead')}</p>

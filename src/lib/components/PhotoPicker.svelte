@@ -4,6 +4,7 @@
 	import Notice from './Notice.svelte';
 	import PhotoThumb from './PhotoThumb.svelte';
 	import Spinner from './Spinner.svelte';
+	import { connection } from '$lib/connection.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import type { PhotoDrafts } from '$lib/photos/drafts.svelte';
@@ -44,7 +45,12 @@
 				<Spinner size={22} /><span class="sr-only">{t('photo.preparing')}</span>
 			</div>
 		{/if}
-		{#if !drafts.full}
+		{#if !drafts.full && !connection.online}
+			<button type="button" class="add off" disabled data-testid="photo-offline">
+				<Icon name="camera" size={22} />
+				<span>{t('photo.offline')}</span>
+			</button>
+		{:else if !drafts.full}
 			<label class="add">
 				<Icon name="camera" size={22} />
 				<span>{drafts.items.length > 0 ? t('photo.addAnother') : t('photo.add')}</span>
@@ -135,6 +141,11 @@
 		font-size: var(--fs-callout);
 		font-weight: var(--fw-medium);
 		cursor: pointer;
+	}
+	.add.off {
+		cursor: default;
+		color: var(--text-3);
+		text-align: left;
 	}
 	.add:focus-within {
 		outline: 2px solid var(--focus);

@@ -114,6 +114,11 @@ export function syncReminderSchedule(schedule: ReminderSchedule): Promise<void> 
 	return run;
 }
 
+/** The connection is back: try the newest schedule again (an upload that failed offline is not remembered as done). */
+export function retryReminderSchedule(): void {
+	if (latest) void syncReminderSchedule(latest);
+}
+
 /** Must be called from the tap itself: iOS only shows the permission prompt for a user gesture. */
 export async function enableReminders(): Promise<void> {
 	if (reminders.busy) return;

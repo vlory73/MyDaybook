@@ -10,6 +10,7 @@
 	import { PhotoDrafts } from '$lib/photos/drafts.svelte';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
 	import { remove, save, store } from '$lib/records/store.svelte';
+	import { deletedText, savedText } from '$lib/records/syncText';
 	import { formatAt, fromLocalInput, toLocalInput } from '$lib/records/time';
 	import type { NotePayload } from '$lib/records/types';
 
@@ -51,10 +52,10 @@
 		try {
 			const refs = await photos.commit();
 			if (refs.length > 0) payload.attachments = refs;
-			await save(payload, id ?? undefined);
+			const savedId = await save(payload, id ?? undefined);
 			void photos.settle();
 			closeEditors();
-			showToast(t('note.saved'));
+			showToast(savedText(t('note.saved'), savedId));
 		} catch {
 			failed = photos.problem === 'upload' ? null : 'save';
 		} finally {
@@ -68,8 +69,9 @@
 		failed = null;
 		try {
 			const undo = await remove(id);
+			const message = deletedText(t('note.deleted'), id); // before the sheet closes: `id` goes with it
 			closeEditors();
-			showToast(t('note.deleted'), () => {
+			showToast(message, () => {
 				undo().then(
 					() => showToast(t('note.restored')),
 					() => showToast(t('note.error.save'))

@@ -8,6 +8,7 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { closeEditors, editor, leaveSheet, type LogKind } from '$lib/records/editor.svelte';
 	import { remove, save, store } from '$lib/records/store.svelte';
+	import { deletedText, savedText } from '$lib/records/syncText';
 	import { formatAt, toLocalInput } from '$lib/records/time';
 	import type { PhotoDrafts } from '$lib/photos/drafts.svelte';
 	import type { AttachmentRef, Payload } from '$lib/records/types';
@@ -92,10 +93,10 @@
 			} else if (kept?.length) {
 				p.attachments = kept;
 			}
-			await save(p, id ?? undefined);
+			const savedId = await save(p, id ?? undefined);
 			void photos?.settle();
 			leaveSheet();
-			showToast(t('entry.saved'));
+			showToast(savedText(t('entry.saved'), savedId));
 		} catch {
 			// A failed upload is reported by the photo picker itself.
 			failed = photos?.problem === 'upload' ? null : 'save';
@@ -110,8 +111,9 @@
 		failed = null;
 		try {
 			const undo = await remove(id);
+			const message = deletedText(t('entry.deleted'), id); // before the sheet closes: `id` goes with it
 			closeEditors();
-			showToast(t('entry.deleted'), () => {
+			showToast(message, () => {
 				undo().then(
 					() => showToast(t('entry.restored')),
 					() => showToast(t('entry.error.save'))
