@@ -2031,6 +2031,50 @@ for (const scheme of ['light', 'dark'] as const) {
 		await snap(page, 'privacy-agreement-text', scheme);
 	});
 
+	test(`offline unlock ${scheme}`, async ({ page }) => {
+		test.skip(folder !== 'offline-unlock', 'offline-unlock screenshots only');
+		test.setTimeout(90_000);
+		await prepare(page, scheme);
+		await stubPush(page, endpointOf());
+		const user = await signUpAndSignIn(page);
+		for (const text of ['Porridge with berries', 'Short walk after lunch']) {
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Note', exact: true }).click();
+			await page.getByLabel('Note text').fill(text);
+			await page.getByRole('button', { name: 'Save' }).click();
+			await page.getByText('Note saved').waitFor();
+			await page.getByText('Note saved').waitFor({ state: 'hidden', timeout: 15_000 });
+		}
+		await page.getByRole('link', { name: 'Me', exact: true }).click();
+		await page.getByRole('button', { name: 'Lock now' }).click();
+		await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+		await page.context().setOffline(true);
+		await page.evaluate(() => window.dispatchEvent(new Event('offline')));
+		await page.getByTestId('needs-connection').waitFor();
+		await snap(page, 'unlock-offline', scheme);
+		if (scheme === 'light') {
+			await page.getByRole('radio', { name: 'Dansk' }).click();
+			await page.getByText('Du er offline.').waitFor();
+			await snap(page, 'unlock-offline-da', scheme);
+			await page.getByRole('radio', { name: 'English' }).click();
+		}
+		await unlockWith(page, user.passphrase);
+		await page.getByRole('link', { name: 'Today', exact: true }).click();
+		await page.getByText('Short walk after lunch').waitFor({ timeout: 15_000 });
+		await snap(page, 'today-offline-unlocked', scheme);
+		await page.getByRole('link', { name: 'Me', exact: true }).click();
+		const card = page.getByTestId('reminders-card');
+		await card.getByTestId('needs-connection').waitFor();
+		await card.scrollIntoViewIfNeeded();
+		await snap(page, 'me-reminders-offline', scheme);
+		if (scheme === 'light') {
+			await page.getByRole('radio', { name: 'Dansk' }).click();
+			await card.getByText('Kræver forbindelse.').waitFor();
+			await card.scrollIntoViewIfNeeded();
+			await snap(page, 'me-reminders-offline-da', scheme);
+		}
+	});
+
 	test(`privacy signed out ${scheme}`, async ({ page }) => {
 		test.skip(folder !== 'age-and-consent', 'age-and-consent screenshots only');
 		await prepare(page, scheme);
