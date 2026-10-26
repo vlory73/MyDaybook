@@ -8,7 +8,8 @@
 	import { startAutoLock } from '$lib/autolock';
 	import { brand } from '$lib/brand';
 	import { i18n, t } from '$lib/i18n/index.svelte';
-	import { HIDDEN_LOCK_SECONDS, loadSession, lock, session } from '$lib/session.svelte';
+	import { watchConnection } from '$lib/connection.svelte';
+	import { HIDDEN_LOCK_SECONDS, loadSession, lock, onSessionRefreshed, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
 	import { closeEditors, openLog, openNote } from '$lib/records/editor.svelte';
 	import { againOptions, againPayload, lastUsedMeasureType, WEIGHT_ID, type Again } from '$lib/records/log';
@@ -90,7 +91,10 @@
 	const chrome = $derived(view === 'app');
 
 	onMount(() => {
+		watchConnection();
 		void loadSession();
+		// Back online while unlocked: the session was refreshed quietly, so fetch what changed meanwhile.
+		return onSessionRefreshed(() => syncIfStale(0));
 	});
 
 	$effect(() => {

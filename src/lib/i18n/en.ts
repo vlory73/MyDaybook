@@ -241,6 +241,8 @@ export const en = {
 	'unlock.wrong': "That passphrase doesn't match.",
 	'unlock.notYou': 'Not you? Sign out',
 	'unlock.forgot': 'Forgot your passphrase?',
+	'offline.unlock': "You're offline. You can still open what's saved on this device.",
+	'offline.needsConnection': "Needs a connection. Try again when you're online.",
 
 	'recover.title': 'Get back into your diary',
 	'recover.lead': 'Enter your username and the recovery key you saved when you joined.',

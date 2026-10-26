@@ -6,6 +6,7 @@
 		Card,
 		Icon,
 		NameCard,
+		NeedsConnection,
 		Notice,
 		PassphraseFields,
 		RemindersCard,
@@ -21,6 +22,7 @@
 	import { ApiError } from '$lib/api';
 	import { onMount } from 'svelte';
 	import { brand } from '$lib/brand';
+	import { connection } from '$lib/connection.svelte';
 	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
 	import { changePassphrase, commonErrorKey, deleteAccount } from '$lib/auth';
 	import { i18n, setLocale, t, type Locale } from '$lib/i18n/index.svelte';
@@ -171,9 +173,10 @@
 <RemindersCard />
 <Card title={t('me.passphrase.heading')}>
 	<p class="small muted hint">{t('me.passphrase.lead')}</p>
-	<Button variant="quiet" onclick={() => (changeOpen = true)}>
+	<Button variant="quiet" disabled={!connection.online} onclick={() => (changeOpen = true)}>
 		<Icon name="key-round" size={18} />{t('me.passphrase.open')}
 	</Button>
+	<NeedsConnection />
 </Card>
 <TotpCard />
 <Card title={t('me.theme.heading')}>
@@ -201,9 +204,16 @@
 
 <Card title={t('me.export.heading')}>
 	<p class="small muted hint">{t('me.export.lead')}</p>
-	<a class="drow" href={resolve('/me/export')} data-testid="export-link">
-		<span>{t('me.export.open')}</span><Icon name="chevron-right" size={20} />
-	</a>
+	{#if connection.online}
+		<a class="drow" href={resolve('/me/export')} data-testid="export-link">
+			<span>{t('me.export.open')}</span><Icon name="chevron-right" size={20} />
+		</a>
+	{:else}
+		<span class="drow off" data-testid="export-link" aria-disabled="true">
+			<span>{t('me.export.open')}</span><Icon name="chevron-right" size={20} />
+		</span>
+		<NeedsConnection />
+	{/if}
 </Card>
 
 <div class="danger" id="delete-account">
@@ -216,7 +226,10 @@
 				<a class="inline-link" href={resolve('/me/export')}>{t('me.danger.exportLink')}</a>
 			</p>
 			<p class="small muted">{t('me.danger.withdraw')}</p>
-			<Button variant="danger" onclick={() => (deleteOpen = true)}>{t('me.danger.open')}</Button>
+			<Button variant="danger" disabled={!connection.online} onclick={() => (deleteOpen = true)}>
+				{t('me.danger.open')}
+			</Button>
+			<NeedsConnection />
 		</div>
 	</Card>
 </div>
@@ -304,6 +317,9 @@
 		color: var(--text);
 		font-weight: var(--fw-semibold);
 		text-decoration: none;
+	}
+	.drow.off {
+		opacity: 0.55;
 	}
 	.drow :global(.icon) {
 		color: var(--text-3);

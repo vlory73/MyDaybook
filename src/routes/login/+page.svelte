@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { Button, Hero, Notice, Spinner, TextField } from '$lib/components';
+	import { Button, Hero, NeedsConnection, Notice, Spinner, TextField } from '$lib/components';
+	import { connection } from '$lib/connection.svelte';
 	import { focusOnMount } from '$lib/actions';
 	import { ApiError } from '$lib/api';
 	import { brand } from '$lib/brand';
@@ -104,7 +105,10 @@
 			/>
 			{#if error}<Notice tone="error">{t(error)}</Notice>{/if}
 			{#if busy}<p class="auth-busy" role="status"><Spinner size={22} />{t('login.working')}</p>{/if}
-			<Button type="submit" block size="lg" disabled={busy}>{t('login.totp.submit')}</Button>
+			<Button type="submit" block size="lg" disabled={busy || !connection.online}>
+				{t('login.totp.submit')}
+			</Button>
+			<NeedsConnection />
 			<Button variant="quiet" block onclick={startOver} disabled={busy}>{t('login.totp.back')}</Button>
 		</form>
 	{:else}
@@ -130,7 +134,10 @@
 			/>
 			{#if error}<Notice tone="error">{t(error)}</Notice>{/if}
 			{#if busy}<p class="auth-busy" role="status"><Spinner size={22} />{t('login.working')}</p>{/if}
-			<Button type="submit" block size="lg" disabled={busy}>{t('login.submit')}</Button>
+			<Button type="submit" block size="lg" disabled={busy || !connection.online}>
+				{t('login.submit')}
+			</Button>
+			<NeedsConnection />
 		</form>
 	{/if}
 
