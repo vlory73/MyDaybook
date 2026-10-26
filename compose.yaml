@@ -5,7 +5,7 @@ name: mydaybook
 services:
   app:
     # Pinned on purpose. An upgrade is a deliberate change of this tag, never a floating tag.
-    image: ghcr.io/vlory73/mydaybook:1.1.0
+    image: ghcr.io/vlory73/mydaybook:1.2.0
     # Only the reverse proxy on this host (Caddy) can reach the app.
     ports: ['127.0.0.1:8090:8090']
     env_file: .env
