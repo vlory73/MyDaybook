@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 (2026-10-26)
+
+### Features
+
+- keep entries made offline and sync them later (M8 branch 2) (#111)
+- unlock the diary offline (M8 branch 1) (#110)
+
 ## 1.0.1 (2026-10-26)
 
 ### Fixes
