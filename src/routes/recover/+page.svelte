@@ -5,6 +5,7 @@
 	import {
 		Button,
 		Hero,
+		NeedsConnection,
 		Notice,
 		PassphraseFields,
 		RecoveryConfirm,
@@ -14,6 +15,7 @@
 		TextField
 	} from '$lib/components';
 	import { focusOnMount } from '$lib/actions';
+	import { connection } from '$lib/connection.svelte';
 	import { ApiError } from '$lib/api';
 	import {
 		commonErrorKey,
@@ -161,7 +163,10 @@
 			{#if step === 'checking'}
 				<p class="auth-busy" role="status"><Spinner size={22} />{t('recover.checking')}</p>
 			{/if}
-			<Button type="submit" block size="lg" disabled={step === 'checking'}>{t('recover.continue')}</Button>
+			<Button type="submit" block size="lg" disabled={step === 'checking' || !connection.online}>
+				{t('recover.continue')}
+			</Button>
+			<NeedsConnection />
 		</form>
 		<div class="auth-links">
 			<a class="link-button" href={resolve('/login')}>{t('recover.backToSignIn')}</a>

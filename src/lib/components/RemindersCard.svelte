@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t, tn } from '$lib/i18n/index.svelte';
+	import { connection } from '$lib/connection.svelte';
 	import { disableReminders, enableReminders, refreshReminders, reminders } from '$lib/push/reminders.svelte';
 	import Card from './Card.svelte';
 	import Icon from './Icon.svelte';
+	import NeedsConnection from './NeedsConnection.svelte';
 	import Notice from './Notice.svelte';
 	import Spinner from './Spinner.svelte';
 	import Toggle from './Toggle.svelte';
@@ -52,10 +54,11 @@
 				<Toggle
 					bind:checked={on}
 					label={t('me.reminders.toggle')}
-					disabled={reminders.busy}
+					disabled={reminders.busy || !connection.online}
 					onchange={change}
 				/>
 			</div>
+			<NeedsConnection />
 			{#if reminders.status === 'on' && reminders.slots !== null}
 				<p class="small muted" data-testid="reminders-count">
 					{reminders.slots > 0 ? tn('me.reminders.times', reminders.slots) : t('me.reminders.noneYet')}

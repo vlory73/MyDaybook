@@ -10,6 +10,7 @@
 	import { adhocMedication, findByName, medicationNames } from '$lib/meds/adhoc';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
 	import { allRecords, remove, save } from '$lib/records/store.svelte';
+	import { savedText } from '$lib/records/syncText';
 	import { dayKey, formatAt, fromLocalInput, toLocalInput } from '$lib/records/time';
 	import type { DosePayload } from '$lib/records/types';
 
@@ -62,7 +63,7 @@
 			const doseId = await save(p);
 			const created = createdId;
 			closeEditors();
-			showToast(t('adhoc.toast'), () => {
+			showToast(savedText(t('adhoc.toast'), doseId), () => {
 				Promise.all([remove(doseId), ...(created ? [remove(created)] : [])]).catch(() =>
 					showToast(t('entry.error.delete'))
 				);

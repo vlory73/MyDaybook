@@ -8,13 +8,20 @@
 	import { startAutoLock } from '$lib/autolock';
 	import { brand } from '$lib/brand';
 	import { i18n, t } from '$lib/i18n/index.svelte';
-	import { HIDDEN_LOCK_SECONDS, loadSession, lock, session } from '$lib/session.svelte';
+	import { watchConnection } from '$lib/connection.svelte';
+	import { HIDDEN_LOCK_SECONDS, loadSession, lock, onSessionRefreshed, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
 	import { closeEditors, openLog, openNote } from '$lib/records/editor.svelte';
 	import { againOptions, againPayload, lastUsedMeasureType, WEIGHT_ID, type Again } from '$lib/records/log';
 	import { buildReminderSchedule, scheduleKey } from '$lib/push/schedule';
 	import { saveNotificationText } from '$lib/push/locale';
-	import { refreshReminders, reminders, syncReminderSchedule, timeZone } from '$lib/push/reminders.svelte';
+	import {
+		refreshReminders,
+		reminders,
+		retryReminderSchedule,
+		syncReminderSchedule,
+		timeZone
+	} from '$lib/push/reminders.svelte';
 	import { quickSave } from '$lib/records/quick';
 	import { watchedItems } from '$lib/records/watch';
 	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
@@ -90,7 +97,13 @@
 	const chrome = $derived(view === 'app');
 
 	onMount(() => {
+		watchConnection();
 		void loadSession();
+		// Back online while unlocked: the session was refreshed quietly, so fetch what changed meanwhile.
+		return onSessionRefreshed(() => {
+			syncIfStale(0);
+			retryReminderSchedule();
+		});
 	});
 
 	$effect(() => {

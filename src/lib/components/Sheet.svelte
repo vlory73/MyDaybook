@@ -11,8 +11,16 @@
 		open = $bindable(false),
 		title,
 		header,
+		wrapTitle = false,
 		children
-	}: { open?: boolean; title: string; header?: Snippet; children: Snippet } = $props();
+	}: {
+		open?: boolean;
+		title: string;
+		header?: Snippet;
+		/** Let a long title wrap onto more lines instead of being cut with an ellipsis. */
+		wrapTitle?: boolean;
+		children: Snippet;
+	} = $props();
 
 	let dialog: HTMLDialogElement | undefined = $state();
 
@@ -31,7 +39,7 @@
 	<div class="sheet">
 		<div class="grabber" aria-hidden="true"></div>
 		<div class="head">
-			<h2>{title}</h2>
+			<h2 class={{ wrap: wrapTitle }}>{title}</h2>
 			{#if header}{@render header()}{/if}
 			<button type="button" class="close" aria-label={t('common.close')} onclick={() => (open = false)}>
 				<Icon name="x" />
@@ -87,6 +95,11 @@
 		text-overflow: ellipsis;
 		font-size: var(--fs-title3);
 		font-weight: var(--fw-bold);
+	}
+	h2.wrap {
+		white-space: normal;
+		overflow: visible;
+		text-overflow: clip;
 	}
 	.close {
 		width: var(--tap);

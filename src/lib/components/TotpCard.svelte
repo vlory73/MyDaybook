@@ -11,9 +11,11 @@
 	} from '$lib/auth';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { t } from '$lib/i18n/index.svelte';
+	import { connection } from '$lib/connection.svelte';
 	import Button from './Button.svelte';
 	import Card from './Card.svelte';
 	import Icon from './Icon.svelte';
+	import NeedsConnection from './NeedsConnection.svelte';
 	import Notice from './Notice.svelte';
 	import Sheet from './Sheet.svelte';
 	import Spinner from './Spinner.svelte';
@@ -145,13 +147,18 @@
 				{enabled ? t('me.totp.on') : t('me.totp.off')}
 			</span>
 			{#if enabled}
-				<Button variant="quiet" onclick={() => (stopOpen = true)}>{t('me.totp.stop')}</Button>
+				<Button variant="quiet" disabled={!connection.online} onclick={() => (stopOpen = true)}
+					>{t('me.totp.stop')}</Button
+				>
 			{:else}
-				<Button variant="soft" onclick={() => (setupOpen = true)}>{t('me.totp.start')}</Button>
+				<Button variant="soft" disabled={!connection.online} onclick={() => (setupOpen = true)}
+					>{t('me.totp.start')}</Button
+				>
 			{/if}
 		</div>
 		{#if enabled}<p class="small muted hint">{t('me.totp.recoveryNote')}</p>{/if}
 	{/if}
+	<NeedsConnection />
 </Card>
 
 <Sheet bind:open={setupOpen} title={t('me.totp.setupTitle')}>

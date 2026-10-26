@@ -1,8 +1,19 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { Button, Card, Icon, Notice, Sheet, Spinner, TextField, Toggle } from '$lib/components';
+	import {
+		Button,
+		Card,
+		Icon,
+		NeedsConnection,
+		Notice,
+		Sheet,
+		Spinner,
+		TextField,
+		Toggle
+	} from '$lib/components';
 	import { formatBytes } from '$lib/admin-format';
+	import { connection } from '$lib/connection.svelte';
 	import { verifyPassphrase } from '$lib/auth';
 	import {
 		ExportCancelled,
@@ -207,10 +218,12 @@
 
 {#if phase === 'form'}
 	<div class="gap">
-		<Button block size="lg" disabled={!ready} onclick={() => (askOpen = true)}>
+		<Button block size="lg" disabled={!ready || !connection.online} onclick={() => (askOpen = true)}>
 			{t('export.prepare')}
 		</Button>
-		{#if !ready}<p class="small muted center">{t('export.loading')}</p>{/if}
+		{#if !connection.online}
+			<div class="center"><NeedsConnection /></div>
+		{:else if !ready}<p class="small muted center">{t('export.loading')}</p>{/if}
 	</div>
 {:else if phase === 'preparing'}
 	<div class="gap">

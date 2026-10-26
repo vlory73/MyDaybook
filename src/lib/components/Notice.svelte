@@ -3,11 +3,12 @@
 	import Icon from './Icon.svelte';
 
 	/** A calm message box. Errors are announced at once (role=alert); the rest are announced politely. */
-	let { tone = 'info', children }: { tone?: 'info' | 'error' | 'warn'; children: Snippet } = $props();
+	let { tone = 'info', children }: { tone?: 'info' | 'error' | 'warn' | 'offline'; children: Snippet } =
+		$props();
 </script>
 
 <div class="notice {tone}" role={tone === 'error' ? 'alert' : 'status'}>
-	<Icon name="info" size={20} />
+	<Icon name={tone === 'offline' ? 'cloud-off' : 'info'} size={20} />
 	<p>{@render children()}</p>
 </div>
 
@@ -30,6 +31,11 @@
 	.error {
 		background: var(--pain-tint);
 		color: var(--pain-ink);
+	}
+	.offline {
+		background: var(--measure-tint);
+		color: var(--measure-ink);
+		font-weight: var(--fw-medium);
 	}
 	.warn {
 		background: var(--note-tint);

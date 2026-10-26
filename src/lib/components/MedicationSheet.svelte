@@ -14,6 +14,7 @@
 	import { parseNumber } from '$lib/records/log';
 	import { closeEditors, editor } from '$lib/records/editor.svelte';
 	import { remove, save, store } from '$lib/records/store.svelte';
+	import { deletedText, savedText } from '$lib/records/syncText';
 	import { todayKey } from '$lib/records/time';
 	import {
 		MAX_MED_TIMES,
@@ -180,9 +181,9 @@
 		run(async () => {
 			const p = payload(keep?.archived ?? false);
 			if (!p) return;
-			await save(p, id ?? undefined);
+			const savedId = await save(p, id ?? undefined);
 			closeEditors();
-			showToast(t('entry.saved'));
+			showToast(savedText(t('entry.saved'), savedId));
 		}, 'save');
 
 	/** Archives or restores the saved medication as it was last saved (unsaved edits in the form are not used). */
@@ -202,8 +203,9 @@
 		run(async () => {
 			if (!id) return;
 			const undo = await remove(id);
+			const message = deletedText(t('meds.deleted'), id); // before the sheet closes: `id` goes with it
 			closeEditors();
-			showToast(t('meds.deleted'), () => {
+			showToast(message, () => {
 				undo().then(
 					() => showToast(t('meds.restored')),
 					() => showToast(t('entry.error.save'))
