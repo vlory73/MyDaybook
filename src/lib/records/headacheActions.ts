@@ -3,7 +3,8 @@
  * the pure rules are in `headacheStill.ts`.
  */
 import { markGone } from './episodeActions';
-import { hourOf, withLastSeen, withStopped } from './headacheStill';
+import { withLastSeen, withStopped } from './headacheStill';
+import { formatAt } from './time';
 import { save, store } from './store.svelte';
 
 const entry = (id: string) => {
@@ -11,14 +12,14 @@ const entry = (id: string) => {
 	return p?.type === 'pain' ? p : undefined;
 };
 
-/** "Still there": notes the current hour on the entry. */
+/** "Still there": notes the current time on the entry. */
 export async function noteStillThere(id: string, now = new Date()): Promise<void> {
 	const p = entry(id);
-	if (p) await save(withLastSeen(p, hourOf(now)), id);
+	if (p) await save(withLastSeen(p, formatAt(now)), id);
 }
 
 /**
- * "It's gone": writes the stop hour on the entry. When the entry is in an ongoing episode, the episode ends too
+ * "It's gone": writes the stop time on the entry. When the entry is in an ongoing episode, the episode ends too
  * (`markGone`, as the general "It's gone" does).
  */
 export async function stopHeadache(id: string, stopped: string, ongoingEpisodeId?: string): Promise<void> {

@@ -18,9 +18,9 @@ export const MAX_TRIGGER = 200;
  * Optional details on a pain entry (entry level, not per point). Everything is optional; `{}` only says "this is a
  * headache" (the person ticked it without a point on the head).
  *
- * `started` and `stopped` are full local date-times rounded to the hour ("2026-10-18T22:00:00+02:00"), so a headache
+ * `started` and `stopped` are full local date-times at minute precision ("2026-10-18T22:40:00+02:00"; entries made before 1.0.1 hold whole hours, which stay valid), so a headache
  * that ended the next day needs no extra field and the offset travels with the value like every `at`. An empty
- * `stopped` means "still going" (Today asks later); `lastSeen` is the hour the person last said "Still there" on
+ * `stopped` means "still going" (Today asks later); `lastSeen` is the time the person last said "Still there" on
  * Today. `stillGoing` is legacy: old entries still parse, nothing writes it any more, and it reads like no `stopped`.
  */
 export type HeadacheDetails = {
@@ -28,7 +28,7 @@ export type HeadacheDetails = {
 	stopped?: string;
 	/** Legacy (no longer written): same meaning as having no `stopped`. */
 	stillGoing?: true;
-	/** The hour of the last "Still there" tap on Today (same format as `started`). */
+	/** The time of the last "Still there" tap on Today (same format as `started`). */
 	lastSeen?: string;
 	/** Changes noticed just before it started, in the order of HEADACHE_BEFORE. */
 	before?: HeadacheBefore[];
@@ -51,15 +51,15 @@ const KEYS = [
 	'sound',
 	'trigger'
 ];
-const HOUR_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00(Z|[+-]\d{2}:\d{2})$/;
-const isHour = (x: unknown): x is string => typeof x === 'string' && HOUR_RE.test(x) && isAt(x);
+// Minute precision, like every other `at`. Older entries hold whole hours ("...T22:00:00+02:00"), which is also valid.
+const isTime = (x: unknown): x is string => isAt(x);
 const isBool = (x: unknown) => x === undefined || typeof x === 'boolean';
 
 export function isHeadacheDetails(x: unknown): x is HeadacheDetails {
 	if (!isObj(x) || Object.keys(x).some((k) => !KEYS.includes(k))) return false;
-	if (x.started !== undefined && !isHour(x.started)) return false;
-	if (x.stopped !== undefined && !isHour(x.stopped)) return false;
-	if (x.lastSeen !== undefined && !isHour(x.lastSeen)) return false;
+	if (x.started !== undefined && !isTime(x.started)) return false;
+	if (x.stopped !== undefined && !isTime(x.stopped)) return false;
+	if (x.lastSeen !== undefined && !isTime(x.lastSeen)) return false;
 	if (
 		typeof x.started === 'string' &&
 		typeof x.lastSeen === 'string' &&

@@ -352,8 +352,8 @@ for (const scheme of ['light', 'dark'] as const) {
 			await sheet.getByRole('button', { name: 'Constant', exact: true }).click();
 			await page.waitForTimeout(300);
 			await snap(page, 'sheet-zones', scheme);
-			await sheet.getByLabel('Hour Started').selectOption('22');
-			await sheet.getByLabel('Hour Stopped').selectOption('02');
+			await sheet.getByLabel('Started', { exact: true }).fill(`${at(1, 22).slice(0, 10)}T22:00`);
+			await sheet.getByLabel('Stopped', { exact: true }).fill(`${at(0, 2).slice(0, 10)}T02:00`);
 			await sheet.getByRole('button', { name: 'Vision', exact: true }).click();
 			await sheet
 				.getByRole('group', { name: 'Sensitive to light?' })
@@ -1479,6 +1479,68 @@ for (const scheme of ['light', 'dark'] as const) {
 				if (!portrait) await snap(page, 'report-preview', scheme);
 				await page.getByRole('button', { name: /^(Back|Tilbage)$/ }).click();
 			}
+		});
+		test(`headache times ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'headache-times', 'headache-times screenshots only');
+			await prepare(page, scheme);
+			const account = await signUpApiAccount(page.request);
+			const head = (intensity: number) => ({
+				region: 'temple',
+				side: 'left',
+				space: '2d-head-front-v2',
+				u: 0.5,
+				v: 0.5,
+				intensity,
+				qualities: ['throbbing']
+			});
+			const local = (minutesAgo: number) => {
+				const d = new Date(Date.now() - minutesAgo * 60_000);
+				const p2 = (n: number) => String(n).padStart(2, '0');
+				return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+			};
+			const start = local(190);
+			const offset = at(0, 12).slice(19);
+			await seedRecords(page.request, account, [
+				{
+					v: 1,
+					type: 'pain',
+					at: `${start}:00${offset}`,
+					points: [head(6)],
+					headache: { started: `${start}:00${offset}`, trigger: 'Skipped lunch' }
+				}
+			]);
+			await page.goto('/');
+			await unlockWith(page, account.passphrase);
+			const card = page.getByRole('region', { name: 'Headache · still there?' });
+			await card.waitFor({ timeout: 20_000 });
+			await card.getByRole('button', { name: "It's gone", exact: true }).click();
+			await card.getByText('When did it stop?').waitFor();
+			await snap(page, 'today-card-options', scheme, true);
+			await card.getByRole('button', { name: 'Earlier…' }).click();
+			await card.getByLabel('When it stopped').fill(local(100));
+			await snap(page, 'today-card-earlier', scheme, true);
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Pain', exact: true }).click();
+			const sheet = page.getByRole('dialog', { name: 'Where do you feel it?' });
+			await sheet.getByRole('button', { name: 'Head, close-up', exact: true }).click();
+			await sheet
+				.locator('svg[role=group]')
+				.getByRole('button', { name: 'Your left temple', exact: true })
+				.click();
+			await sheet
+				.getByRole('radiogroup', { name: /^Intensity/ })
+				.getByRole('radio', { name: '6', exact: true })
+				.click();
+			await sheet.getByLabel('Started', { exact: true }).fill(local(190));
+			await sheet.getByLabel('Stopped', { exact: true }).fill(local(45));
+			await page.setViewportSize({ width: 375, height: 1500 });
+			await page.waitForTimeout(900);
+			await sheet
+				.getByLabel('Started', { exact: true })
+				.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+			await page.waitForTimeout(400);
+			await snap(page, 'pain-sheet-times', scheme);
 		});
 		test(`measure split ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'measure-split', 'measure-split screenshots only');

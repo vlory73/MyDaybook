@@ -184,4 +184,22 @@ describe('details', () => {
 		expect(hasHeadacheAnswers({})).toBe(false);
 		expect(hasHeadacheAnswers({ light: false })).toBe(true);
 	});
+
+	it('accepts minutes (old whole hours stay valid) and still refuses a stop before the start', () => {
+		const started = '2026-10-18T22:40:00+02:00';
+		expect(
+			isHeadacheDetails({
+				started,
+				stopped: '2026-10-19T01:05:00+02:00',
+				lastSeen: '2026-10-18T23:12:00+02:00'
+			})
+		).toBe(true);
+		expect(
+			isHeadacheDetails({ started: '2026-10-18T22:00:00+02:00', stopped: '2026-10-18T23:00:00+02:00' })
+		).toBe(true);
+		expect(isHeadacheDetails({ started, stopped: '2026-10-18T22:39:00+02:00' })).toBe(false);
+		expect(isHeadacheDetails({ started, lastSeen: '2026-10-18T22:39:00+02:00' })).toBe(false);
+		expect(isHeadacheDetails({ started: '2026-10-18T22:40' })).toBe(false);
+		expect(isHeadacheDetails({ started: 'soon' })).toBe(false);
+	});
 });
