@@ -73,11 +73,18 @@ export const session = $state<{
 let keys: UnlockedKeys | null = null;
 let bundle: StoredBundle | null = null;
 let lockHooks: (() => void)[] = [];
-let signOutHooks: ((userId: string | null) => void)[] = [];
+let signOutHooks: ((userId: string | null, reason: ForgetReason) => void)[] = [];
+
+/**
+ * Why this device forgets the account: the person signed out, the session ended on its own (signed out elsewhere,
+ * account disabled, a 401), or the account was deleted. `signout` and `deleted` also remove changes still waiting to
+ * be sent; `ended` keeps them (ciphertext only) for the next sign-in of the same person.
+ */
+export type ForgetReason = 'signout' | 'ended' | 'deleted';
 
 setUnauthenticatedHandler(() => {
 	if (session.status === 'locked' || session.status === 'unlocked') {
-		dropEverything();
+		dropEverything('ended');
 		session.flash = 'sessionEnded';
 	}
 });
@@ -106,7 +113,7 @@ export function onLock(hook: () => void): () => void {
  * Register cleanup for when this device forgets the account (sign-out, ended session, deletion), e.g. deleting the
  * ciphertext cache. Receives the user id that was signed in, if known.
  */
-export function onSignOut(hook: (userId: string | null) => void): () => void {
+export function onSignOut(hook: (userId: string | null, reason: ForgetReason) => void): () => void {
 	signOutHooks.push(hook);
 	return () => {
 		signOutHooks = signOutHooks.filter((h) => h !== hook);
@@ -154,12 +161,12 @@ function dropKeys(): void {
 	runLockHooks();
 }
 
-function dropEverything(): void {
+function dropEverything(reason: ForgetReason): void {
 	const userId = session.identity?.userId ?? null;
 	dropKeys();
 	for (const hook of signOutHooks) {
 		try {
-			hook(userId);
+			hook(userId, reason);
 		} catch {
 			// A failing hook must not stop the sign-out.
 		}
@@ -181,7 +188,7 @@ export async function loadSession(): Promise<void> {
 		session.status = keys ? 'unlocked' : 'locked';
 	} catch (err) {
 		if (err instanceof ApiError && err.status === 401) {
-			dropEverything();
+			dropEverything('ended');
 		} else if (err instanceof ApiError && err.status === 0 && (await startFromDevice())) {
 			// No connection but this device knows the account: start locked, unlock works from the cached bundle.
 		} else {
@@ -301,14 +308,14 @@ export async function signOut(flash: FlashMessage | null = 'signedOut'): Promise
 	} catch {
 		// Even if the server can't be reached, this device forgets everything.
 	}
-	dropEverything();
+	dropEverything('signout');
 	session.flash = flash;
 }
 
 /** After the account was deleted on the server: forget everything and leave a goodbye message. */
 export function afterDeletion(): void {
 	void removeThisDevice(false).catch(() => undefined); // the server rows went with the account
-	dropEverything();
+	dropEverything('deleted');
 	session.flash = 'deleted';
 }
 

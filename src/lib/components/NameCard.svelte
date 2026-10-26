@@ -9,6 +9,7 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { findProfile, fullName, profileFromInput } from '$lib/records/profile';
 	import { allRecords, remove, save } from '$lib/records/store.svelte';
+	import { savedText } from '$lib/records/syncText';
 	import { MAX_NAME_LENGTH } from '$lib/records/types';
 
 	/** "Your name": first and last name, stored as one encrypted record; used in the greeting and to prefill reports. */
@@ -35,10 +36,11 @@
 		failed = false;
 		try {
 			const payload = profileFromInput(first, last);
-			if (payload) await save(payload, profile?.id);
+			let touched = profile?.id ?? '';
+			if (payload) touched = await save(payload, profile?.id);
 			else if (profile) await remove(profile.id);
 			open = false;
-			showToast(t('me.name.saved'));
+			showToast(savedText(t('me.name.saved'), touched));
 		} catch {
 			failed = true;
 		} finally {

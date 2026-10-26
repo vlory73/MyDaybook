@@ -15,7 +15,13 @@
 	import { againOptions, againPayload, lastUsedMeasureType, WEIGHT_ID, type Again } from '$lib/records/log';
 	import { buildReminderSchedule, scheduleKey } from '$lib/push/schedule';
 	import { saveNotificationText } from '$lib/push/locale';
-	import { refreshReminders, reminders, syncReminderSchedule, timeZone } from '$lib/push/reminders.svelte';
+	import {
+		refreshReminders,
+		reminders,
+		retryReminderSchedule,
+		syncReminderSchedule,
+		timeZone
+	} from '$lib/push/reminders.svelte';
 	import { quickSave } from '$lib/records/quick';
 	import { watchedItems } from '$lib/records/watch';
 	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
@@ -94,7 +100,10 @@
 		watchConnection();
 		void loadSession();
 		// Back online while unlocked: the session was refreshed quietly, so fetch what changed meanwhile.
-		return onSessionRefreshed(() => syncIfStale(0));
+		return onSessionRefreshed(() => {
+			syncIfStale(0);
+			retryReminderSchedule();
+		});
 	});
 
 	$effect(() => {

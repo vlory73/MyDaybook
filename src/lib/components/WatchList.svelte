@@ -8,6 +8,7 @@
 	import type { MessageKey } from '$lib/i18n/en';
 	import { sensitivityName } from '$lib/records/format';
 	import { allRecords, remove, save } from '$lib/records/store.svelte';
+	import { deletedText } from '$lib/records/syncText';
 	import { SUGGESTIONS, suggestionLabel, watchedItems } from '$lib/records/watch';
 
 	/** `bare` leaves out the card, for use inside a sheet. */
@@ -80,7 +81,7 @@
 	async function drop(id: string, name: string) {
 		await run(async () => {
 			const undo = await remove(id);
-			showToast(t('watch.removed', { name }), () => {
+			showToast(deletedText(t('watch.removed', { name }), id), () => {
 				undo().catch(() => showToast(t('entry.error.save')));
 			});
 		});

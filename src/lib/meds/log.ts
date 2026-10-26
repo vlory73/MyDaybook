@@ -2,6 +2,7 @@
 import { showToast } from '$lib/components/toast.svelte';
 import { t } from '$lib/i18n/index.svelte';
 import { remove, save } from '$lib/records/store.svelte';
+import { savedText } from '$lib/records/syncText';
 import { todayKey } from '$lib/records/time';
 import { defaultAt, slotDose, type DueDose } from './due';
 
@@ -23,7 +24,7 @@ export async function takeDoses(doses: DueDose[]): Promise<void> {
 		showToast(t('entry.error.save'));
 		return;
 	}
-	showToast(t('dose.toast.taken'), () => {
+	showToast(savedText(t('dose.toast.taken'), ...ids), () => {
 		Promise.all(ids.map((id) => remove(id))).catch(() => showToast(t('entry.error.delete')));
 	});
 }
