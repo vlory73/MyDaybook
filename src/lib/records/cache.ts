@@ -6,9 +6,11 @@
  */
 import type { CachedRecord } from './codec';
 import type { OutboxRow } from './outbox';
+import type { BlobRow } from '$lib/photos/blobs';
 
 const STORE = 'records';
 const OUTBOX = 'outbox';
+const BLOBS = 'blobs';
 const META = 'meta';
 const CURSOR_KEY = 'cursor';
 
@@ -31,13 +33,14 @@ function done(tx: IDBTransaction): Promise<void> {
 
 function open(userId: string): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
-		const req = indexedDB.open(cacheName(userId), 2);
+		const req = indexedDB.open(cacheName(userId), 3);
 		req.onupgradeneeded = () => {
-			// Version 1 had records and meta; version 2 adds the outbox. Existing data is kept.
+			// Version 1 had records and meta; version 2 adds the outbox; version 3 the queue of photo blobs. Existing data is kept.
 			const db = req.result;
 			if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
 			if (!db.objectStoreNames.contains(META)) db.createObjectStore(META);
 			if (!db.objectStoreNames.contains(OUTBOX)) db.createObjectStore(OUTBOX, { keyPath: 'id' });
+			if (!db.objectStoreNames.contains(BLOBS)) db.createObjectStore(BLOBS, { keyPath: 'id' });
 		};
 		req.onsuccess = () => resolve(req.result);
 		req.onerror = () => reject(req.error);
@@ -96,7 +99,7 @@ export async function deleteCache(userId: string): Promise<void> {
 
 /**
  * Session ended on its own (signed out elsewhere, account disabled): the cached records and the cursor go, the outbox
- * stays, so changes made offline can still be sent when the same person signs in again on this device.
+ * and the queued photo blobs stay, so changes made offline can still be sent when the same person signs in again on this device.
  */
 export async function clearRecordsKeepOutbox(userId: string): Promise<void> {
 	try {
@@ -180,5 +183,102 @@ export async function settleOutboxRow(
 		}
 	} catch {
 		// The row stays and is tried again.
+	}
+}
+
+// ---- Photo blob queue (ARCHITECTURE §5.2): encrypted photos not yet uploaded. Ciphertext only, no keys. ----
+
+/** All queued blobs, oldest first. Empty when IndexedDB is unavailable. */
+export async function readBlobs(userId: string): Promise<BlobRow[]> {
+	try {
+		const db = await open(userId);
+		try {
+			const rows = (await request(
+				db.transaction(BLOBS, 'readonly').objectStore(BLOBS).getAll()
+			)) as BlobRow[];
+			return rows.sort((a, b) => a.queuedAt - b.queuedAt);
+		} finally {
+			db.close();
+		}
+	} catch {
+		return [];
+	}
+}
+
+/** One queued blob, or null when the id is not queued. */
+export async function readBlob(userId: string, id: string): Promise<BlobRow | null> {
+	try {
+		const db = await open(userId);
+		try {
+			const row = (await request(db.transaction(BLOBS, 'readonly').objectStore(BLOBS).get(id))) as
+				BlobRow | undefined;
+			return row ?? null;
+		} finally {
+			db.close();
+		}
+	} catch {
+		return null;
+	}
+}
+
+/** Stores blobs in one transaction. Returns false when they could not be stored (nothing is stored then). */
+export async function putBlobs(userId: string, rows: BlobRow[]): Promise<boolean> {
+	try {
+		const db = await open(userId);
+		try {
+			const tx = db.transaction(BLOBS, 'readwrite');
+			for (const row of rows) tx.objectStore(BLOBS).put(row);
+			await done(tx);
+			return true;
+		} finally {
+			db.close();
+		}
+	} catch {
+		return false;
+	}
+}
+
+/** Removes blobs (uploaded, or dropped before they were). */
+export async function deleteBlobs(userId: string, ids: string[]): Promise<void> {
+	try {
+		const db = await open(userId);
+		try {
+			const tx = db.transaction(BLOBS, 'readwrite');
+			for (const id of ids) tx.objectStore(BLOBS).delete(id);
+			await done(tx);
+		} finally {
+			db.close();
+		}
+	} catch {
+		// The blobs stay and are dealt with next time.
+	}
+}
+
+/** Sets or clears the refused mark of blobs. */
+export async function markBlobs(userId: string, ids: string[], refused: boolean): Promise<void> {
+	try {
+		const db = await open(userId);
+		try {
+			const tx = db.transaction(BLOBS, 'readwrite');
+			const store = tx.objectStore(BLOBS);
+			for (const id of ids) {
+				const get = store.get(id);
+				get.onsuccess = () => {
+					const row = get.result as BlobRow | undefined;
+					if (!row) return;
+					if (refused) store.put({ ...row, refused: true });
+					else {
+						const rest: BlobRow = { ...row };
+						delete rest.refused;
+						store.put(rest);
+					}
+				};
+			}
+			await done(tx);
+		} finally {
+			db.close();
+		}
+	} catch {
+		// Unchanged.
 	}
 }

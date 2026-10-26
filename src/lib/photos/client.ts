@@ -3,7 +3,8 @@
  *
  * Decrypted images exist only as Blob object URLs held in memory. They are never written to IndexedDB or any
  * cache (the service worker ignores /api/), and every URL is revoked on lock, sign-out and when the last view that
- * uses it goes away. Attachments are not cached at all in v1: each view downloads the ciphertext again.
+ * uses it goes away. The only attachment bytes kept on the device are the ciphertext of photos not yet uploaded
+ * (queue.svelte.ts); everything else is downloaded again for each view.
  */
 import { ApiError, apiDelete, apiGetBytes, apiPutBytes } from '$lib/api';
 import { decryptAttachment, encryptAttachment } from '$lib/crypto/attachments';
@@ -12,36 +13,61 @@ import { initCrypto } from '$lib/crypto/sodium';
 import { onLock, onSignOut } from '$lib/session.svelte';
 import type { AttachmentRef } from '$lib/records/types';
 import type { ProcessedPhoto } from './process';
+import { dropQueued, queuedBlob, type EncryptedBlob } from './queue.svelte';
 
 const path = (id: string) => `/api/attachments/${id}`;
 
-/** Encrypts the full image and its thumbnail with fresh keys and uploads both. Throws ApiError. */
-export async function uploadPhoto(photo: ProcessedPhoto): Promise<AttachmentRef> {
+export type EncryptedPhoto = { ref: AttachmentRef; blobs: [EncryptedBlob, EncryptedBlob] };
+
+/** Encrypts the full image and its thumbnail with fresh keys and ids. Nothing is sent. */
+export async function encryptPhoto(photo: ProcessedPhoto): Promise<EncryptedPhoto> {
 	await initCrypto();
 	const full = encryptAttachment(photo.full);
 	const thumb = encryptAttachment(photo.thumb);
 	const id = crypto.randomUUID();
 	const thumbId = crypto.randomUUID();
-	await apiPutBytes(path(id), full.blob);
-	try {
-		await apiPutBytes(path(thumbId), thumb.blob);
-	} catch (err) {
-		await deleteAttachment(id);
-		throw err;
-	}
 	return {
-		id,
-		key: toB64(full.key),
-		thumbId,
-		thumbKey: toB64(thumb.key),
-		w: photo.w,
-		h: photo.h,
-		mime: 'image/jpeg'
+		ref: {
+			id,
+			key: toB64(full.key),
+			thumbId,
+			thumbKey: toB64(thumb.key),
+			w: photo.w,
+			h: photo.h,
+			mime: 'image/jpeg'
+		},
+		blobs: [
+			{ id, blob: full.blob },
+			{ id: thumbId, blob: thumb.blob }
+		]
 	};
 }
 
-/** Deletes one attachment on the server. Already gone (404) counts as done. Returns false when it could not be reached. */
+/** Uploads the two blobs of an encrypted photo. Throws ApiError; a refusal removes what was already uploaded. */
+export async function sendPhoto(enc: EncryptedPhoto): Promise<void> {
+	const [full, thumb] = enc.blobs;
+	await apiPutBytes(path(full.id), full.blob);
+	try {
+		await apiPutBytes(path(thumb.id), thumb.blob);
+	} catch (err) {
+		if (!(err instanceof ApiError && err.status === 0)) await deleteAttachment(full.id);
+		throw err;
+	}
+}
+
+/** Encrypts and uploads a processed photo. Throws ApiError. */
+export async function uploadPhoto(photo: ProcessedPhoto): Promise<AttachmentRef> {
+	const enc = await encryptPhoto(photo);
+	await sendPhoto(enc);
+	return enc.ref;
+}
+
+/**
+ * Deletes one attachment on the server. Already gone (404) counts as done. A photo that is still only queued on this
+ * device is dropped from the queue instead. Returns false when the server could not be reached.
+ */
 export async function deleteAttachment(id: string): Promise<boolean> {
+	if (await dropQueued(id)) return true;
 	try {
 		await apiDelete(path(id));
 		return true;
@@ -71,7 +97,8 @@ let generation = 0;
 
 async function fetchUrl(id: string, keyB64: string, gen: number): Promise<string> {
 	await initCrypto();
-	const blob = await apiGetBytes(path(id));
+	// A photo that was made offline and is not uploaded yet is decrypted from the local ciphertext.
+	const blob = (await queuedBlob(id)) ?? (await apiGetBytes(path(id)));
 	const bytes = decryptAttachment(fromB64(keyB64), blob);
 	// A lock while this was downloading: never create a URL the lock hook could not have revoked.
 	if (gen !== generation) throw new Error('locked');

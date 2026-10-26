@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 	import Spinner from './Spinner.svelte';
+	import { connection } from '$lib/connection.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { acquirePhoto } from '$lib/photos/client';
 	import { closePhoto, viewer } from '$lib/photos/viewer.svelte';
@@ -50,7 +51,7 @@
 	{#if url}
 		<img src={url} alt={t('photo.alt')} />
 	{:else if failed}
-		<p role="alert">{t('photo.loadFailed')}</p>
+		<p role="alert">{connection.online ? t('photo.loadFailed') : t('photo.offlineTile')}</p>
 	{:else}
 		<div role="status"><Spinner size={32} /><span class="sr-only">{t('common.loading')}</span></div>
 	{/if}

@@ -8,11 +8,19 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import type { PhotoDrafts } from '$lib/photos/drafts.svelte';
+	import { photoQueue } from '$lib/photos/queue.svelte';
 
 	/** Photo button, previews with remove (x), and messages for one entry sheet. The sheet owns `drafts`. */
 	let { drafts }: { drafts: PhotoDrafts } = $props();
 
 	onDestroy(() => drafts.destroy());
+
+	const isQueued = (d: (typeof drafts.items)[number]) =>
+		d.kind === 'saved' && (d.ref.thumbId in photoQueue.ids || d.ref.id in photoQueue.ids);
+	// Offline, a newly picked photo will be kept on the device when the entry is saved.
+	const waiting = $derived(drafts.items.some((d) => isQueued(d) || (d.kind === 'new' && !connection.online)));
+	// Offline, photos that are already on the server cannot be shown.
+	const hidden = $derived(!connection.online && drafts.items.some((d) => d.kind === 'saved' && !isQueued(d)));
 
 	function onchange(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
@@ -26,8 +34,15 @@
 	<p class="plabel">{t('photo.label')}<span class="hint">{t('common.optional')}</span></p>
 	<div class="row">
 		{#each drafts.items as d, i (d.key)}
-			<div class="tile">
-				{#if d.kind === 'new'}
+			<div class="tile" class:wide={isQueued(d) || (d.kind === 'new' && !connection.online)}>
+				{#if d.kind === 'new' && !connection.online}
+					<span class="npw">
+						<img src={d.preview} alt={t('photo.alt')} width="128" height="64" />
+						<span class="badge" data-testid="photo-queued"
+							><Icon name="clock" size={12} />{t('photo.queued')}</span
+						>
+					</span>
+				{:else if d.kind === 'new'}
 					<img src={d.preview} alt={t('photo.alt')} width="64" height="64" />
 				{:else}
 					<PhotoThumb photo={d.ref} label={t('photo.alt')} size={64} />
@@ -45,12 +60,7 @@
 				<Spinner size={22} /><span class="sr-only">{t('photo.preparing')}</span>
 			</div>
 		{/if}
-		{#if !drafts.full && !connection.online}
-			<button type="button" class="add off" disabled data-testid="photo-offline">
-				<Icon name="camera" size={22} />
-				<span>{t('photo.offline')}</span>
-			</button>
-		{:else if !drafts.full}
+		{#if !drafts.full}
 			<label class="add">
 				<Icon name="camera" size={22} />
 				<span>{drafts.items.length > 0 ? t('photo.addAnother') : t('photo.add')}</span>
@@ -58,6 +68,16 @@
 			</label>
 		{/if}
 	</div>
+	{#if waiting}
+		<p class="muted small note">
+			<Icon name="lock" size={14} />{t('photo.queuedNote')}
+		</p>
+	{/if}
+	{#if hidden}
+		<p class="muted small note" data-testid="photo-offline-note">
+			<Icon name="cloud-off" size={14} />{t('photo.offlineNote')}
+		</p>
+	{/if}
 	{#if drafts.progress}
 		<p class="muted small" role="status">
 			{t('photo.uploading', { done: drafts.progress.done + 1, total: drafts.progress.total })}
@@ -100,10 +120,41 @@
 		width: 64px;
 		height: 64px;
 	}
+	.tile.wide {
+		width: 128px;
+	}
 	.tile img {
 		display: block;
 		border-radius: var(--r-sm);
 		object-fit: cover;
+	}
+	.npw {
+		position: relative;
+		display: block;
+		overflow: hidden;
+		border-radius: var(--r-sm);
+	}
+	.badge {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		justify-content: center;
+		padding: 3px 4px;
+		background: rgb(42 36 48 / 0.86);
+		color: #fff;
+		font-size: 11px;
+		font-weight: var(--fw-semibold);
+		line-height: 1.2;
+		white-space: nowrap;
+	}
+	.note {
+		display: flex;
+		gap: 6px;
+		align-items: center;
 	}
 	.wait {
 		display: grid;
@@ -141,11 +192,6 @@
 		font-size: var(--fs-callout);
 		font-weight: var(--fw-medium);
 		cursor: pointer;
-	}
-	.add.off {
-		cursor: default;
-		color: var(--text-3);
-		text-align: left;
 	}
 	.add:focus-within {
 		outline: 2px solid var(--focus);

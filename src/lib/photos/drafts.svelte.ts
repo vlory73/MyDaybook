@@ -1,11 +1,14 @@
 /**
  * The photos of the entry being edited in a sheet: photos already saved with the entry, and new ones that were
- * picked but not uploaded yet. Nothing leaves the device until Save: `commit()` encrypts and uploads the new ones.
+ * picked but not uploaded yet. Nothing leaves the device until Save: `commit()` encrypts and uploads the new ones, or,
+ * without a connection, keeps the encrypted blobs on the device to be uploaded before the entry (queue.svelte.ts).
  */
 import { ApiError } from '$lib/api';
 import { onLock } from '$lib/session.svelte';
 import { MAX_ATTACHMENTS, type AttachmentRef } from '$lib/records/types';
-import { deleteAttachment, attachmentIds, uploadPhoto } from './client';
+import { connection } from '$lib/connection.svelte';
+import { deleteAttachment, attachmentIds, encryptPhoto, sendPhoto } from './client';
+import { queuePhotoBlobs } from './queue.svelte';
 import { PhotoError, processPhoto, type PhotoErrorCode, type ProcessedPhoto } from './process';
 
 export type Draft =
@@ -76,20 +79,37 @@ export class PhotoDrafts {
 
 	/**
 	 * Uploads the new photos and returns the final reference list. A photo that is uploaded stays uploaded when a
-	 * later one fails, so trying Save again does not repeat it. Throws when an upload fails.
+	 * later one fails, so trying Save again does not repeat it. Without a connection (or when the connection is lost
+	 * on the way) the encrypted photos are queued on the device instead and the references are returned anyway.
+	 * Throws when a photo is refused or cannot be kept.
 	 */
 	async commit(): Promise<AttachmentRef[]> {
 		const total = this.items.filter((d) => d.kind === 'new').length;
 		let done = 0;
+		let queueRest = !connection.online;
 		this.problem = null;
 		try {
-			if (total > 0) this.progress = { done, total };
+			if (total > 0 && !queueRest) this.progress = { done, total };
 			for (const draft of [...this.items]) {
 				if (draft.kind !== 'new') continue;
-				const ref = await uploadPhoto(draft.photo);
+				const enc = await encryptPhoto(draft.photo);
+				if (!queueRest) {
+					try {
+						await sendPhoto(enc);
+					} catch (err) {
+						if (!(err instanceof ApiError && err.status === 0)) throw err;
+						queueRest = true;
+					}
+				}
+				if (queueRest) {
+					this.progress = null;
+					if (!(await queuePhotoBlobs(enc.ref.id, enc.blobs))) throw new Error('could not keep the photo');
+				}
 				URL.revokeObjectURL(draft.preview);
-				this.items = this.items.map((d) => (d.key === draft.key ? { kind: 'saved', key: d.key, ref } : d));
-				this.progress = { done: ++done, total };
+				this.items = this.items.map((d) =>
+					d.key === draft.key ? { kind: 'saved', key: d.key, ref: enc.ref } : d
+				);
+				if (this.progress) this.progress = { done: ++done, total };
 			}
 		} catch (err) {
 			this.problem = 'upload';

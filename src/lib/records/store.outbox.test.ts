@@ -1,16 +1,18 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CachedRecord } from './codec';
 import type { OutboxRow } from './outbox';
+import type { BlobRow } from '$lib/photos/blobs';
 
 // Synthetic data only. The store with the IndexedDB cache and the server API replaced by in-memory fakes.
 const fake = vi.hoisted(() => ({
 	records: new Map<string, unknown>(),
 	outbox: new Map<string, OutboxRow>(),
+	blobs: new Map<string, BlobRow>(),
 	cursor: null as string | null,
 	kek: new Uint8Array(32),
 	signOutHooks: [] as ((id: string | null, reason: string) => void)[],
 	lockHooks: [] as (() => void)[],
-	api: { put: vi.fn(), del: vi.fn(), get: vi.fn() },
+	api: { put: vi.fn(), del: vi.fn(), get: vi.fn(), putBytes: vi.fn() },
 	cacheCalls: { deleted: [] as string[], keptOutbox: [] as string[] }
 }));
 
@@ -26,7 +28,13 @@ vi.mock('$lib/photos/pending', () => ({
 }));
 vi.mock('$lib/api', async () => {
 	const actual = await vi.importActual<typeof import('$lib/api')>('$lib/api');
-	return { ...actual, apiPut: fake.api.put, apiDelete: fake.api.del, apiGet: fake.api.get };
+	return {
+		...actual,
+		apiPut: fake.api.put,
+		apiDelete: fake.api.del,
+		apiGet: fake.api.get,
+		apiPutBytes: fake.api.putBytes
+	};
 });
 vi.mock('./cache', () => ({
 	readCache: async () => ({ records: [...fake.records.values()] as CachedRecord[], cursor: fake.cursor }),
@@ -44,6 +52,21 @@ vi.mock('./cache', () => ({
 		if (!current || current.queuedAt !== queuedAt) return;
 		if (update) fake.outbox.set(id, { ...current, ...update });
 		else fake.outbox.delete(id);
+	},
+	readBlobs: async () => [...fake.blobs.values()].sort((a, b) => a.queuedAt - b.queuedAt),
+	readBlob: async (_u: string, id: string) => fake.blobs.get(id) ?? null,
+	putBlobs: async (_u: string, rows: BlobRow[]) => {
+		for (const r of rows) fake.blobs.set(r.id, r);
+		return true;
+	},
+	deleteBlobs: async (_u: string, ids: string[]) => {
+		for (const id of ids) fake.blobs.delete(id);
+	},
+	markBlobs: async (_u: string, ids: string[], refused: boolean) => {
+		for (const id of ids) {
+			const row = fake.blobs.get(id);
+			if (row) fake.blobs.set(id, refused ? { ...row, refused: true } : { ...row, refused: undefined });
+		}
 	},
 	deleteCache: async (id: string) => {
 		fake.cacheCalls.deleted.push(id);
@@ -83,6 +106,8 @@ beforeEach(async () => {
 	fake.lockHooks.forEach((h) => h()); // resets the store
 	fake.records.clear();
 	fake.outbox.clear();
+	fake.blobs.clear();
+	fake.api.putBytes.mockReset().mockResolvedValue({});
 	fake.cursor = null;
 	fake.cacheCalls.deleted.length = 0;
 	fake.cacheCalls.keptOutbox.length = 0;
@@ -283,5 +308,71 @@ describe('when the session ends', () => {
 		await Promise.resolve();
 		expect(fake.cacheCalls.deleted).toEqual(['u1']);
 		expect(fake.outbox.size).toBe(0);
+	});
+});
+
+describe('photos waiting on the device', () => {
+	const queuePhoto = async () => {
+		const { queuePhotoBlobs } = await import('$lib/photos/queue.svelte');
+		await queuePhotoBlobs('full-1', [
+			{ id: 'full-1', blob: new Uint8Array([1]) },
+			{ id: 'thumb-1', blob: new Uint8Array([2]) }
+		]);
+	};
+	const order: string[] = [];
+	const track = () => {
+		order.length = 0;
+		fake.api.putBytes.mockImplementation(
+			async (path: string) => void order.push(`blob:${path.split('/').pop()}`)
+		);
+		fake.api.put.mockImplementation(async (path: string) => {
+			order.push(`row:${path.split('/').pop()}`);
+			return { id: 'x', rev: 1, updatedAt: 1 };
+		});
+	};
+
+	it('uploads the photos before the entry that uses them', async () => {
+		fake.api.put.mockImplementation(network);
+		fake.api.putBytes.mockImplementation(network);
+		await queuePhoto();
+		const id = await save(note('with a photo'));
+		track();
+		await flushOutbox();
+		expect(order).toEqual(['blob:full-1', 'blob:thumb-1', `row:${id}`]);
+		expect(fake.blobs.size).toBe(0);
+		expect(syncState(id)).toBe('synced');
+	});
+
+	it('sends no entry while the photos cannot be uploaded, and says it tried', async () => {
+		await queuePhoto();
+		fake.api.put.mockImplementation(network);
+		fake.api.putBytes.mockImplementation(network);
+		const id = await save(note('with a photo'));
+		fake.api.put.mockClear();
+		await flushOutbox();
+		expect(fake.api.put).not.toHaveBeenCalled();
+		expect(fake.blobs.size).toBe(2);
+		expect(syncState(id)).toBe('waiting');
+		expect(fake.outbox.get(id)!.attempts).toBeGreaterThan(0);
+	});
+
+	it('a photo the server refuses does not hold the entry back, and Try again gives it another go', async () => {
+		fake.api.put.mockImplementation(network);
+		fake.api.putBytes.mockImplementation(network);
+		await queuePhoto();
+		const id = await save(note('with a photo'));
+		track();
+		fake.api.putBytes.mockRejectedValue(new ApiError(413, 'too_large'));
+		await flushOutbox();
+		expect(syncState(id)).toBe('synced');
+		const { photoQueue } = await import('$lib/photos/queue.svelte');
+		expect(photoQueue.refused).toBe(1);
+		expect([...fake.blobs.values()].every((b) => b.refused)).toBe(true);
+		fake.api.putBytes.mockClear().mockResolvedValue({});
+		await flushOutbox();
+		expect(fake.api.putBytes).not.toHaveBeenCalled();
+		await flushOutbox({ retryRefused: true });
+		expect(fake.blobs.size).toBe(0);
+		expect(photoQueue.refused).toBe(0);
 	});
 });
