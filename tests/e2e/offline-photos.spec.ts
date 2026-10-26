@@ -40,13 +40,13 @@ async function syntheticPng(page: Page, width = 800, height = 600) {
 }
 
 /** Opens the meal sheet, types the text and picks a synthetic photo. Does not save. */
-async function mealWithPhoto(page: Page, text: string) {
+async function mealWithPhoto(page: Page, text: string, png?: Buffer) {
 	await page.getByRole('button', { name: 'Log something' }).click();
 	await page.getByRole('button', { name: 'Meal', exact: true }).click();
 	await page.getByLabel('What did you have?').fill(text);
 	await sheet(page)
 		.locator('input[type=file]')
-		.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: await syntheticPng(page) });
+		.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: png ?? (await syntheticPng(page)) });
 	await expect(sheet(page).getByRole('img', { name: 'Photo attached to this entry' })).toBeVisible();
 }
 
@@ -73,9 +73,11 @@ test('a photo added offline waits encrypted on the device and is uploaded with i
 }) => {
 	await stubPush(page, endpointOf());
 	const user = await signUpAndSignIn(page);
+	// Painted before going offline: WebKit can't read a canvas blob without a connection.
+	const png = await syntheticPng(page);
 	await setOffline(page, true);
 
-	await mealWithPhoto(page, 'Porridge with a photo');
+	await mealWithPhoto(page, 'Porridge with a photo', png);
 	// In the sheet the picked photo already says it will wait.
 	await expect(sheet(page).getByTestId('photo-queued')).toHaveText('Waiting to upload');
 	await save(page, QUEUED);
@@ -145,8 +147,9 @@ test('an entry whose photo is on the server shows a calm placeholder offline', a
 test('a photo the server refuses is shown on the Sync card and can be tried again', async ({ page }) => {
 	await stubPush(page, endpointOf());
 	await signUpAndSignIn(page);
+	const png = await syntheticPng(page);
 	await setOffline(page, true);
-	await mealWithPhoto(page, 'Toast with a refused photo');
+	await mealWithPhoto(page, 'Toast with a refused photo', png);
 	await save(page, QUEUED);
 
 	await page.route('**/api/attachments/*', (route) =>
