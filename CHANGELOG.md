@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1 (2026-10-26)
+
+### Fixes
+
+- **headache:** record headache times to the minute like every other entry (#107)
+
+### Documentation
+
+- session handover (M7 done, 1.0.0 released, next: M8 offline-first) (#105)
+
 ## 1.0.0 (2026-10-25)
 
 ### Features
