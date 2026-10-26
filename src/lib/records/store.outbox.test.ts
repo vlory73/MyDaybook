@@ -63,7 +63,13 @@ import { setOnline } from '$lib/connection.svelte';
 import { flushOutbox, outboxCount, remove, save, startRecords, store, sync, syncState } from './store.svelte';
 import type { NotePayload } from './types';
 
-const note = (text: string): NotePayload => ({ v: 1, type: 'note', at: '2026-10-26T08:00:00+01:00', text, tags: [] });
+const note = (text: string): NotePayload => ({
+	v: 1,
+	type: 'note',
+	at: '2026-10-26T08:00:00+01:00',
+	text,
+	tags: []
+});
 const textOf = (id: string) => (store.items[id]?.payload as NotePayload | undefined)?.text;
 const network = () => Promise.reject(new ApiError(0, 'network'));
 const okPut = (rev = 1) => Promise.resolve({ id: 'x', rev, updatedAt: 500 + rev });
@@ -224,7 +230,16 @@ describe('loading and syncing with changes waiting', () => {
 		const id = await save(note('my offline edit'));
 		const downloaded = { ...fake.outbox.get(id)!, rev: 9, updatedAt: 9, deletedAt: null };
 		fake.api.get.mockResolvedValue({
-			records: [{ id, wrappedKey: downloaded.wrappedKey, ciphertext: downloaded.ciphertext, rev: 9, updatedAt: 9, deletedAt: null }],
+			records: [
+				{
+					id,
+					wrappedKey: downloaded.wrappedKey,
+					ciphertext: downloaded.ciphertext,
+					rev: 9,
+					updatedAt: 9,
+					deletedAt: null
+				}
+			],
 			cursor: 'c1',
 			hasMore: false
 		});

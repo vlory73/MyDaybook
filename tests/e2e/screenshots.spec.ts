@@ -2308,3 +2308,116 @@ test('danish review screens', async ({ page }) => {
 	await page.setViewportSize({ width: 375, height: 812 });
 	await shoot(null, 'doctor', 'Se rapporten', '.dsheet, .report-sheet', [794, 1123]);
 });
+
+// Offline outbox (SCREENSHOTS=offline-outbox): waiting entries, the Sync card, the sign-out warning, photos offline.
+test.describe('offline outbox', () => {
+	// Without the service worker, `page.route` and offline mode behave the same in every browser.
+	test.use({ serviceWorkers: 'block' });
+	const QUEUED = "Saved on this device. It will sync when you're back online.";
+	const offline = async (page: Page, off: boolean) => {
+		await page.context().setOffline(off);
+		await page.evaluate((o) => window.dispatchEvent(new Event(o ? 'offline' : 'online')), off);
+	};
+	const note = async (page: Page, text: string, toast: string) => {
+		await page.getByRole('button', { name: 'Log something' }).click();
+		await page.getByRole('button', { name: 'Note', exact: true }).click();
+		await page.getByLabel('Note text').fill(text);
+		await page.getByRole('button', { name: 'Save' }).click();
+		await page.getByText(toast).waitFor();
+		await page.getByRole('dialog').waitFor({ state: 'hidden' });
+	};
+
+	for (const scheme of ['light', 'dark'] as const) {
+		test(`offline outbox ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'offline-outbox', 'offline-outbox screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			// The icon sprite is normally kept by the service worker; here it is served from disk, also while offline.
+			await page.route('**/icons.svg', (route) =>
+				route.fulfill({ path: 'static/icons.svg', contentType: 'image/svg+xml' })
+			);
+			await stubPush(page, endpointOf());
+			await signUpAndSignIn(page);
+			await note(page, 'Slept well, woke up rested', 'Note saved');
+			// Open Me once while online, so its code is loaded before the connection goes.
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			await page.getByRole('button', { name: 'Sign out' }).waitFor();
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+
+			await offline(page, true);
+			await note(page, 'Porridge with berries', QUEUED);
+			await page.getByText(QUEUED).waitFor({ state: 'hidden', timeout: 15_000 });
+			await note(page, 'Short walk after lunch', QUEUED);
+			await page.getByText('Offline · 2 not synced yet').waitFor();
+			await snap(page, 'today-offline-waiting', scheme);
+			await page.getByText(QUEUED).waitFor({ state: 'hidden', timeout: 15_000 });
+			await snap(page, 'today-offline-waiting-full', scheme, true);
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			const photoOff = page.getByRole('dialog').getByTestId('photo-offline');
+			await photoOff.waitFor();
+			await photoOff.scrollIntoViewIfNeeded();
+			await snap(page, 'meal-photo-offline', scheme);
+			await page.keyboard.press('Escape');
+			await page.getByRole('dialog').waitFor({ state: 'hidden' });
+
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			await page.getByTestId('sync-card').waitFor();
+			await snap(page, 'me-sync-card', scheme);
+			if (scheme === 'light') {
+				await page.getByRole('radio', { name: 'Dansk' }).click();
+				await page.getByText('venter på at blive synkroniseret').waitFor();
+				await page.getByRole('heading', { name: 'Mig', level: 1 }).scrollIntoViewIfNeeded();
+				await snap(page, 'me-sync-card-da', scheme);
+				await page.getByRole('link', { name: 'I dag', exact: true }).click();
+				await page.getByText('Offline · 2 ikke synkroniseret endnu').waitFor();
+				await snap(page, 'today-offline-waiting-da', scheme);
+				await page.getByRole('link', { name: 'Mig', exact: true }).click();
+				await page.getByRole('radio', { name: 'English' }).click();
+			}
+
+			await page.getByRole('button', { name: 'Sign out' }).click();
+			await page.getByTestId('signout-warning').waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'signout-warning', scheme);
+			if (scheme === 'light') {
+				await page.getByRole('button', { name: 'Stay signed in' }).click();
+				await page.getByRole('radio', { name: 'Dansk' }).click();
+				await page.getByRole('button', { name: 'Log ud' }).click();
+				await page.getByTestId('signout-warning').waitFor();
+				await page.waitForTimeout(400);
+				await snap(page, 'signout-warning-da', scheme);
+				await page.getByRole('button', { name: 'Bliv logget ind' }).click();
+				await page.getByRole('radio', { name: 'English' }).click();
+			} else {
+				await page.getByRole('button', { name: 'Stay signed in' }).click();
+			}
+
+			// Back online, but the server answers slowly: the pill says "Syncing 2…".
+			await page.route('**/api/records/*', () => new Promise(() => undefined));
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await offline(page, false);
+			await page.getByText('Syncing 2…').waitFor();
+			await snap(page, 'today-syncing', scheme);
+		});
+
+		test(`refused change ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'offline-outbox', 'offline-outbox screenshots only');
+			await prepare(page, scheme);
+			await stubPush(page, endpointOf());
+			await signUpAndSignIn(page);
+			await page.route('**/api/records/*', (route) =>
+				route.request().method() === 'PUT'
+					? route.fulfill({ status: 400, contentType: 'application/json', body: '{"error":"bad_request"}' })
+					: route.continue()
+			);
+			await note(page, 'Short walk after lunch', "Saved on this device, but the server didn't accept it.");
+			await page.getByText("1 couldn't be synced").first().waitFor();
+			await snap(page, 'today-refused', scheme);
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			await page.getByTestId('sync-card').waitFor();
+			await snap(page, 'me-sync-card-refused', scheme);
+		});
+	}
+});

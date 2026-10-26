@@ -35,7 +35,9 @@ async function reopen(page: Page, passphrase: string) {
 
 const entry = (page: Page, text: string) => timeline(page).locator('li').filter({ hasText: text });
 
-test('an entry made offline shows "Not synced yet", then syncs when the connection is back', async ({ page }) => {
+test('an entry made offline shows "Not synced yet", then syncs when the connection is back', async ({
+	page
+}) => {
 	await stubPush(page, endpointOf());
 	const user = await signUpAndSignIn(page);
 	await addNote(page, 'synced before going offline');

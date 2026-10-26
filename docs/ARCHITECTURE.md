@@ -453,7 +453,33 @@ map and the headache report ignore episodes.
 - The client keeps **ciphertext** in IndexedDB (database `mydaybook-records-<userId>`: wrapped key, ciphertext, rev, timestamps
   and the sync cursor), so later visits download only changes. The database is deleted on sign-out and account deletion and
   kept on lock. Records that fail to decrypt or validate are skipped and counted, never fatal. Sync runs after unlock and when
-  the app becomes visible again (throttled to 15 s). This also prepares for offline-first in a later version.
+  the app becomes visible again (throttled to 15 s).
+- **Outbox (offline-first, M8).** The same database has a second object store `outbox` (database version 2; version 1 data is
+  kept on upgrade): one row per record id, `{ id, op: 'put' | 'delete', wrappedKey?, ciphertext?, baseRev?, queuedAt, attempts,
+  refused? }`. A row holds only what `seal()` produced (base64 wrapped key and ciphertext) or a delete marker, never plaintext, so
+  it has the same exposure as the cache (THREAT_MODEL T18). `save()` / `remove()` (`src/lib/records/store.svelte.ts`) seal the
+  change, write the row, update memory at once (`store.pending[id]` is `waiting` or `refused`; the Today pill, the marker on the
+  timeline entry and the Me Sync card read it) and then try to send. Without IndexedDB there is no outbox and a failed send throws,
+  as before. A newer change to the same id replaces the row (the newest wins); the row is removed only if it is still the version
+  that was sent (`queuedAt` compare in one transaction).
+  - **Sending** (`flushOutbox`, rules in `src/lib/records/outbox.ts`): oldest first, stopping at the first network or server
+    trouble (network error, 5xx, 429, timeout of 30 s), which counts as an attempt. One run per tab (a request during a run asks for
+    one more pass) and one tab at a time with `navigator.locks` where available; a duplicate PUT would be harmless anyway. It needs
+    no keys, so it also runs while locked. Triggers: right after each save or delete, after the records load, when the connection
+    returns (`onReconnect`, also while locked), when the app becomes visible (`syncIfStale`) and "Try now" on Me. After a run that
+    empties an outbox which had really waited, it shows "All synced" once and runs a sync.
+  - **Conflicts** stay last-change-wins: the base revision is the newest one this device knows (a download of a record with a waiting
+    row only remembers its revision), a 409 on a put is retried once without it, and a delete of an id the server never had (404)
+    counts as done. A waiting version is never replaced in memory by a downloaded one.
+  - **Refused rows:** any other 4xx (400, 413, ...) marks the row `refused`. It stays on the device, is not retried by itself and is
+    shown on the Sync card ("Try again" clears the mark, "Show entry" opens it). Nothing is dropped silently.
+  - **Loading:** `startRecords` reads the cache and the outbox, applies the cache, then lays the outbox over it in memory (put rows
+    are opened like cached records, delete rows hide the record) and sends what is waiting.
+  - **Ending the session** (`onSignOut(userId, reason)`): `signout` and `deleted` delete the whole database, outbox included (the
+    sign-out sheet warns first when rows are waiting, with the count read from the outbox); `ended` (signed out elsewhere, account
+    disabled, any 401) deletes the records and the cursor but keeps the outbox, so it is sent when the same person signs in again
+    on this device. A row left behind by a person who never returns stays as ciphertext until the browser data is cleared.
+  - Photos are not queued yet: while offline the photo button is disabled ("Photos need a connection.").
 - Decrypted data lives only in memory (Svelte stores) and is wiped on lock. Nothing decrypted goes to localStorage,
   sessionStorage, IndexedDB, the service worker cache or logs.
 - The service worker precaches **all** app chunks at install. Navigating to, say, the body map therefore makes no network request

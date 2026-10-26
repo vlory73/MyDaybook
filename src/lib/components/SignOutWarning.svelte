@@ -11,14 +11,14 @@
 	}: { open?: boolean; count: number; onconfirm: () => void } = $props();
 </script>
 
-<Sheet bind:open title={tn('outbox.signout.title', count)}>
+<Sheet bind:open wrapTitle title={tn('outbox.signout.title', count)}>
 	<div class="warn" data-testid="signout-warning">
 		<p class="muted">{tn('outbox.signout.body', count)}</p>
 		<Button block size="lg" onclick={() => (open = false)}>{t('outbox.signout.stay')}</Button>
 		<Button
 			variant="quiet"
 			block
-			style="color: var(--pain-ink)"
+			style="color: var(--pain-ink); background: transparent"
 			onclick={() => {
 				open = false;
 				onconfirm();

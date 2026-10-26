@@ -15,7 +15,13 @@ import {
 import type { NotePayload } from './types';
 
 // Synthetic data only.
-const note = (text: string): NotePayload => ({ v: 1, type: 'note', at: '2026-10-26T08:00:00+01:00', text, tags: [] });
+const note = (text: string): NotePayload => ({
+	v: 1,
+	type: 'note',
+	at: '2026-10-26T08:00:00+01:00',
+	text,
+	tags: []
+});
 const row = (id: string, queuedAt: number, extra: Partial<OutboxRow> = {}): OutboxRow => ({
 	id,
 	op: 'put',
@@ -47,32 +53,57 @@ describe('applyOutbox', () => {
 
 	it('shows a waiting change over the cached version and keeps the known revision', () => {
 		const items = { a: stored('a', 'old') };
-		applyOutbox(items, [row('a', 10)], () => note('new'), () => 3);
+		applyOutbox(
+			items,
+			[row('a', 10)],
+			() => note('new'),
+			() => 3
+		);
 		expect(items.a).toMatchObject({ rev: 3, updatedAt: 10 });
 		expect((items.a!.payload as NotePayload).text).toBe('new');
 	});
 
 	it('adds a record the server has never seen', () => {
 		const items: Record<string, StoredRecord> = {};
-		applyOutbox(items, [row('n', 10)], () => note('fresh'), () => 0);
+		applyOutbox(
+			items,
+			[row('n', 10)],
+			() => note('fresh'),
+			() => 0
+		);
 		expect(items.n?.rev).toBe(0);
 	});
 
 	it('hides a record with a waiting delete', () => {
 		const items = { a: stored('a', 'x'), b: stored('b', 'y') };
-		applyOutbox(items, [row('a', 10, { op: 'delete' })], () => null, () => 3);
+		applyOutbox(
+			items,
+			[row('a', 10, { op: 'delete' })],
+			() => null,
+			() => 3
+		);
 		expect(Object.keys(items)).toEqual(['b']);
 	});
 
 	it('applies rows oldest first, so a later delete wins over an earlier put', () => {
 		const items: Record<string, StoredRecord> = {};
-		applyOutbox(items, [row('a', 20, { op: 'delete' }), row('a', 10)], () => note('x'), () => 0);
+		applyOutbox(
+			items,
+			[row('a', 20, { op: 'delete' }), row('a', 10)],
+			() => note('x'),
+			() => 0
+		);
 		expect(items.a).toBeUndefined();
 	});
 
 	it('leaves the cached version when a row cannot be opened', () => {
 		const items = { a: stored('a', 'old') };
-		applyOutbox(items, [row('a', 10)], () => null, () => 3);
+		applyOutbox(
+			items,
+			[row('a', 10)],
+			() => null,
+			() => 3
+		);
 		expect((items.a!.payload as NotePayload).text).toBe('old');
 	});
 });
