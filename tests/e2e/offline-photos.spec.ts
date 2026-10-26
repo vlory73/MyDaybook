@@ -46,7 +46,11 @@ async function mealWithPhoto(page: Page, text: string, png?: Buffer) {
 	await page.getByLabel('What did you have?').fill(text);
 	await sheet(page)
 		.locator('input[type=file]')
-		.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: png ?? (await syntheticPng(page)) });
+		.setInputFiles({
+			name: 'synthetic.png',
+			mimeType: 'image/png',
+			buffer: png ?? (await syntheticPng(page))
+		});
 	await expect(sheet(page).getByRole('img', { name: 'Photo attached to this entry' })).toBeVisible();
 }
 
