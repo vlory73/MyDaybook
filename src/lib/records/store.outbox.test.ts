@@ -76,7 +76,7 @@ const okPut = (rev = 1) => Promise.resolve({ id: 'x', rev, updatedAt: 500 + rev 
 
 beforeAll(async () => {
 	await initCrypto();
-	fake.kek = randomBytes(32);
+	fake.kek = new Uint8Array(randomBytes(32));
 });
 
 beforeEach(async () => {
