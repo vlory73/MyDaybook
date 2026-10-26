@@ -1515,10 +1515,10 @@ for (const scheme of ['light', 'dark'] as const) {
 			await card.waitFor({ timeout: 20_000 });
 			await card.getByRole('button', { name: "It's gone", exact: true }).click();
 			await card.getByText('When did it stop?').waitFor();
-			await snap(page, 'today-card-options', scheme);
+			await snap(page, 'today-card-options', scheme, true);
 			await card.getByRole('button', { name: 'Earlier…' }).click();
 			await card.getByLabel('When it stopped').fill(local(100));
-			await snap(page, 'today-card-earlier', scheme);
+			await snap(page, 'today-card-earlier', scheme, true);
 
 			await page.getByRole('button', { name: 'Log something' }).click();
 			await page.getByRole('button', { name: 'Pain', exact: true }).click();
@@ -1534,7 +1534,7 @@ for (const scheme of ['light', 'dark'] as const) {
 				.click();
 			await sheet.getByLabel('Started', { exact: true }).fill(local(190));
 			await sheet.getByLabel('Stopped', { exact: true }).fill(local(45));
-			await page.setViewportSize({ width: 375, height: 1150 });
+			await page.setViewportSize({ width: 375, height: 1500 });
 			await page.waitForTimeout(900);
 			await sheet
 				.getByLabel('Started', { exact: true })
