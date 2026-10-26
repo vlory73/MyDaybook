@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 (2026-10-26)
+
+### Features
+
+- add photos while offline (M8 branch 3) (#115)
+
 ## 1.1.0 (2026-10-26)
 
 ### Features

@@ -47,6 +47,13 @@ import {
 	type SendResult
 } from './outbox';
 import { flushPendingAttachmentDeletes, scheduleAttachmentDelete } from '$lib/photos/pending';
+import {
+	flushBlobs,
+	loadPhotoQueue,
+	photoQueue,
+	resetPhotoQueue,
+	retryRefusedBlobs
+} from '$lib/photos/queue.svelte';
 import type { Payload } from './types';
 
 export type { StoredRecord } from './codec';
@@ -106,6 +113,7 @@ function reset(): void {
 	cursor = null;
 	inflight = null;
 	lastSyncAt = 0;
+	resetPhotoQueue();
 }
 
 onLock(reset);
@@ -197,6 +205,8 @@ export async function startRecords(): Promise<void> {
 	if (gen !== generation) return;
 	cursor = cached.cursor;
 	store.pending = pendingOf(rows);
+	await loadPhotoQueue();
+	if (gen !== generation) return;
 	store.lastSyncedAt = readLastSynced(uid);
 	apply(cached.records);
 	overlay(rows);
@@ -304,6 +314,7 @@ export function flushOutbox(opts: { retryRefused?: boolean } = {}): Promise<void
 				for (const row of await readOutbox(uid)) {
 					if (row.refused) await settleOutboxRow(uid, row.id, row.queuedAt, { refused: false });
 				}
+				await retryRefusedBlobs(uid);
 				await refreshPending(gen, uid);
 			}
 			const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
@@ -328,6 +339,13 @@ export function flushOutbox(opts: { retryRefused?: boolean } = {}): Promise<void
 
 /** One pass over the outbox. Returns true when it stopped early (network or server trouble). */
 async function flushPass(uid: string, gen: number): Promise<boolean> {
+	// Photos first: a record must never reach the server before the photos it points at.
+	if (await flushBlobs(uid)) {
+		// Count the try on the oldest waiting change, so that finishing later is announced like any other waiting change.
+		const first = (await readOutbox(uid)).find((r) => !r.refused);
+		if (first) await settleOutboxRow(uid, first.id, first.queuedAt, { attempts: first.attempts + 1 });
+		return true;
+	}
 	const rows = await readOutbox(uid);
 	if (rows.length === 0) return false;
 	const { sent, stopped } = await flushRows(rows, {
@@ -351,7 +369,9 @@ async function flushPass(uid: string, gen: number): Promise<boolean> {
 	});
 	await refreshPending(gen, uid);
 	if (sent.length > 0) touchSynced(uid);
-	const allDone = !stopped && gen === generation && Object.keys(store.pending).length === 0;
+	// A photo the server refused is still waiting on the device, so "All synced" would not be true.
+	const allDone =
+		!stopped && gen === generation && Object.keys(store.pending).length === 0 && photoQueue.refused === 0;
 	if (allDone && sent.some((r) => r.attempts > 0)) {
 		// Everything that was waiting is on the server now: say so once, and fetch what changed elsewhere.
 		showToast(t('outbox.toast.synced'));

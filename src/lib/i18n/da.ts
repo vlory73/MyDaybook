@@ -282,7 +282,6 @@ export const da: Record<MessageKey, string> = {
 	'outbox.signout.stay': 'Bliv logget ind',
 	'outbox.signout.go_one': 'Log ud og mist den',
 	'outbox.signout.go_other': 'Log ud og mist dem',
-	'photo.offline': 'Fotos kræver forbindelse.',
 
 	'recover.title': 'Kom ind i din dagbog igen',
 	'recover.lead': 'Skriv dit brugernavn og den gendannelsesnøgle, du gemte, da du blev oprettet.',
@@ -657,6 +656,14 @@ export const da: Record<MessageKey, string> = {
 	'watch.remove': 'Fjern {name}',
 	'watch.removed': '{name} fjernet fra din liste',
 
+	'photo.queued': 'Venter på upload',
+	'photo.queuedNote': 'Krypteret på denne enhed. Det uploades sammen med registreringen.',
+	'photo.offlineTile': 'Fotoet vises, når du er online',
+	'photo.offlineNote': 'Gemte fotos vises, når du er online.',
+	'outbox.card.photosRefused_one': '{count} foto kunne ikke uploades',
+	'outbox.card.photosRefused_other': '{count} fotos kunne ikke uploades',
+	'outbox.card.photosRefusedBody_one': 'Serveren afviste det. Det er stadig gemt på denne enhed.',
+	'outbox.card.photosRefusedBody_other': 'Serveren afviste dem. De er stadig gemt på denne enhed.',
 	'photo.label': 'Fotos',
 	'photo.add': 'Tilføj foto',
 	'photo.addAnother': 'Tilføj endnu et foto',

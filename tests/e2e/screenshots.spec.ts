@@ -2309,7 +2309,7 @@ test('danish review screens', async ({ page }) => {
 	await shoot(null, 'doctor', 'Se rapporten', '.dsheet, .report-sheet', [794, 1123]);
 });
 
-// Offline outbox (SCREENSHOTS=offline-outbox): waiting entries, the Sync card, the sign-out warning, photos offline.
+// Offline outbox (SCREENSHOTS=offline-outbox): waiting entries, the Sync card, the sign-out warning.
 test.describe('offline outbox', () => {
 	// Without the service worker, `page.route` and offline mode behave the same in every browser.
 	test.use({ serviceWorkers: 'block' });
@@ -2352,15 +2352,6 @@ test.describe('offline outbox', () => {
 			await snap(page, 'today-offline-waiting', scheme);
 			await page.getByText(QUEUED).waitFor({ state: 'hidden', timeout: 15_000 });
 			await snap(page, 'today-offline-waiting-full', scheme, true);
-
-			await page.getByRole('button', { name: 'Log something' }).click();
-			await page.getByRole('button', { name: 'Meal', exact: true }).click();
-			const photoOff = page.getByRole('dialog').getByTestId('photo-offline');
-			await photoOff.waitFor();
-			await photoOff.scrollIntoViewIfNeeded();
-			await snap(page, 'meal-photo-offline', scheme);
-			await page.keyboard.press('Escape');
-			await page.getByRole('dialog').waitFor({ state: 'hidden' });
 
 			await page.getByRole('link', { name: 'Me', exact: true }).click();
 			await page.getByTestId('sync-card').waitFor();
@@ -2418,6 +2409,143 @@ test.describe('offline outbox', () => {
 			await page.getByRole('link', { name: 'Me', exact: true }).click();
 			await page.getByTestId('sync-card').waitFor();
 			await snap(page, 'me-sync-card-refused', scheme);
+		});
+	}
+});
+
+// Offline photos (SCREENSHOTS=offline-photos): a queued photo in the sheet and on Today, the placeholder for a photo on
+// the server, the Sync card with a refused photo. Synthetic images only.
+test.describe('offline photos', () => {
+	test.use({ serviceWorkers: 'block' });
+	const QUEUED = "Saved on this device. It will sync when you're back online.";
+	const offline = async (page: Page, off: boolean) => {
+		await page.context().setOffline(off);
+		await page.evaluate((o) => window.dispatchEvent(new Event(o ? 'offline' : 'online')), off);
+	};
+	const png = async (page: Page) =>
+		Buffer.from(
+			await page.evaluate(async () => {
+				const canvas = document.createElement('canvas');
+				canvas.width = 800;
+				canvas.height = 600;
+				const ctx = canvas.getContext('2d')!;
+				ctx.fillStyle = '#e8c9a8';
+				ctx.fillRect(0, 0, 800, 600);
+				ctx.fillStyle = '#6b8f71';
+				ctx.beginPath();
+				ctx.arc(400, 300, 200, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.fillStyle = '#a94e2e';
+				ctx.fillRect(100, 80, 160, 100);
+				const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), 'image/png'));
+				return Array.from(new Uint8Array(await blob.arrayBuffer()));
+			})
+		);
+	const pickPhoto = async (page: Page, text: string) => {
+		await page.getByRole('button', { name: 'Log something' }).click();
+		await page.getByRole('button', { name: 'Meal', exact: true }).click();
+		await page.getByLabel('What did you have?').fill(text);
+		await page
+			.getByRole('dialog')
+			.locator('input[type=file]')
+			.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: await png(page) });
+		await page.getByRole('dialog').getByRole('img', { name: 'Photo attached to this entry' }).waitFor();
+	};
+	const saveMeal = async (page: Page, toast: string) => {
+		await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+		await page.getByText(toast, { exact: true }).waitFor({ timeout: 15_000 });
+		await page.getByRole('dialog').waitFor({ state: 'hidden' });
+	};
+
+	for (const scheme of ['light', 'dark'] as const) {
+		test(`queued photo ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'offline-photos', 'offline-photos screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await page.route('**/icons.svg', (route) =>
+				route.fulfill({ path: 'static/icons.svg', contentType: 'image/svg+xml' })
+			);
+			await stubPush(page, endpointOf());
+			await signUpAndSignIn(page);
+			// Open Me once while online, so its code is loaded before the connection goes.
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			await page.getByRole('button', { name: 'Sign out' }).waitFor();
+			await page.getByRole('link', { name: 'Today', exact: true }).click();
+			await offline(page, true);
+			await pickPhoto(page, 'Porridge with berries');
+			const badge = page.getByRole('dialog').getByTestId('photo-queued');
+			await badge.scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'meal-sheet-queued', scheme);
+			await saveMeal(page, QUEUED);
+			await page.getByText(QUEUED).waitFor({ state: 'hidden', timeout: 15_000 });
+			await page.getByRole('button', { name: 'Open photo' }).getByTestId('photo-queued').waitFor();
+			await snap(page, 'today-offline-queued', scheme);
+			if (scheme === 'light') {
+				await page.getByRole('link', { name: 'Me', exact: true }).click();
+				await page.getByRole('radio', { name: 'Dansk' }).click();
+				await page.getByRole('link', { name: 'I dag', exact: true }).click();
+				await page.getByText('Venter på upload').first().waitFor();
+				await snap(page, 'today-offline-queued-da', scheme);
+				await page.getByRole('button', { name: 'Registrér noget' }).click();
+				await page.getByRole('button', { name: 'Måltid', exact: true }).click();
+				await page
+					.getByRole('dialog')
+					.locator('input[type=file]')
+					.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: await png(page) });
+				const dbadge = page.getByRole('dialog').getByTestId('photo-queued');
+				await dbadge.waitFor();
+				await dbadge.scrollIntoViewIfNeeded();
+				await page.waitForTimeout(300);
+				await snap(page, 'meal-sheet-queued-da', scheme);
+			}
+		});
+
+		test(`photo on the server while offline ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'offline-photos', 'offline-photos screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await page.route('**/icons.svg', (route) =>
+				route.fulfill({ path: 'static/icons.svg', contentType: 'image/svg+xml' })
+			);
+			await stubPush(page, endpointOf());
+			const user = await signUpAndSignIn(page);
+			await pickPhoto(page, 'Soup with bread');
+			await saveMeal(page, 'Saved');
+			await page.getByRole('button', { name: 'Open photo' }).getByRole('img').waitFor();
+			// A fresh load while the photo downloads fail, as they do without a connection.
+			await page.route('**/api/attachments/*', (route) => route.abort());
+			await page.reload();
+			await page.getByRole('heading', { name: 'Your diary is locked' }).waitFor();
+			await unlockWith(page, user.passphrase);
+			await page.getByTestId('photo-offline-tile').waitFor({ timeout: 15_000 });
+			await snap(page, 'photo-offline-placeholder', scheme);
+			if (scheme === 'light') {
+				await page.getByRole('link', { name: 'Me', exact: true }).click();
+				await page.getByRole('radio', { name: 'Dansk' }).click();
+				await page.getByRole('link', { name: 'I dag', exact: true }).click();
+				await page.getByText('Gemte fotos vises, når du er online.').waitFor();
+				await snap(page, 'photo-offline-placeholder-da', scheme);
+			}
+		});
+
+		test(`refused photo ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'offline-photos', 'offline-photos screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await stubPush(page, endpointOf());
+			await signUpAndSignIn(page);
+			await offline(page, true);
+			await pickPhoto(page, 'Toast with jam');
+			await saveMeal(page, QUEUED);
+			await page.route('**/api/attachments/*', (route) =>
+				route.fulfill({ status: 413, contentType: 'application/json', body: '{"error":"too_large"}' })
+			);
+			await offline(page, false);
+			await page.getByRole('link', { name: 'Me', exact: true }).click();
+			await page.getByTestId('photos-refused').waitFor({ timeout: 15_000 });
+			await page.getByText(QUEUED).waitFor({ state: 'hidden', timeout: 15_000 });
+			await snap(page, 'me-sync-card-photo-refused', scheme);
 		});
 	}
 });

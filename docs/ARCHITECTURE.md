@@ -454,7 +454,7 @@ map and the headache report ignore episodes.
   and the sync cursor), so later visits download only changes. The database is deleted on sign-out and account deletion and
   kept on lock. Records that fail to decrypt or validate are skipped and counted, never fatal. Sync runs after unlock and when
   the app becomes visible again (throttled to 15 s).
-- **Outbox (offline-first, M8).** The same database has a second object store `outbox` (database version 2; version 1 data is
+- **Outbox (offline-first, M8).** The same database has a second object store `outbox` (database version 2; version 3 adds a `blobs` store for queued photos, see §5.2; version 1 data is
   kept on upgrade): one row per record id, `{ id, op: 'put' | 'delete', wrappedKey?, ciphertext?, baseRev?, queuedAt, attempts,
   refused? }`. A row holds only what `seal()` produced (base64 wrapped key and ciphertext) or a delete marker, never plaintext, so
   it has the same exposure as the cache (THREAT_MODEL T18). `save()` / `remove()` (`src/lib/records/store.svelte.ts`) seal the
@@ -527,7 +527,28 @@ the queue entry (the same blobs are still referenced when the record is written 
 editing an entry deletes it right after the save.
 
 **Display.** Decrypted images exist only as Blob object URLs, revoked when the last view using them goes away and on lock or sign-out.
-They are never written to IndexedDB or any cache; the service worker ignores `/api/`. Attachments are not cached at all in v1.
+They are never written to IndexedDB or any cache; the service worker ignores `/api/`. Attachments are not cached in v1: each view
+downloads the ciphertext again. The one exception is the blob queue below: only the ciphertext of photos that are not uploaded yet is
+kept on the device.
+
+**Photos offline: the blob queue** (`src/lib/photos/blobs.ts`, `queue.svelte.ts`; M8). A photo is prepared and encrypted on the device as
+always (`encryptPhoto`: fresh ids and keys, two blobs). On Save, `PhotoDrafts.commit()` uploads online; offline, or when the connection is
+lost on the way, it puts the encrypted blobs of this and every remaining new photo in the IndexedDB store `blobs` (per-user database
+version 3; row `{ id, blob, queuedAt, photo, refused? }`, ciphertext exactly as it will be uploaded, never a key; the keys travel only
+inside the encrypted record) and returns the references anyway, so the entry is saved at once and waits in the outbox (§5.1).
+- **Order.** Every outbox flush first uploads all queued blobs, oldest first, and only then sends record rows, so a record never reaches
+  the server before its photos. A network or server problem (or a lost session) while uploading stops the whole flush, rows included.
+  No keys are needed, so it also runs while the diary is locked.
+- **Refused photos.** A blob the server refuses (400, 413, other client errors) is marked `refused`, stays on the device, and does not
+  block the rows. The Sync card on Me shows "N photos couldn't be uploaded" with "Try again" (which also retries refused entries). The
+  pill, the sign-out warning and the entry counts still count entries only.
+- **Lifetime.** Uploaded blobs are deleted from the queue. A photo removed before it was uploaded (removed while editing, an unsaved
+  sheet closed, a deleted entry after the Undo window) is dropped from the queue, not from the server (`deleteAttachment` checks the queue
+  first). A session that ends on its own keeps the queue with the outbox; sign-out and account deletion delete it with the database.
+- **Showing.** `acquirePhoto` looks in the queue first and decrypts the local ciphertext; object URLs follow the usual revoke rules.
+  Queued thumbnails wear a "Waiting to upload" badge (sheet strip, timeline). Photos that are already on the server cannot be downloaded
+  offline: the tile shows a calm placeholder ("Photo shows when you're online") and loads by itself when the connection is back.
+  There is no download cache.
 
 ### 5.3 Record types (v1)
 

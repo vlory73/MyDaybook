@@ -16,6 +16,8 @@
 		type IconName
 	} from '$lib/components';
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
+	import { connection } from '$lib/connection.svelte';
+	import { photoQueue } from '$lib/photos/queue.svelte';
 	import { openPhoto } from '$lib/photos/viewer.svelte';
 	import { openEpisode, openLog } from '$lib/records/editor.svelte';
 	import { openEntry } from '$lib/records/openEntry';
@@ -400,6 +402,9 @@
 							</button>
 						{/each}
 					</div>
+					{#if !connection.online && record.payload.attachments.some((a) => !(a.thumbId in photoQueue.ids || a.id in photoQueue.ids))}
+						<p class="photonote small muted">{t('photo.offlineNote')}</p>
+					{/if}
 				{/if}
 			</li>
 		{/each}
@@ -420,6 +425,10 @@
 		gap: var(--sp-2);
 		flex-wrap: wrap;
 		padding: 0 var(--sp-3) var(--sp-3) calc(var(--sp-3) + 3.2rem);
+	}
+	.photonote {
+		padding: 0 var(--sp-3) var(--sp-3) calc(var(--sp-3) + 3.2rem);
+		margin-top: calc(-1 * var(--sp-2));
 	}
 	.pic {
 		padding: 0;
