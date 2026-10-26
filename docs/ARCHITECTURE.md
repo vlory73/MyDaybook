@@ -150,8 +150,18 @@ calibrated in M2 on a real iPhone. The target is under 1.5 s.
    and all decrypted state from memory but keeps the session. Unlocking re-runs Argon2id locally against the
    wrapped MK cached in IndexedDB, and needs no server round trip. Logout destroys both the session and the local cache.
 
-   **As built (auth-ui).** The wrapped bundle is cached in memory only (from `/api/auth/session` or login), not in IndexedDB;
-   unlock first refreshes it from `/api/auth/session` (picks up a passphrase changed elsewhere, detects a revoked session)
+   **As built (auth-ui, offline-unlock).** The wrapped bundle and the identity (user id, username, role) are cached in memory and
+   in IndexedDB `mydaybook-device` (`src/lib/deviceAccount.ts`): exactly what the server stores for the account (salt, KDF
+   parameters, wrapped keys, public key), never the passphrase, unwrapped keys or anything decrypted. It is written whenever a
+   fresh bundle arrives (session check, login, sign-up, recovery, passphrase change, the refresh inside unlock) and deleted on
+   sign-out, session end and account deletion. If the session check cannot reach the server (network error, not 401) and the
+   cache exists, the app starts locked from it (`session.offline`), and unlock works with no connection; with no cache the
+   "Can't reach the server" screen stays. `src/lib/connection.svelte.ts` tracks whether the server is reachable
+   (`navigator.onLine`, the online/offline events, network failures and answers of API calls; no polling); when the connection
+   returns, the session is refreshed quietly (a 401 signs out with "session ended"; otherwise identity, bundle and device cache
+   are updated and, if unlocked, the records sync). Sign-in, sign-up, recovery, reminders, admin, two-step set-up, passphrase
+   change, export and account deletion stay online and show "Needs a connection" while offline. Unlock first refreshes the
+   bundle from `/api/auth/session` (picks up a passphrase changed elsewhere, detects a revoked session)
    and falls back to the cached copy when offline. `UnlockedKeys` sit in a plain module variable in `src/lib/session.svelte.ts`,
    never in `$state` or any browser storage, so a reload always starts locked. The root layout gates routes: signed out means
    `/login`, `/join`, `/recover` only; signed in but locked means a full-screen Unlock view replaces the page (same URL, so

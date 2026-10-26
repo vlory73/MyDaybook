@@ -3,12 +3,14 @@
 	import { resolve } from '$app/paths';
 	import Button from './Button.svelte';
 	import Hero from './Hero.svelte';
+	import NeedsConnection from './NeedsConnection.svelte';
 	import Notice from './Notice.svelte';
 	import Spinner from './Spinner.svelte';
 	import TextField from './TextField.svelte';
 	import { focusOnMount } from '$lib/actions';
 	import { ApiError } from '$lib/api';
 	import { commonErrorKey } from '$lib/auth';
+	import { connection } from '$lib/connection.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { session, signOut, unlock } from '$lib/session.svelte';
@@ -43,6 +45,10 @@
 	<h1 class="large-title" tabindex="-1" use:focusOnMount>{t('unlock.title')}</h1>
 	<p class="muted lead">{t('unlock.lead', { username: session.identity?.username ?? '' })}</p>
 
+	{#if !connection.online}
+		<div class="offline-note"><Notice tone="offline">{t('offline.unlock')}</Notice></div>
+	{/if}
+
 	<form onsubmit={submit} class="form" novalidate>
 		<input
 			class="sr-only"
@@ -73,7 +79,10 @@
 
 	<div class="links">
 		<button type="button" class="link" onclick={() => signOut()}>{t('unlock.notYou')}</button>
-		<button type="button" class="link" onclick={() => goto(resolve('/recover'))}>{t('unlock.forgot')}</button>
+		<button type="button" class="link" disabled={!connection.online} onclick={() => goto(resolve('/recover'))}
+			>{t('unlock.forgot')}</button
+		>
+		<NeedsConnection />
 	</div>
 </section>
 
@@ -84,6 +93,10 @@
 	}
 	.lead {
 		margin: var(--sp-3) 0 var(--sp-5);
+	}
+	.offline-note {
+		margin-bottom: var(--sp-4);
+		text-align: left;
 	}
 	.form {
 		display: flex;
@@ -109,5 +122,13 @@
 		color: var(--primary);
 		font-weight: var(--fw-medium);
 		text-decoration: underline;
+	}
+	.link:disabled {
+		color: var(--text-2);
+		text-decoration: none;
+	}
+	.links :global(.needs) {
+		max-width: 28ch;
+		text-align: left;
 	}
 </style>

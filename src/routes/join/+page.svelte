@@ -6,6 +6,7 @@
 		Button,
 		Hero,
 		Icon,
+		NeedsConnection,
 		Notice,
 		PassphraseFields,
 		PrivacyView,
@@ -17,6 +18,7 @@
 	} from '$lib/components';
 	import type { IconName } from '$lib/components';
 	import { focusOnMount } from '$lib/actions';
+	import { connection } from '$lib/connection.svelte';
 	import { ApiError, apiPost } from '$lib/api';
 	import type { Identity } from '$lib/api';
 	import {
@@ -312,9 +314,15 @@
 					<span>{consent.checkbox}</span>
 				</label>
 				{#if error}<Notice tone="error">{t(error)}</Notice>{/if}
-				<Button type="submit" block size="lg" disabled={!privacy.loaded && !privacy.failed}>
+				<Button
+					type="submit"
+					block
+					size="lg"
+					disabled={(!privacy.loaded && !privacy.failed) || !connection.online}
+				>
 					{t('join.consent.create')}
 				</Button>
+				<NeedsConnection />
 			</form>
 		{:else if step === 'sending'}
 			<div class="auth-center working" role="status">

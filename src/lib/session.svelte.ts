@@ -4,7 +4,8 @@
  * - `session` (reactive) holds only non-secret facts: status, identity and the auto-lock preference.
  * - The unlocked keys live in a plain module variable below. They are never put in `$state`, localStorage,
  *   sessionStorage or IndexedDB, so they cannot be serialised by accident and vanish on reload.
- * - The wrapped bundle (what the server also stores) is cached in memory so the unlock view works offline.
+ * - The wrapped bundle (what the server also stores) is cached in memory and, with the identity, in IndexedDB
+ *   (`mydaybook-device`, see deviceAccount.ts), so the app can start and unlock with no connection.
  *
  * Lock keeps the server session and drops the keys. Sign out ends the server session too.
  */
@@ -13,7 +14,14 @@ import { ApiError, apiGet, apiPost, setUnauthenticatedHandler } from '$lib/api';
 import type { Identity, SessionResponse, WireBundle } from '$lib/api';
 import { removeThisDevice } from '$lib/push/device';
 import { initCrypto } from '$lib/crypto/sodium';
-import { fromB64 } from '$lib/crypto/encoding';
+import { fromB64, toB64 } from '$lib/crypto/encoding';
+import { onReconnect } from '$lib/connection.svelte';
+import {
+	deleteDeviceAccount,
+	readDeviceAccount,
+	toDeviceAccount,
+	writeDeviceAccount
+} from '$lib/deviceAccount';
 import { unlockWithPassphrase, wipe } from '$lib/crypto/keys';
 import type { AccountBundle, UnlockedKeys } from '$lib/crypto/keys';
 
@@ -49,6 +57,8 @@ export const session = $state<{
 	autoLockMinutes: number;
 	/** The first session check could not reach the server. */
 	loadFailed: boolean;
+	/** The app started from the device cache because the server could not be reached; cleared by the next answer. */
+	offline: boolean;
 	/** One-shot message for the login page (goodbye after deletion, session ended elsewhere). */
 	flash: FlashMessage | null;
 }>({
@@ -56,6 +66,7 @@ export const session = $state<{
 	identity: null,
 	autoLockMinutes: loadAutoLock(),
 	loadFailed: false,
+	offline: false,
 	flash: null
 });
 
@@ -112,6 +123,21 @@ export function bundleFromWire(wire: WireBundle): StoredBundle {
 	};
 }
 
+export function bundleToWire(stored: StoredBundle): WireBundle {
+	return {
+		kdfSalt: toB64(stored.kdfSalt),
+		kdfParams: stored.kdfParams,
+		wrappedMkByPassphrase: toB64(stored.wrappedMkByPassphrase),
+		wrappedPrivateKey: toB64(stored.wrappedPrivateKey),
+		publicKey: toB64(stored.publicKey)
+	};
+}
+
+/** Remembers the current identity and wrapped bundle on this device, so the app can start offline. */
+function persistDevice(identity: Identity, wire: WireBundle): void {
+	void writeDeviceAccount(toDeviceAccount(identity, wire));
+}
+
 function runLockHooks(): void {
 	for (const hook of lockHooks) {
 		try {
@@ -139,6 +165,8 @@ function dropEverything(): void {
 		}
 	}
 	bundle = null;
+	void deleteDeviceAccount();
+	session.offline = false;
 	session.identity = null;
 	session.status = 'signed-out';
 }
@@ -149,16 +177,64 @@ export async function loadSession(): Promise<void> {
 	try {
 		await initCrypto();
 		const res = await apiGet<SessionResponse>('/api/auth/session');
-		bundle = bundleFromWire(res.bundle);
-		session.identity = { userId: res.userId, username: res.username, role: res.role };
+		applyServerSession(res);
 		session.status = keys ? 'unlocked' : 'locked';
 	} catch (err) {
 		if (err instanceof ApiError && err.status === 401) {
 			dropEverything();
+		} else if (err instanceof ApiError && err.status === 0 && (await startFromDevice())) {
+			// No connection but this device knows the account: start locked, unlock works from the cached bundle.
 		} else {
 			session.loadFailed = true;
 		}
 	}
+}
+
+function applyServerSession(res: SessionResponse): void {
+	bundle = bundleFromWire(res.bundle);
+	session.identity = { userId: res.userId, username: res.username, role: res.role };
+	session.offline = false;
+	persistDevice(session.identity, res.bundle);
+}
+
+/** Offline start: take the identity and bundle cached on this device, if any. */
+async function startFromDevice(): Promise<boolean> {
+	const account = await readDeviceAccount();
+	if (!account) return false;
+	bundle = bundleFromWire(account.bundle);
+	session.identity = { userId: account.userId, username: account.username, role: account.role };
+	session.offline = true;
+	session.status = keys ? 'unlocked' : 'locked';
+	return true;
+}
+
+/**
+ * Quiet refresh once the connection is back: identity and bundle may have changed elsewhere. A 401 goes through the
+ * unauthenticated handler (signed out, "session ended"). Returns true when the server answered with a session.
+ */
+export async function refreshSession(): Promise<boolean> {
+	if (session.status !== 'locked' && session.status !== 'unlocked') return false;
+	try {
+		applyServerSession(await apiGet<SessionResponse>('/api/auth/session'));
+		return true;
+	} catch {
+		return false; // 401 was handled; other failures leave the cached state as it is
+	}
+}
+
+onReconnect(() => {
+	void refreshSession().then((ok) => {
+		if (ok && session.status === 'unlocked') for (const hook of reconnectSyncHooks) hook();
+	});
+});
+
+let reconnectSyncHooks: (() => void)[] = [];
+/** Register work for a successful session refresh while unlocked (the records store syncs). Returns an unsubscribe. */
+export function onSessionRefreshed(hook: () => void): () => void {
+	reconnectSyncHooks.push(hook);
+	return () => {
+		reconnectSyncHooks = reconnectSyncHooks.filter((h) => h !== hook);
+	};
 }
 
 /** Takes ownership of freshly derived keys (after signup, login or recovery). */
@@ -168,12 +244,15 @@ export function establish(identity: Identity, stored: StoredBundle, unlocked: Un
 	bundle = stored;
 	session.identity = identity;
 	session.status = 'unlocked';
+	session.offline = false;
 	session.flash = null;
+	persistDevice(identity, bundleToWire(stored));
 }
 
 /** Replaces the cached bundle after a passphrase change on this device. */
 export function updateBundle(stored: StoredBundle): void {
 	bundle = stored;
+	if (session.identity) persistDevice(session.identity, bundleToWire(stored));
 }
 
 /** Lets the browser paint (a spinner) before a synchronous Argon2id run blocks the main thread. */
@@ -193,7 +272,7 @@ export async function unlock(passphrase: string): Promise<void> {
 	if (!identity || !bundle) throw new Error('no session');
 	try {
 		const fresh = await apiGet<SessionResponse>('/api/auth/session');
-		bundle = bundleFromWire(fresh.bundle);
+		applyServerSession(fresh);
 	} catch (err) {
 		if (err instanceof ApiError && err.status === 401) throw err; // the handler already signed out
 		// Offline or server trouble: fall back to the cached bundle.

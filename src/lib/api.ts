@@ -4,6 +4,7 @@
  * Request and response bodies here only ever contain verifiers, wrapped keys and identity, never a passphrase.
  */
 import type { KdfParams } from '$lib/crypto/keys';
+import { setOnline } from '$lib/connection.svelte';
 
 /** The server's `error` code (e.g. `invalid_credentials`), or `network` when no answer arrived. */
 export class ApiError extends Error {
@@ -63,8 +64,10 @@ async function request<T>(
 			body: method === 'GET' ? undefined : JSON.stringify(body ?? {})
 		});
 	} catch {
+		setOnline(false);
 		throw new ApiError(0, 'network');
 	}
+	setOnline(true);
 	let data: unknown = null;
 	try {
 		data = await res.json();
@@ -92,8 +95,10 @@ export async function apiPutBytes<T>(path: string, bytes: Uint8Array): Promise<T
 			body: bytes as BodyInit
 		});
 	} catch {
+		setOnline(false);
 		throw new ApiError(0, 'network');
 	}
+	setOnline(true);
 	const data: unknown = await res.json().catch(() => null);
 	if (!res.ok) throw toApiError(res, data);
 	return data as T;
@@ -105,8 +110,10 @@ export async function apiGetBytes(path: string): Promise<Uint8Array> {
 	try {
 		res = await fetch(path, { credentials: 'same-origin', cache: 'no-store' });
 	} catch {
+		setOnline(false);
 		throw new ApiError(0, 'network');
 	}
+	setOnline(true);
 	if (!res.ok) throw toApiError(res, await res.json().catch(() => null));
 	return new Uint8Array(await res.arrayBuffer());
 }

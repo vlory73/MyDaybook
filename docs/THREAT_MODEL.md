@@ -101,7 +101,7 @@ For the first deployment you are both the operator and a user, so case d reduces
 | T15 | Lost passphrase and recovery key | Unrecoverable by design; clear warning; recovery key confirmed by re-typing groups; printable sheet; recovery key rotated after use |
 | T16 | Logs leak content or identity | No request bodies logged; no IPs on stdout; IPs only in `security_events` with retention; reverse-proxy access log off; client logger stripped in production |
 | T17 | Deleted account lingers | Hard delete in one transaction, `secure_delete` (freed pages are overwritten), a WAL checkpoint (`TRUNCATE`) and removal of the photo folder; a folder left behind by a crash is removed at the next start or hourly housekeeping. **Residual:** persists in backups until rotation (about 14 days on the home NAS), still encrypted; stated in the privacy notice |
-| T18 | Stolen phone | Locked app needs the passphrase. The IndexedDB cache holds only ciphertext and wrapped keys. iOS data protection adds encryption at rest |
+| T18 | Stolen phone | Locked app needs the passphrase. The IndexedDB caches hold only ciphertext and wrapped keys. iOS data protection adds encryption at rest. **Offline unlock:** the device also holds the passphrase-wrapped master key and KDF parameters (`mydaybook-device`), so someone who can read the phone's storage (an unlocked-at-OS-level phone, a forensic copy) can run an offline Argon2id guessing attack, the same exposure as a stolen server backup (T3). Strong-passphrase guidance and iOS data protection still apply. **Residual (accepted, owner 2026-10-26):** a passphrase changed, or an account disabled, on another device still opens on an offline device until it reconnects and refreshes |
 | T19 | Network attacker on LAN/VPN | TLS everywhere; HSTS; VPN-only exposure |
 | T20 | Denial of service against the Pi | Argon2id runs on the client (no server memory spike); rate limits; body size limits; 256 MB memory limit isolates other services (Home Assistant, Pi-hole) |
 | T21 | Losing `.env` secrets | No secret is needed to decrypt user data. Sessions are random tokens stored as SHA-256 hashes and do not depend on `SESSION_SECRET`. `SESSION_SECRET` protects the sealed TOTP secrets and the fake prelogin salt: losing or changing it locks two-step users out (the recovery key still works, and switches two-step off) and lets prelogin tell real from fake accounts until the salts settle. A lost VAPID key pair only ends the reminder subscriptions. Because of this, the server refuses to start in production without `SESSION_SECRET` (a random per-process one would silently break two-step sign-in at every restart). Documented in the backup guide |
@@ -122,5 +122,5 @@ The numbering continues the security review of October 2026.
 
 ## 6. Review triggers
 
-Update this document when adding: sharing between adults, offline sync, the 3D body view, any new server-side table or column,
+Update this document when adding: sharing between adults, offline sync (offline unlock is covered in T18), the 3D body view, any new server-side table or column,
 any new outbound network call, or any change to the key hierarchy.

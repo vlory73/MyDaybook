@@ -245,6 +245,8 @@ export const da: Record<MessageKey, string> = {
 	'unlock.wrong': 'Adgangssætningen passer ikke.',
 	'unlock.notYou': 'Er det ikke dig? Log ud',
 	'unlock.forgot': 'Glemt din adgangssætning?',
+	'offline.unlock': 'Du er offline. Du kan stadig åbne det, der er gemt på denne enhed.',
+	'offline.needsConnection': 'Kræver forbindelse. Prøv igen, når du er online.',
 
 	'recover.title': 'Kom ind i din dagbog igen',
 	'recover.lead': 'Skriv dit brugernavn og den gendannelsesnøgle, du gemte, da du blev oprettet.',

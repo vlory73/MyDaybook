@@ -21,6 +21,7 @@ export const iconNames = [
 	'circle-slash',
 	'clock',
 	'clock-alert',
+	'cloud-off',
 	'cloud-sun',
 	'copy',
 	'droplets',

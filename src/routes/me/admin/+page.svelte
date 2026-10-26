@@ -26,6 +26,7 @@
 	import { ApiError } from '$lib/api';
 	import type { Role } from '$lib/api';
 	import { commonErrorKey, deleteUserAsAdmin } from '$lib/auth';
+	import { connection } from '$lib/connection.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
@@ -183,7 +184,9 @@
 {#if isAdmin}
 	<Notice>{t('admin.lead')}</Notice>
 
-	{#if loadFailed}
+	{#if !connection.online}
+		<Notice tone="offline">{t('offline.needsConnection')}</Notice>
+	{:else if loadFailed}
 		<Notice tone="error">{t('admin.loadFailed')}</Notice>
 		<Button variant="soft" onclick={load}>{t('common.retry')}</Button>
 	{:else if users === null}
