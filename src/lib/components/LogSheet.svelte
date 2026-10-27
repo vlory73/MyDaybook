@@ -24,6 +24,8 @@
 		payload,
 		onopen,
 		onbeforesave,
+		alsoSave,
+		alsoSavedText,
 		time = $bindable(''),
 		showTime = true,
 		photos,
@@ -40,6 +42,10 @@
 		onopen: (existing: Payload | null, typeId?: string) => void;
 		/** Runs before the entry is saved (for example to also save a saved meal); a failure stops the save. */
 		onbeforesave?: () => Promise<void>;
+		/** New entries only: more records to save with this one (they are given the saved payload). Undo removes them all. */
+		alsoSave?: (saved: Payload) => Payload[];
+		/** Toast text for a save that also saved `n` more records. */
+		alsoSavedText?: (n: number) => string;
 		/** Value for the time chip ("YYYY-MM-DDTHH:mm"); the sheet reads it when it builds the payload. */
 		time?: string;
 		showTime?: boolean;
@@ -94,9 +100,22 @@
 				p.attachments = kept;
 			}
 			const savedId = await save(p, id ?? undefined);
+			const more = id ? [] : (alsoSave?.(p) ?? []);
+			const moreIds: string[] = [];
+			for (const m of more) moreIds.push(await save(m));
 			void photos?.settle();
 			leaveSheet();
-			showToast(savedText(t('entry.saved'), savedId));
+			if (moreIds.length === 0) showToast(savedText(t('entry.saved'), savedId));
+			else {
+				const ids = [savedId, ...moreIds];
+				const text = alsoSavedText?.(moreIds.length) ?? t('entry.saved');
+				showToast(savedText(text, ...ids), () => {
+					Promise.all(ids.map((i) => remove(i))).then(
+						() => showToast(t('entry.deleted')),
+						() => showToast(t('entry.error.save'))
+					);
+				});
+			}
 		} catch {
 			// A failed upload is reported by the photo picker itself.
 			failed = photos?.problem === 'upload' ? null : 'save';

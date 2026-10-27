@@ -220,6 +220,35 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'meal-after-return', scheme);
 		});
 
+		test(`meal drinks ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'meal-drinks', 'meal-drinks screenshots only');
+			await prepare(page, scheme);
+			await signUpAndSignIn(page);
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('button', { name: 'Meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			const meal = page.getByRole('dialog', { name: 'Meal' });
+			const drink = page.getByRole('dialog', { name: 'Drink' });
+			await meal.getByRole('button', { name: 'Breakfast', exact: true }).click();
+			await meal.getByLabel('What did you have?').fill('Oatmeal with berries and yoghurt');
+			await meal.getByRole('button', { name: 'Add a drink', exact: true }).click();
+			await drink.getByRole('button', { name: 'Coffee', exact: true }).click();
+			await drink.getByRole('button', { name: 'Add to meal', exact: true }).scrollIntoViewIfNeeded();
+			await page.waitForTimeout(400);
+			await snap(page, 'drink-on-top', scheme);
+			await drink.getByRole('button', { name: 'Add to meal', exact: true }).click();
+			await meal.getByRole('button', { name: 'Add a drink', exact: true }).click();
+			await drink.getByRole('button', { name: 'One more' }).click();
+			await drink.getByRole('button', { name: 'Add to meal', exact: true }).click();
+			await page.waitForTimeout(400);
+			await meal.getByRole('group', { name: 'Drinks with this meal' }).scrollIntoViewIfNeeded();
+			await snap(page, 'meal-with-drinks', scheme);
+			await meal.getByRole('button', { name: 'Save', exact: true }).click();
+			await page.getByRole('status').getByText('Meal and 2 drinks saved').waitFor();
+			await page.waitForTimeout(300);
+			await snap(page, 'today-after-save', scheme);
+		});
+
 		test(`log gut quick-log, sheet and today ${scheme}`, async ({ page }) => {
 			test.skip(folder !== 'log-gut', 'log-gut screenshots only');
 			await prepare(page, scheme);

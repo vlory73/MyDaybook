@@ -191,6 +191,24 @@ describe('day selectors', () => {
 		expect(recordsForDay(all, '2026-10-20')).toEqual([]);
 	});
 
+	it('lists a meal before the drinks logged at the same time', () => {
+		const at = '2026-10-18T08:10:00+02:00';
+		const same = [
+			rec('0-drink', {
+				v: 1,
+				type: 'drink',
+				at,
+				drink: 'Water',
+				size: 'Cup',
+				sizeMl: 150,
+				count: 1,
+				totalMl: 150
+			} as Payload),
+			rec('z-meal', { v: 1, type: 'food', at, meal: 'breakfast', text: 'Oatmeal', tags: [] })
+		];
+		expect(recordsForDay(same, '2026-10-18').map((r) => r.id)).toEqual(['z-meal', '0-drink']);
+	});
+
 	it('marks days with entries inside a range', () => {
 		const days = daysWithEntries(all, '2026-10-12', '2026-10-18');
 		expect([...days]).toEqual(['2026-10-18']);
