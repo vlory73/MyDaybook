@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 (2026-10-27)
+
+### Features
+
+- period and bladder trackers (#123) (#126)
+- choose what you track (#123) (#125)
+
 ## 1.3.0 (2026-10-27)
 
 ### Features
