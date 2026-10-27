@@ -222,7 +222,7 @@
 						type="button"
 						class="what-btn"
 						aria-label={t('meal.drinks.change', { drink: text })}
-						onclick={() => openDrink(d.key)}><Icon name="droplets" size={16} /><span>{text}</span></button
+						onclick={() => openDrink(d.key)}><Icon name="glass" size={16} /><span>{text}</span></button
 					>
 					<button
 						type="button"
