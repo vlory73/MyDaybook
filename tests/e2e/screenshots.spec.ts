@@ -6,6 +6,7 @@ import {
 	createInvite,
 	newPassphrase,
 	newUsername,
+	passTrackerStep,
 	postJson,
 	signUpAndSignIn,
 	signUpApiAccount,
@@ -920,8 +921,94 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'join-confirm', scheme);
 			await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
 			await page.getByRole('button', { name: 'Confirm' }).click();
+			await passTrackerStep(page);
 			await page.getByRole('heading', { name: 'Before you start' }).waitFor();
 			await snap(page, 'join-consent', scheme, true);
+		});
+
+		test(`tracker choice ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'tracker-choice', 'tracker-choice screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+
+			// 1 + 3 + 4: an existing account with Bowel and Medicine off, the choice not yet seen.
+			const account = await signUpApiAccount(page.request);
+			await seedRecords(page.request, account, [
+				{ v: 1, type: 'sleep', at: at(2, 7, 10), asleepAt: at(3, 23, 50), quality: 4 },
+				{ v: 1, type: 'sleep', at: at(1, 7, 10), asleepAt: at(2, 23, 50), quality: 4 },
+				{
+					v: 1,
+					type: 'food',
+					at: at(0, 8, 10),
+					meal: 'breakfast',
+					text: 'Oatmeal with berries and yoghurt',
+					tags: []
+				},
+				{ v: 1, type: 'bowel', at: at(0, 8, 40), bristol: 4, flags: [] },
+				{ v: 1, type: 'trackers', choices: { gut: false, meds: false } }
+			]);
+			await page.goto('/');
+			await expect(page.getByRole('heading', { name: 'Your diary is locked' })).toBeVisible();
+			await unlockWith(page, account.passphrase);
+			await page.getByTestId('trackers-intro').waitFor();
+			await page.getByText('Oatmeal with berries and yoghurt').waitFor();
+			await snap(page, 'today-card', scheme, true);
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('dialog').getByText('Usual night').waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'quicklog-fewer-tiles', scheme);
+			await page.keyboard.press('Escape');
+			await page.getByRole('dialog').waitFor({ state: 'hidden' });
+
+			await page.getByTestId('trackers-intro').getByRole('button', { name: 'Choose' }).click();
+			await page.getByTestId('trackers-card').waitFor();
+			await page.evaluate(() => document.getElementById('what-you-track')?.scrollIntoView());
+			await page.waitForTimeout(300);
+			await snap(page, 'me-what-you-track', scheme);
+
+			// The last one that is on keeps a dimmed switch and a hint.
+			for (const name of [
+				'Meal',
+				'Drink',
+				'Feeling',
+				'Sleep',
+				'Pain',
+				'Nausea / heartburn',
+				'Weight',
+				'Measure'
+			]) {
+				await page.getByRole('switch', { name, exact: true }).click();
+			}
+			await page.evaluate(() => document.getElementById('what-you-track')?.scrollIntoView());
+			await page.waitForTimeout(300);
+			await snap(page, 'me-last-one', scheme);
+		});
+
+		test(`tracker choice first run ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'tracker-choice', 'tracker-choice screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await page.goto(`/join#t=${createInvite()}`);
+			await page.getByRole('button', { name: 'Get started' }).click();
+			const passphrase = newPassphrase();
+			await page.getByLabel('Username').fill(newUsername('shot'));
+			await page.getByLabel('Passphrase', { exact: true }).fill(passphrase);
+			await page.getByLabel('Repeat passphrase').fill(passphrase);
+			await page.getByRole('button', { name: 'Continue' }).click();
+			await page.getByRole('heading', { name: 'Your recovery key' }).waitFor({ timeout: 30_000 });
+			const groups = await page.getByTestId('recovery-key').locator('span').allTextContents();
+			await page.getByRole('button', { name: "I've stored it. Check me" }).click();
+			const lead = (await page.getByText(/Type group \d+ and group \d+/).textContent()) ?? '';
+			const [a, b] = [...lead.matchAll(/group (\d+)/g)].map((m) => Number(m[1]));
+			await page.getByLabel(`Group ${a} (4 characters)`).fill(groups[a! - 1]!);
+			await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
+			await page.getByRole('button', { name: 'Confirm' }).click();
+			await page.getByRole('heading', { name: 'What do you want to track?' }).waitFor();
+			await snap(page, 'first-run-all', scheme);
+			await page.getByRole('checkbox', { name: 'Bowel', exact: true }).click();
+			await page.getByRole('checkbox', { name: 'Medicine', exact: true }).click();
+			await snap(page, 'first-run', scheme);
 		});
 
 		test(`reminders ${scheme}`, async ({ page }) => {
@@ -1162,7 +1249,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			await unlockWith(page, account.passphrase);
 			const card = page.getByRole('region', { name: 'Still there?' });
 			await card.waitFor({ timeout: 20_000 });
-			await snap(page, 'today-card', scheme);
+			await snap(page, 'today-card', scheme, true);
 
 			await seedRecords(page.request, account, [
 				entry(ongoing!, 0, 0, 10, [knee(3)]),
@@ -1419,7 +1506,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			await unlockWith(page, account.passphrase);
 			const card = page.getByRole('region', { name: 'Headache · still there?' });
 			await card.waitFor({ timeout: 20_000 });
-			await snap(page, 'today-card', scheme);
+			await snap(page, 'today-card', scheme, true);
 
 			await card.getByRole('button', { name: "It's gone", exact: true }).click();
 			await card.getByText('When did it stop?').waitFor();
@@ -2038,6 +2125,7 @@ for (const scheme of ['light', 'dark'] as const) {
 		await page.getByLabel(`Group ${a} (4 characters)`).fill(groups[a! - 1]!);
 		await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
 		await page.getByRole('button', { name: 'Confirm' }).click();
+		await passTrackerStep(page);
 		await page.getByRole('heading', { name: 'Before you start' }).waitFor();
 		await page.getByRole('checkbox').check();
 		await snap(page, 'consent', scheme, true);
@@ -2575,6 +2663,152 @@ test.describe('offline photos', () => {
 			await page.getByTestId('photos-refused').waitFor({ timeout: 15_000 });
 			await page.getByText(QUEUED).waitFor({ state: 'hidden', timeout: 15_000 });
 			await snap(page, 'me-sync-card-photo-refused', scheme);
+		});
+	}
+});
+
+// Period and Bladder trackers (SCREENSHOTS=period-bladder): Me, quick-log, both sheets, Today and the Trends cards.
+test.describe('period and bladder', () => {
+	test.skip(folder !== 'period-bladder', 'period-bladder screenshots only');
+	test.use({ serviceWorkers: 'block' });
+	const ON = { v: 1, type: 'trackers', choices: { period: true, bladder: true }, introSeen: true };
+	const water = (daysAgo: number, hh: number, glasses: number) => ({
+		v: 1,
+		type: 'drink',
+		at: at(daysAgo, hh),
+		drink: 'def:water',
+		size: 'def:glass',
+		sizeMl: 250,
+		count: glasses,
+		totalMl: 250 * glasses
+	});
+	const visit = (daysAgo: number, hh: number, mm = 0, extra: object = {}) => ({
+		v: 1,
+		type: 'bladder',
+		at: at(daysAgo, hh, mm),
+		visit: true,
+		...extra
+	});
+	const pdays = [
+		[28, 'spotting'],
+		[27, 'light'],
+		[26, 'medium'],
+		[25, 'heavy'],
+		[24, 'medium'],
+		[23, 'light'],
+		[2, 'spotting'],
+		[1, 'medium']
+	] as const;
+
+	async function openAs(page: Page, path: string, records: object[]) {
+		const account = await signUpApiAccount(page.request);
+		if (records.length > 0) await seedRecords(page.request, account, records);
+		await page.goto(path);
+		await expect(page.getByRole('heading', { name: 'Your diary is locked' })).toBeVisible();
+		await unlockWith(page, account.passphrase);
+	}
+
+	for (const scheme of ['light', 'dark'] as const) {
+		test(`me list ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await openAs(page, '/me', []);
+			await page.getByTestId('trackers-card').waitFor();
+			await page.evaluate(() => document.getElementById('what-you-track')?.scrollIntoView());
+			await page.waitForTimeout(300);
+			await snap(page, 'me-what-you-track', scheme);
+		});
+
+		test(`quick-log and sheets ${scheme}`, async ({ page }) => {
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await openAs(page, '/', [
+				ON,
+				{ v: 1, type: 'period', at: at(1, 8), flow: 'medium', extras: ['cramps'] },
+				visit(0, 7, 10),
+				visit(0, 8, 12, { urgency: 'some' }),
+				visit(0, 8, 40, { visit: false, leak: { amount: 1, when: 'moving' } })
+			]);
+			await page.getByTestId('period-ask').waitFor();
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('dialog').getByText('Period as yesterday').waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'quicklog', scheme);
+
+			await page.getByRole('dialog').getByRole('button', { name: 'Period', exact: true }).click();
+			await page.getByTestId('period-same').waitFor();
+			await page.getByTestId('period-same').click();
+			await page.waitForTimeout(400);
+			await snap(page, 'period-sheet', scheme);
+			await page.keyboard.press('Escape');
+			await page.getByRole('dialog').waitFor({ state: 'hidden' });
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('dialog').getByRole('button', { name: 'Bladder', exact: true }).click();
+			const sheet = page.getByRole('dialog');
+			await sheet.getByTestId('bladder-last').waitFor();
+			await sheet.getByRole('radio', { name: 'Some' }).click();
+			await sheet.getByRole('button', { name: 'Some', exact: true }).click();
+			await sheet.getByRole('button', { name: 'Afterwards', exact: true }).click();
+			await page.waitForTimeout(400);
+			await snap(page, 'bladder-sheet', scheme);
+		});
+
+		test(`today ${scheme}`, async ({ page }) => {
+			await prepare(page, scheme);
+			await openAs(page, '/', [
+				ON,
+				{ v: 1, type: 'period', at: at(1, 8), flow: 'medium', extras: ['cramps'] },
+				{ v: 1, type: 'sleep', at: at(0, 7, 10), asleepAt: at(1, 23, 50), quality: 4 },
+				visit(0, 7, 30, { leak: { amount: 1, when: 'on_the_way' } }),
+				{
+					v: 1,
+					type: 'food',
+					at: at(0, 8, 10),
+					meal: 'breakfast',
+					text: 'Oatmeal with berries and yoghurt',
+					tags: []
+				},
+				visit(0, 8, 40, { visit: false, leak: { amount: 1, when: 'moving' } }),
+				visit(0, 9, 5, { urgency: 'some', discomfort: true, leak: { amount: 2, when: 'afterwards' } })
+			]);
+			await page.getByTestId('period-ask').waitFor();
+			await page.getByText('Oatmeal with berries and yoghurt').waitFor();
+			await snap(page, 'today-card', scheme, true);
+			await page.getByTestId('period-ask').getByRole('button', { name: 'Log', exact: true }).click();
+			await page.getByText('Period logged').waitFor();
+			await page.getByTestId('period-ask').waitFor({ state: 'hidden' });
+			await snap(page, 'today-logged', scheme, true);
+		});
+
+		test(`trends ${scheme}`, async ({ page }) => {
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			const records: object[] = [ON];
+			for (const [d, flow] of pdays) records.push({ v: 1, type: 'period', at: at(d, 8), flow });
+			for (let d = 29; d >= 0; d--) {
+				if (d % 7 === 3) continue; // a few days with nothing logged: gaps, never zeros
+				const n = 3 + ((d * 5) % 6);
+				for (let k = 0; k < n; k++) records.push(visit(d, 7 + Math.floor((k * 13) / n)));
+				records.push(water(d, 9, 4 + ((d * 3) % 7)));
+			}
+			records.push(visit(5, 22, 0, { discomfort: true }));
+			records.push(visit(8, 12, 0, { discomfort: true }));
+			records.push(visit(11, 12, 0, { discomfort: true }));
+			records.push(visit(4, 15, 0, { visit: false, leak: { amount: 1, when: 'moving' } }));
+			records.push(visit(9, 15, 0, { leak: { amount: 2, when: 'afterwards' } }));
+			records.push(visit(14, 15, 0, { leak: { amount: 1, when: 'afterwards' } }));
+			records.push(visit(17, 15, 0, { leak: { amount: 1, when: 'on_the_way' } }));
+			await openAs(page, '/trends', records);
+			await page.getByTestId('period-calendar').waitFor({ timeout: 20_000 });
+			await page.getByRole('heading', { name: 'Period', exact: true }).scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-period', scheme);
+			await page.getByRole('heading', { name: 'Bladder', exact: true }).scrollIntoViewIfNeeded();
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-bladder', scheme);
+			await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+			await page.waitForTimeout(300);
+			await snap(page, 'trends-bladder-counts', scheme);
 		});
 	}
 });

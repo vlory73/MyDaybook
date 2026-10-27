@@ -14,7 +14,8 @@
 		RecoveryKey,
 		Spinner,
 		StepDots,
-		TextField
+		TextField,
+		TrackerPicker
 	} from '$lib/components';
 	import type { IconName } from '$lib/components';
 	import { focusOnMount } from '$lib/actions';
@@ -38,8 +39,10 @@
 	import { checkNewPassphrase } from '$lib/passphrase';
 	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
 	import { establish, nextFrame } from '$lib/session.svelte';
+	import { DEFAULT_ON, type TrackerId } from '$lib/records/trackers';
+	import { setPendingTrackers } from '$lib/records/trackers.svelte';
 
-	type Step = 'welcome' | 'account' | 'creating' | 'key' | 'confirm' | 'consent' | 'sending';
+	type Step = 'welcome' | 'account' | 'creating' | 'key' | 'confirm' | 'track' | 'consent' | 'sending';
 	type Invite = 'checking' | 'ok' | 'invalid' | 'unreachable';
 	const DOT: Record<Step, number> = {
 		welcome: 1,
@@ -47,8 +50,9 @@
 		creating: 2,
 		key: 3,
 		confirm: 4,
-		consent: 5,
-		sending: 5
+		track: 5,
+		consent: 6,
+		sending: 6
 	};
 
 	let invite = $state<Invite>('checking');
@@ -58,6 +62,8 @@
 	let passphrase = $state('');
 	let repeat = $state('');
 	let agreed = $state(false);
+	/** What the person wants to track (first-run step). Saved with the account once the diary opens. */
+	let tracked = $state<TrackerId[]>([...DEFAULT_ON]);
 	/** Formatted recovery key for display; cleared as soon as the account exists. */
 	let recoveryText = $state('');
 
@@ -172,6 +178,7 @@
 			sodium().memzero(account.recoveryKey);
 			account = null;
 			recoveryText = '';
+			setPendingTrackers([...tracked]);
 			establish(identity, storedFromAccount(bundle), keys);
 			await goto(resolve('/'));
 		} catch (err) {
@@ -215,7 +222,7 @@
 	{:else if readingPrivacy}
 		<PrivacyView onback={() => (readingPrivacy = false)} />
 	{:else}
-		<StepDots total={5} current={DOT[step]} />
+		<StepDots total={6} current={DOT[step]} />
 
 		{#if step === 'welcome'}
 			<div class="auth-center">
@@ -281,14 +288,29 @@
 					groups={recoveryText.split('-')}
 					onconfirmed={() => {
 						confirmed = true;
-						go('consent');
+						go('track');
 					}}
 					onback={() => go('key')}
 				/>
 			{/if}
-		{:else if step === 'consent'}
+		{:else if step === 'track'}
 			<div class="auth-back">
 				<Button variant="quiet" size="sm" onclick={() => go('key')}>
+					<Icon name="chevron-left" size={18} />{t('common.back')}
+				</Button>
+			</div>
+			<p class="eyebrow">{t('trackers.first.eyebrow')}</p>
+			<h1 class="large-title" tabindex="-1" use:focusOnMount>{t('trackers.first.title')}</h1>
+			<p class="muted auth-lead">{t('trackers.first.lead')}</p>
+			<TrackerPicker bind:selected={tracked} />
+			<div class="trackbar">
+				<Button block size="lg" onclick={() => go('consent')} data-testid="tracker-continue">
+					{t('trackers.first.continue')}
+				</Button>
+			</div>
+		{:else if step === 'consent'}
+			<div class="auth-back">
+				<Button variant="quiet" size="sm" onclick={() => go('track')}>
 					<Icon name="chevron-left" size={18} />{t('common.back')}
 				</Button>
 			</div>
@@ -380,6 +402,13 @@
 	}
 	.consent {
 		margin-top: var(--sp-4);
+	}
+	.trackbar {
+		position: sticky;
+		bottom: 0;
+		margin-top: var(--sp-4);
+		padding: var(--sp-3) 0 var(--sp-2);
+		background: var(--bg);
 	}
 	.para {
 		color: var(--text-2);

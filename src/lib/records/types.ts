@@ -6,6 +6,8 @@
  * Validators are small and hand-written: a payload that fails them is skipped, never trusted.
  */
 
+import { isBladderPayload, type BladderPayload } from './bladder';
+import { isPeriodPayload, type PeriodPayload } from './period';
 import { isPainEpisodePayload, isPainPayload, type PainEpisodePayload, type PainPayload } from './pain';
 
 export const PAYLOAD_VERSION = 1;
@@ -214,6 +216,12 @@ export type DrinkPresetsPayload = Base<'drink_presets'> & { drinks: DrinkPreset[
 /** The person's own name, one record per person (ARCHITECTURE §5). Both parts optional; trimmed, at most 60 characters each. */
 export type ProfilePayload = Base<'profile'> & { firstName?: string; lastName?: string };
 export const MAX_NAME_LENGTH = 60;
+/**
+ * What the person tracks, one record per person (ARCHITECTURE §5). `choices` maps a tracker id (a quick-log category,
+ * see trackers.ts) to on or off; a missing key means that tracker's default. `introSeen` is set once the person has
+ * seen the first-run step or the one-time card on Today.
+ */
+export type TrackersPayload = Base<'trackers'> & { choices: Record<string, boolean>; introSeen?: boolean };
 export type SettingsPayload = Base<'settings'> & { values: Record<string, string | number | boolean> };
 export type TagPayload = Base<'tag'> & { name: string };
 
@@ -234,7 +242,10 @@ export type Payload =
 	| DrinkPresetsPayload
 	| PainPayload
 	| PainEpisodePayload
+	| PeriodPayload
+	| BladderPayload
 	| ProfilePayload
+	| TrackersPayload
 	| SettingsPayload
 	| TagPayload;
 
@@ -479,7 +490,14 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	drink_presets: isDrinkPresets,
 	pain: isPainPayload,
 	pain_episode: isPainEpisodePayload,
+	period: isPeriodPayload,
+	bladder: isBladderPayload,
 	profile: (o) => optName(o.firstName) && optName(o.lastName),
+	trackers: (o) =>
+		isObj(o.choices) &&
+		Object.keys(o.choices).length <= 50 &&
+		Object.entries(o.choices).every(([k, v]) => k.length <= 40 && typeof v === 'boolean') &&
+		(o.introSeen === undefined || typeof o.introSeen === 'boolean'),
 	settings: (o) =>
 		isObj(o.values) &&
 		Object.values(o.values).every((x) => ['string', 'number', 'boolean'].includes(typeof x)),

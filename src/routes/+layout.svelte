@@ -8,6 +8,7 @@
 	import { startAutoLock } from '$lib/autolock';
 	import { brand } from '$lib/brand';
 	import { i18n, t } from '$lib/i18n/index.svelte';
+	import type { MessageKey } from '$lib/i18n/en';
 	import { watchConnection } from '$lib/connection.svelte';
 	import { HIDDEN_LOCK_SECONDS, loadSession, lock, onSessionRefreshed, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
@@ -26,12 +27,16 @@
 	import { watchedItems } from '$lib/records/watch';
 	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
 	import { convertLegacyNaps } from '$lib/records/napsConvert';
+	import { savePendingTrackers, trackerOn } from '$lib/records/trackers.svelte';
+	import { periodOnDay } from '$lib/records/period';
 	import { todayKey } from '$lib/records/time';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
 		BodyMapSheet,
 		BowelSheet,
+		BladderSheet,
 		GutSheet,
+		PeriodSheet,
 		Button,
 		CategoryBadge,
 		AdhocDoseSheet,
@@ -144,12 +149,23 @@
 		}
 	});
 
+	// ---- A new account's first-run choice (what to track) is saved once the diary has loaded ----
+	$effect(() => {
+		if (session.status === 'unlocked' && store.status === 'ready' && !store.syncing && !store.syncFailed) {
+			void savePendingTrackers().catch(() => undefined); // on failure the Today card offers the choice again
+		}
+	});
+
 	// ---- Reminders (D7): the schedule of fire times is computed here and uploaded only when it changed ----
 	const reminderKey = $derived(
 		store.status === 'ready'
 			? scheduleKey(
 					buildReminderSchedule(
-						allRecords().flatMap((r) => (r.payload.type === 'medication' ? [r.payload] : [])),
+						// Medicine switched off: an empty schedule pauses this device's reminders; switching it
+						// back on uploads the real one again (the medications themselves are never touched).
+						trackerOn('meds')
+							? allRecords().flatMap((r) => (r.payload.type === 'medication' ? [r.payload] : []))
+							: [],
 						timeZone(),
 						todayKey()
 					)
@@ -168,7 +184,7 @@
 	const timeFormat = $derived(
 		new Intl.DateTimeFormat(i18n.locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 	);
-	const tiles = Object.keys(categories) as Category[];
+	const tiles = $derived((Object.keys(categories) as Category[]).filter((id) => trackerOn(id)));
 
 	function pick(key: Category) {
 		quickLogOpen = false;
@@ -180,6 +196,8 @@
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
 		else if (key === 'stomach') openLog('gut');
+		else if (key === 'period') openLog('period', { id: periodOnDay(allRecords(), todayKey())?.id ?? null });
+		else if (key === 'bladder') openLog('bladder');
 		else if (key === 'meds') medicineOpen = true;
 		else if (key === 'weight') openLog('measurement', { typeId: WEIGHT_ID });
 		else if (key === 'measure') openLog('measurement', { typeId: lastUsedMeasureType(allRecords()) });
@@ -187,7 +205,11 @@
 	}
 
 	// "Again?": up to three one-tap repeats from recent records; each saves at once with an Undo toast.
-	const again = $derived(quickLogOpen ? againOptions(allRecords(), new Date()) : []);
+	const again = $derived(
+		quickLogOpen
+			? againOptions(allRecords(), new Date()).filter((o) => trackerOn(o.kind === 'meal' ? 'food' : o.kind))
+			: []
+	);
 	const numberFormat = $derived(new Intl.NumberFormat(i18n.locale));
 
 	function againLabel(option: Again): { name: string; detail: string; category: Category } {
@@ -201,6 +223,13 @@
 		if (option.kind === 'meal') {
 			return { name: option.saved.name, detail: t('again.savedMeal'), category: 'food' };
 		}
+		if (option.kind === 'period') {
+			return {
+				name: t('again.periodYesterday'),
+				detail: t(`fmt.period.flow.${option.from.flow}` as MessageKey),
+				category: 'period'
+			};
+		}
 		return {
 			name: t('cat.weight'),
 			detail: `${numberFormat.format(option.value)} ${option.unit}`,
@@ -212,7 +241,7 @@
 		quickLogOpen = false;
 		const watched = new Set(watchedItems(allRecords()).map((w) => w.id));
 		const payload = againPayload(option, new Date(), watched);
-		if (payload) void quickSave(payload, 'entry.saved');
+		if (payload) void quickSave(payload, option.kind === 'period' ? 'period.logged' : 'entry.saved');
 	}
 </script>
 
@@ -284,6 +313,8 @@
 	<BodyMapSheet />
 	<BowelSheet />
 	<GutSheet />
+	<PeriodSheet />
+	<BladderSheet />
 	<DrinkSheet />
 	<MealSheet />
 	<EntryDetailSheet />
@@ -378,6 +409,14 @@
 	.tint-note {
 		background: var(--note-tint);
 		color: var(--note-ink);
+	}
+	.tint-period {
+		background: var(--period-tint);
+		color: var(--period-ink);
+	}
+	.tint-bladder {
+		background: var(--bladder-tint);
+		color: var(--bladder-ink);
 	}
 	.again-label {
 		display: flex;

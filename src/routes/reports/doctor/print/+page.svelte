@@ -6,6 +6,7 @@
 	import { Button, Icon } from '$lib/components';
 	import { t } from '$lib/i18n/index.svelte';
 	import { allRecords } from '$lib/records/store.svelte';
+	import { trackerRecord } from '$lib/records/trackers.svelte';
 	import { todayKey } from '$lib/records/time';
 	import { buildDoctorReport } from '$lib/reports/doctor';
 	import DoctorPages from '$lib/reports/DoctorPages.svelte';
@@ -26,7 +27,8 @@
 					days,
 					{ questions: request.questions, include: request.include },
 					request.locale,
-					today
+					today,
+					trackerRecord()?.payload
 				)
 			: null
 	);

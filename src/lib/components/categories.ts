@@ -13,7 +13,9 @@ export const categories = {
 	stomach: { icon: 'stomach', label: 'cat.stomach', tint: 'gut' },
 	weight: { icon: 'scale', label: 'cat.weight', tint: 'measure' },
 	measure: { icon: 'ruler', label: 'cat.measure', tint: 'measure' },
-	note: { icon: 'notebook-pen', label: 'cat.note', tint: 'note' }
+	note: { icon: 'notebook-pen', label: 'cat.note', tint: 'note' },
+	period: { icon: 'droplet', label: 'cat.period', tint: 'period' },
+	bladder: { icon: 'bladder', label: 'cat.bladder', tint: 'bladder' }
 } as const satisfies Record<string, { icon: IconName; label: MessageKey; tint: string }>;
 
 export type Category = keyof typeof categories;

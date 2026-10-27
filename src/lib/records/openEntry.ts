@@ -13,6 +13,8 @@ export function openEntry(id: string, type: string | undefined = store.items[id]
 		type === 'food' ||
 		type === 'drink' ||
 		type === 'pain' ||
+		type === 'period' ||
+		type === 'bladder' ||
 		type === 'measurement'
 	)
 		openLog(type, { id });

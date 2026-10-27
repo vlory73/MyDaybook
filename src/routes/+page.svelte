@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
 		Button,
 		CategoryBadge,
@@ -28,8 +30,11 @@
 	import { showToast } from '$lib/components';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
+	import { visitsOnDay } from '$lib/records/bladder';
+	import { copyForToday, yesterdayOffer } from '$lib/records/period';
 	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
 	import { allRecords, daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
+	import { hasPendingTrackers, introCardShown, markIntroSeen, trackerOn } from '$lib/records/trackers.svelte';
 	import { regionName } from '$lib/bodymap/catalogue';
 	import { noteStillThere, stopHeadache } from '$lib/records/headacheActions';
 	import {
@@ -78,14 +83,50 @@
 	);
 
 	// A plain sum of the day's drinks; shown only when there is one, never compared with anything.
-	const drinkMl = $derived(dayTotalMl(allRecords(), selected));
+	const drinkMl = $derived(trackerOn('drink') ? dayTotalMl(allRecords(), selected) : 0);
+
+	// A plain count of the day's bladder visits (leak-only entries are not visits); shown only when there is one.
+	const visits = $derived(trackerOn('bladder') ? visitsOnDay(allRecords(), selected) : 0);
+
+	// "Period yesterday. Log today?": only when yesterday has an entry and today has none. The cross hides it for
+	// today; this device remembers only that day.
+	const HIDE_KEY = 'mydaybook.periodAskHidden';
+	let askHidden = $state<string | null>(
+		browser
+			? (() => {
+					try {
+						return localStorage.getItem(HIDE_KEY);
+					} catch {
+						return null;
+					}
+				})()
+			: null
+	);
+	const periodAsk = $derived(
+		isToday && trackerOn('period') && askHidden !== selected
+			? yesterdayOffer(allRecords(), selected)
+			: undefined
+	);
+	function hidePeriodAsk() {
+		askHidden = selected;
+		try {
+			localStorage.setItem(HIDE_KEY, selected);
+		} catch {
+			// Hiding then only lasts until the page is closed.
+		}
+	}
+	function logPeriodAsk() {
+		if (periodAsk) void quickSave(copyForToday(periodAsk.payload, formatAt(new Date())), 'period.logged');
+	}
 
 	const open = openEntry;
 
 	// "Still there?": a quiet convenience when a body map entry is from the last two days. Dismissing it remembers
 	// only the id of that entry on this device; a newer entry brings the card back.
 	let dismissed = $state<string | null>(browser ? readDismissed(localStorage) : null);
-	const still = $derived(isToday ? stillThere(allRecords(), new Date(), dismissed) : null);
+	const still = $derived(
+		isToday && trackerOn('pain') ? stillThere(allRecords(), new Date(), dismissed) : null
+	);
 	function stillText(s: StillThere): string {
 		const text = t('pain.still.text', {
 			name: regionName(i18n.locale, s.point.region, s.point.side),
@@ -128,7 +169,9 @@
 	// entry, "It's gone" asks when it stopped and writes it on the same entry, "Not now" hides the card until tomorrow
 	// (this device remembers only an entry id and a day).
 	let notNow = $state<NotNow | null>(browser ? readNotNow(localStorage) : null);
-	const hCard = $derived(isToday ? headacheCard(allRecords(), new Date(), notNow) : null);
+	const hCard = $derived(
+		isToday && trackerOn('pain') ? headacheCard(allRecords(), new Date(), notNow) : null
+	);
 	const hEpisode = $derived(hCard ? episodeOf(hCard.id) : undefined);
 	/** The clock time in the phone's 12 or 24 hour style ("6 PM", "6:30 PM"; the minutes only when there are some). */
 	function clock(at: string): string {
@@ -188,6 +231,26 @@
 		}
 	}
 
+	// One-time card: "New: choose what you track". Both buttons set `introSeen` in the synced record, so it never
+	// comes back on any device. New accounts make the choice during sign-up and never see it.
+	const showIntro = $derived(store.status === 'ready' && !hasPendingTrackers() && introCardShown());
+	async function introChoose() {
+		try {
+			await markIntroSeen();
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- the app's own route plus a fragment
+			await goto(resolve('/me') + '#what-you-track');
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
+	async function introNotNow() {
+		try {
+			await markIntroSeen();
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
+
 	// One-tap mood: saves a feeling with just the mood and offers Undo.
 	const moodLabels = ['mood.1', 'mood.2', 'mood.3', 'mood.4', 'mood.5'] as const;
 	const latestMood = $derived(
@@ -218,7 +281,20 @@
 	<Notice tone="warn">{tn('today.skipped', store.skipped)}</Notice>
 {/if}
 
-{#if isToday}
+{#if showIntro}
+	<section class="card intro" aria-labelledby="intro" data-testid="trackers-intro">
+		<h2 class="card-title" id="intro">{t('trackers.card.title')}</h2>
+		<p class="card-sub">{t('trackers.card.body')}</p>
+		<div class="hc-actions">
+			<Button size="sm" style="min-height:44px" onclick={introChoose}>{t('trackers.card.choose')}</Button>
+			<Button size="sm" variant="quiet" style="min-height:44px" onclick={introNotNow}
+				>{t('trackers.card.notNow')}</Button
+			>
+		</div>
+	</section>
+{/if}
+
+{#if isToday && trackerOn('feel')}
 	<section class="card" aria-labelledby="feel">
 		<h2 class="card-title" id="feel">{t('today.mood.title')}</h2>
 		<p class="card-sub">{t('today.mood.sub')}</p>
@@ -333,7 +409,20 @@
 	</section>
 {/if}
 
-<DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
+{#if periodAsk}
+	<section class="card askcard" aria-labelledby="period-ask" data-testid="period-ask">
+		<CategoryBadge category="period" size={36} />
+		<h2 class="grow" id="period-ask">{t('period.card.title')}</h2>
+		<Button size="sm" style="min-height:44px" onclick={logPeriodAsk}>{t('period.card.log')}</Button>
+		<button type="button" class="x" aria-label={t('period.card.hide')} onclick={hidePeriodAsk}
+			><Icon name="x" size={18} /></button
+		>
+	</section>
+{/if}
+
+{#if trackerOn('meds')}
+	<DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
+{/if}
 
 <h2 class="section-title">{heading}</h2>
 
@@ -344,9 +433,25 @@
 	</p>
 {/if}
 
+{#if visits > 0}
+	<p class="day-total" data-testid="bladder-day">
+		<CategoryBadge category="bladder" size={28} />
+		{tn(isToday ? 'bladder.today' : 'bladder.today.other', visits)}
+	</p>
+{/if}
+
 {#snippet lines(d: ReturnType<typeof describe>, id: string)}
 	<span class="t">{d.title}</span>
 	{#if d.summary}<span class="s">{d.summary}</span>{/if}
+	{#if d.leak}
+		<span
+			class="drops"
+			role="img"
+			aria-label={t('fmt.leak.sr', { amount: t(`fmt.leak.amount.${d.leak}` as MessageKey) })}
+		>
+			{#each Array.from({ length: d.leak }, (_, i) => i) as i (i)}<Icon name="droplet" size={14} />{/each}
+		</span>
+	{/if}
 	{#if d.tags?.length}
 		<span class="tags"
 			>{#each d.tags as tag, i (i)}<span class="tag">{tag}</span>{/each}</span
@@ -438,6 +543,11 @@
 	.pic:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
+	}
+	.intro {
+		box-shadow:
+			inset 0 0 0 1.5px var(--primary),
+			var(--shadow-1);
 	}
 	.card {
 		background: var(--surface);
@@ -572,6 +682,31 @@
 		font-size: var(--fs-title3);
 		font-weight: var(--fw-bold);
 		margin: var(--sp-4) 0 var(--sp-1);
+	}
+	.askcard {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-3);
+	}
+	.askcard .grow {
+		flex: 1;
+		font-size: var(--fs-body);
+		font-weight: var(--fw-semibold);
+		line-height: 1.3;
+	}
+	.askcard .x {
+		width: 44px;
+		height: 44px;
+		display: grid;
+		place-items: center;
+		color: var(--text-3);
+		border-radius: 50%;
+	}
+	.drops {
+		display: inline-flex;
+		gap: 2px;
+		margin-top: 2px;
+		color: var(--bladder-mark);
 	}
 	.day-total {
 		display: flex;

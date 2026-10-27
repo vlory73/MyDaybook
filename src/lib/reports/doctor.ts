@@ -39,6 +39,8 @@ import {
 	sleepSeries,
 	type Series
 } from '$lib/trends/series';
+import { isOn, type TrackerId } from '$lib/records/trackers';
+import type { TrackersPayload } from '$lib/records/types';
 import { buildHeadacheReport, dayMonthLabel, periodLabel } from './headache';
 
 type Rec = StoredRecord;
@@ -61,6 +63,25 @@ export const DOCTOR_SECTIONS = [
 ] as const;
 export type DoctorSection = (typeof DOCTOR_SECTIONS)[number];
 export type Include = Record<DoctorSection, boolean>;
+
+/** The trackers (Me → What you track) a section draws from. A section with none of them on is not offered. */
+const SECTION_TRACKERS: Record<DoctorSection, readonly TrackerId[]> = {
+	medicines: ['meds'],
+	pain: ['pain'],
+	episodes: ['pain'],
+	headache: ['pain'],
+	feeling: ['feel'],
+	sleep: ['sleep'],
+	measurements: ['weight', 'measure'],
+	fluids: ['drink'],
+	bowel: ['gut'],
+	gut: ['stomach'],
+	notes: ['note'],
+	headachePages: ['pain']
+};
+/** Whether the section can be offered for these choices (no choices = everything). */
+export const sectionOn = (s: DoctorSection, trackers?: TrackersPayload): boolean =>
+	SECTION_TRACKERS[s].some((id) => isOn(trackers, id));
 
 /** Sections that start unticked even when the period holds data. */
 export const OFF_BY_DEFAULT: readonly DoctorSection[] = ['notes', 'headachePages'];
@@ -97,7 +118,12 @@ const noteRecords = (all: Rec[], days: readonly string[]) => {
 		.sort((a, b) => instant(a.at) - instant(b.at));
 };
 
-export function doctorOverview(records: Iterable<Rec>, days: readonly string[], today: string): Overview {
+export function doctorOverview(
+	records: Iterable<Rec>,
+	days: readonly string[],
+	today: string,
+	trackers?: TrackersPayload
+): Overview {
 	const all = [...records];
 	const med = medicinesBlock(all, days, 'en');
 	const pain = painSeries(all, days);
@@ -113,7 +139,9 @@ export function doctorOverview(records: Iterable<Rec>, days: readonly string[], 
 	const dayCount = (...series: Series[]) =>
 		days.filter((_, i) => series.some((s) => s[i] !== null && s[i] !== undefined)).length;
 	const headache = days.length > 0 ? buildHeadacheReport(all, days, 'form').pages.flat().length : 0;
-	return {
+	const weightOn = isOn(trackers, 'weight');
+	const measureOn = isOn(trackers, 'measure');
+	const counts: Overview = {
 		medicines: med.regular.length + med.asNeeded.length,
 		pain: pain.daysWithPain > 0 ? pain.entries : 0,
 		episodes:
@@ -125,16 +153,21 @@ export function doctorOverview(records: Iterable<Rec>, days: readonly string[], 
 			return s.minutes.filter((m, i) => m !== null || s.napMinutes[i] != null).length;
 		})(),
 		measurements:
-			present(weight.values).length +
-			Math.max(present(bp.values).length, present(bpLow.values).length) +
-			present(pulse.values).length +
-			own.reduce((n, m) => n + present(measurementSeries(all, days, m.id).values).length, 0),
+			(weightOn ? present(weight.values).length : 0) +
+			(measureOn
+				? Math.max(present(bp.values).length, present(bpLow.values).length) +
+					present(pulse.values).length +
+					own.reduce((n, m) => n + present(measurementSeries(all, days, m.id).values).length, 0)
+				: 0),
 		fluids: present(fluidSeries(all, days).totalMl).length,
 		bowel: bowelDots(all, days).length,
 		gut: gutRecords,
 		notes: noteRecords(all, days).length,
 		headachePages: headache
 	};
+	// Switched-off trackers: their sections are not offered (the entries stay in the diary).
+	for (const s of DOCTOR_SECTIONS) if (!sectionOn(s, trackers)) counts[s] = 0;
+	return counts;
 }
 
 /** Sections with something in the period are ticked, except the opt-in ones. `touched` holds the person's own choices. */
@@ -281,10 +314,14 @@ export function buildDoctorReport(
 	days: readonly string[],
 	options: DoctorOptions,
 	locale: Locale,
-	today: string
+	today: string,
+	trackers?: TrackersPayload
 ): DoctorReport {
 	const all = [...records];
-	const on = options.include;
+	const on: Include = { ...options.include };
+	for (const s of DOCTOR_SECTIONS) if (!sectionOn(s, trackers)) on[s] = false;
+	const weightOn = isOn(trackers, 'weight');
+	const measureOn = isOn(trackers, 'measure');
 	const tr = (key: MessageKey, vars?: Record<string, string | number>) => translate(locale, key, vars);
 	const nf = new Intl.NumberFormat(locale === 'en' ? 'en-GB' : locale, { maximumFractionDigits: 1 });
 	/** "7 h 20 min" in the report language. */
@@ -438,10 +475,10 @@ export function buildDoctorReport(
 			});
 		};
 		const w = measurementSeries(all, days, WEIGHT_ID);
-		if (hasAny(w.values)) line('weight', tr('trends.weight.title'), w.unit || 'kg', w.values);
+		if (weightOn && hasAny(w.values)) line('weight', tr('trends.weight.title'), w.unit || 'kg', w.values);
 		const up = measurementSeries(all, days, BLOOD_PRESSURE_ID, 0);
 		const low = measurementSeries(all, days, BLOOD_PRESSURE_ID, 1);
-		if (hasAny(up.values) || hasAny(low.values)) {
+		if (measureOn && (hasAny(up.values) || hasAny(low.values))) {
 			const r = span([...up.values, ...low.values]);
 			const unit = up.unit || 'mmHg';
 			charts.push({
@@ -468,8 +505,8 @@ export function buildDoctorReport(
 			});
 		}
 		const pu = measurementSeries(all, days, PULSE_ID);
-		if (hasAny(pu.values)) line('pulse', tr('measure.pulse'), pu.unit || 'bpm', pu.values);
-		for (const m of measurementTypesWithData(all, days)) {
+		if (measureOn && hasAny(pu.values)) line('pulse', tr('measure.pulse'), pu.unit || 'bpm', pu.values);
+		for (const m of measureOn ? measurementTypesWithData(all, days) : []) {
 			line(`m-${m.id}`, m.name, m.unit, measurementSeries(all, days, m.id).values);
 		}
 	}

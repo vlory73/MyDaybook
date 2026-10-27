@@ -35,7 +35,7 @@ settings and troubleshooting. You need a reverse proxy with HTTPS in front (the 
 Short version, from `~/mydaybook` with `compose.yaml` and `.env` (from `.env.example`) of the release you want:
 
 ```sh
-docker run --rm ghcr.io/vlory73/mydaybook:1.3.0 gen-secrets >> .env   # appends the secrets without printing them
+docker run --rm ghcr.io/vlory73/mydaybook:1.4.0 gen-secrets >> .env   # appends the secrets without printing them
 chmod 600 .env
 docker compose up -d
 docker compose exec app cli invite --admin       # first admin: run in your own terminal, the link is a one-time credential
