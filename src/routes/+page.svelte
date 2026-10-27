@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
 		Button,
 		CategoryBadge,
@@ -30,6 +32,7 @@
 	import { quickSave } from '$lib/records/quick';
 	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
 	import { allRecords, daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
+	import { hasPendingTrackers, introCardShown, markIntroSeen, trackerOn } from '$lib/records/trackers.svelte';
 	import { regionName } from '$lib/bodymap/catalogue';
 	import { noteStillThere, stopHeadache } from '$lib/records/headacheActions';
 	import {
@@ -78,14 +81,16 @@
 	);
 
 	// A plain sum of the day's drinks; shown only when there is one, never compared with anything.
-	const drinkMl = $derived(dayTotalMl(allRecords(), selected));
+	const drinkMl = $derived(trackerOn('drink') ? dayTotalMl(allRecords(), selected) : 0);
 
 	const open = openEntry;
 
 	// "Still there?": a quiet convenience when a body map entry is from the last two days. Dismissing it remembers
 	// only the id of that entry on this device; a newer entry brings the card back.
 	let dismissed = $state<string | null>(browser ? readDismissed(localStorage) : null);
-	const still = $derived(isToday ? stillThere(allRecords(), new Date(), dismissed) : null);
+	const still = $derived(
+		isToday && trackerOn('pain') ? stillThere(allRecords(), new Date(), dismissed) : null
+	);
 	function stillText(s: StillThere): string {
 		const text = t('pain.still.text', {
 			name: regionName(i18n.locale, s.point.region, s.point.side),
@@ -128,7 +133,9 @@
 	// entry, "It's gone" asks when it stopped and writes it on the same entry, "Not now" hides the card until tomorrow
 	// (this device remembers only an entry id and a day).
 	let notNow = $state<NotNow | null>(browser ? readNotNow(localStorage) : null);
-	const hCard = $derived(isToday ? headacheCard(allRecords(), new Date(), notNow) : null);
+	const hCard = $derived(
+		isToday && trackerOn('pain') ? headacheCard(allRecords(), new Date(), notNow) : null
+	);
 	const hEpisode = $derived(hCard ? episodeOf(hCard.id) : undefined);
 	/** The clock time in the phone's 12 or 24 hour style ("6 PM", "6:30 PM"; the minutes only when there are some). */
 	function clock(at: string): string {
@@ -188,6 +195,26 @@
 		}
 	}
 
+	// One-time card: "New: choose what you track". Both buttons set `introSeen` in the synced record, so it never
+	// comes back on any device. New accounts make the choice during sign-up and never see it.
+	const showIntro = $derived(store.status === 'ready' && !hasPendingTrackers() && introCardShown());
+	async function introChoose() {
+		try {
+			await markIntroSeen();
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- the app's own route plus a fragment
+			await goto(resolve('/me') + '#what-you-track');
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
+	async function introNotNow() {
+		try {
+			await markIntroSeen();
+		} catch {
+			showToast(t('entry.error.save'));
+		}
+	}
+
 	// One-tap mood: saves a feeling with just the mood and offers Undo.
 	const moodLabels = ['mood.1', 'mood.2', 'mood.3', 'mood.4', 'mood.5'] as const;
 	const latestMood = $derived(
@@ -218,7 +245,20 @@
 	<Notice tone="warn">{tn('today.skipped', store.skipped)}</Notice>
 {/if}
 
-{#if isToday}
+{#if showIntro}
+	<section class="card intro" aria-labelledby="intro" data-testid="trackers-intro">
+		<h2 class="card-title" id="intro">{t('trackers.card.title')}</h2>
+		<p class="card-sub">{t('trackers.card.body')}</p>
+		<div class="hc-actions">
+			<Button size="sm" style="min-height:44px" onclick={introChoose}>{t('trackers.card.choose')}</Button>
+			<Button size="sm" variant="quiet" style="min-height:44px" onclick={introNotNow}
+				>{t('trackers.card.notNow')}</Button
+			>
+		</div>
+	</section>
+{/if}
+
+{#if isToday && trackerOn('feel')}
 	<section class="card" aria-labelledby="feel">
 		<h2 class="card-title" id="feel">{t('today.mood.title')}</h2>
 		<p class="card-sub">{t('today.mood.sub')}</p>
@@ -333,7 +373,9 @@
 	</section>
 {/if}
 
-<DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
+{#if trackerOn('meds')}
+	<DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
+{/if}
 
 <h2 class="section-title">{heading}</h2>
 
@@ -438,6 +480,11 @@
 	.pic:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
+	}
+	.intro {
+		box-shadow:
+			inset 0 0 0 1.5px var(--primary),
+			var(--shadow-1);
 	}
 	.card {
 		background: var(--surface);

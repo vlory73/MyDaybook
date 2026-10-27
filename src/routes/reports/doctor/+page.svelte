@@ -5,10 +5,12 @@
 	import { i18n, t, tn, type Locale, type MessageKey } from '$lib/i18n/index.svelte';
 	import { findProfile, reportName } from '$lib/records/profile';
 	import { allRecords, store } from '$lib/records/store.svelte';
+	import { trackerRecord } from '$lib/records/trackers.svelte';
 	import { todayKey } from '$lib/records/time';
 	import {
 		DOCTOR_SECTIONS,
 		doctorOverview,
+		sectionOn,
 		resolveInclude,
 		type DoctorSection,
 		type Include
@@ -51,7 +53,9 @@
 	const days = $derived<string[]>(custom ? (custom.ok ? custom.days : []) : lastDays(Number(period), today));
 	const hint = $derived(days.length > 0 ? periodLabel(days[0]!, days.at(-1)!, i18n.locale) : '');
 
-	const overview = $derived(days.length > 0 ? doctorOverview(allRecords(), days, today) : null);
+	const overview = $derived(
+		days.length > 0 ? doctorOverview(allRecords(), days, today, trackerRecord()?.payload) : null
+	);
 	const include = $derived<Include>(
 		overview
 			? resolveInclude(overview, touched)
@@ -184,7 +188,7 @@
 <Card>
 	<div class="label first">{t('reports.include')} <span class="hint">{t('reports.include.hint')}</span></div>
 	<ul class="checks" data-testid="include">
-		{#each DOCTOR_SECTIONS as s (s)}
+		{#each DOCTOR_SECTIONS.filter((x) => sectionOn(x, trackerRecord()?.payload)) as s (s)}
 			{@const n = overview?.[s] ?? 0}
 			{@const empty = ready && n === 0}
 			<li class:sep={s === 'notes'}>

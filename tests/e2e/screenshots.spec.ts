@@ -6,6 +6,7 @@ import {
 	createInvite,
 	newPassphrase,
 	newUsername,
+	passTrackerStep,
 	postJson,
 	signUpAndSignIn,
 	signUpApiAccount,
@@ -920,8 +921,94 @@ for (const scheme of ['light', 'dark'] as const) {
 			await snap(page, 'join-confirm', scheme);
 			await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
 			await page.getByRole('button', { name: 'Confirm' }).click();
+			await passTrackerStep(page);
 			await page.getByRole('heading', { name: 'Before you start' }).waitFor();
 			await snap(page, 'join-consent', scheme, true);
+		});
+
+		test(`tracker choice ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'tracker-choice', 'tracker-choice screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+
+			// 1 + 3 + 4: an existing account with Bowel and Medicine off, the choice not yet seen.
+			const account = await signUpApiAccount(page.request);
+			await seedRecords(page.request, account, [
+				{ v: 1, type: 'sleep', at: at(2, 7, 10), asleepAt: at(3, 23, 50), quality: 4 },
+				{ v: 1, type: 'sleep', at: at(1, 7, 10), asleepAt: at(2, 23, 50), quality: 4 },
+				{
+					v: 1,
+					type: 'food',
+					at: at(0, 8, 10),
+					meal: 'breakfast',
+					text: 'Oatmeal with berries and yoghurt',
+					tags: []
+				},
+				{ v: 1, type: 'bowel', at: at(0, 8, 40), bristol: 4, flags: [] },
+				{ v: 1, type: 'trackers', choices: { gut: false, meds: false } }
+			]);
+			await page.goto('/');
+			await expect(page.getByRole('heading', { name: 'Your diary is locked' })).toBeVisible();
+			await unlockWith(page, account.passphrase);
+			await page.getByTestId('trackers-intro').waitFor();
+			await page.getByText('Oatmeal with berries and yoghurt').waitFor();
+			await snap(page, 'today-card', scheme, true);
+
+			await page.getByRole('button', { name: 'Log something' }).click();
+			await page.getByRole('dialog').getByText('Usual night').waitFor();
+			await page.waitForTimeout(400);
+			await snap(page, 'quicklog-fewer-tiles', scheme);
+			await page.keyboard.press('Escape');
+			await page.getByRole('dialog').waitFor({ state: 'hidden' });
+
+			await page.getByTestId('trackers-intro').getByRole('button', { name: 'Choose' }).click();
+			await page.getByTestId('trackers-card').waitFor();
+			await page.evaluate(() => document.getElementById('what-you-track')?.scrollIntoView());
+			await page.waitForTimeout(300);
+			await snap(page, 'me-what-you-track', scheme);
+
+			// The last one that is on keeps a dimmed switch and a hint.
+			for (const name of [
+				'Meal',
+				'Drink',
+				'Feeling',
+				'Sleep',
+				'Pain',
+				'Nausea / heartburn',
+				'Weight',
+				'Measure'
+			]) {
+				await page.getByRole('switch', { name, exact: true }).click();
+			}
+			await page.evaluate(() => document.getElementById('what-you-track')?.scrollIntoView());
+			await page.waitForTimeout(300);
+			await snap(page, 'me-last-one', scheme);
+		});
+
+		test(`tracker choice first run ${scheme}`, async ({ page }) => {
+			test.skip(folder !== 'tracker-choice', 'tracker-choice screenshots only');
+			test.setTimeout(120_000);
+			await prepare(page, scheme);
+			await page.goto(`/join#t=${createInvite()}`);
+			await page.getByRole('button', { name: 'Get started' }).click();
+			const passphrase = newPassphrase();
+			await page.getByLabel('Username').fill(newUsername('shot'));
+			await page.getByLabel('Passphrase', { exact: true }).fill(passphrase);
+			await page.getByLabel('Repeat passphrase').fill(passphrase);
+			await page.getByRole('button', { name: 'Continue' }).click();
+			await page.getByRole('heading', { name: 'Your recovery key' }).waitFor({ timeout: 30_000 });
+			const groups = await page.getByTestId('recovery-key').locator('span').allTextContents();
+			await page.getByRole('button', { name: "I've stored it. Check me" }).click();
+			const lead = (await page.getByText(/Type group \d+ and group \d+/).textContent()) ?? '';
+			const [a, b] = [...lead.matchAll(/group (\d+)/g)].map((m) => Number(m[1]));
+			await page.getByLabel(`Group ${a} (4 characters)`).fill(groups[a! - 1]!);
+			await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
+			await page.getByRole('button', { name: 'Confirm' }).click();
+			await page.getByRole('heading', { name: 'What do you want to track?' }).waitFor();
+			await snap(page, 'first-run-all', scheme);
+			await page.getByRole('checkbox', { name: 'Bowel', exact: true }).click();
+			await page.getByRole('checkbox', { name: 'Medicine', exact: true }).click();
+			await snap(page, 'first-run', scheme);
 		});
 
 		test(`reminders ${scheme}`, async ({ page }) => {
@@ -1162,7 +1249,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			await unlockWith(page, account.passphrase);
 			const card = page.getByRole('region', { name: 'Still there?' });
 			await card.waitFor({ timeout: 20_000 });
-			await snap(page, 'today-card', scheme);
+			await snap(page, 'today-card', scheme, true);
 
 			await seedRecords(page.request, account, [
 				entry(ongoing!, 0, 0, 10, [knee(3)]),
@@ -1419,7 +1506,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			await unlockWith(page, account.passphrase);
 			const card = page.getByRole('region', { name: 'Headache · still there?' });
 			await card.waitFor({ timeout: 20_000 });
-			await snap(page, 'today-card', scheme);
+			await snap(page, 'today-card', scheme, true);
 
 			await card.getByRole('button', { name: "It's gone", exact: true }).click();
 			await card.getByText('When did it stop?').waitFor();
@@ -2038,6 +2125,7 @@ for (const scheme of ['light', 'dark'] as const) {
 		await page.getByLabel(`Group ${a} (4 characters)`).fill(groups[a! - 1]!);
 		await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
 		await page.getByRole('button', { name: 'Confirm' }).click();
+		await passTrackerStep(page);
 		await page.getByRole('heading', { name: 'Before you start' }).waitFor();
 		await page.getByRole('checkbox').check();
 		await snap(page, 'consent', scheme, true);

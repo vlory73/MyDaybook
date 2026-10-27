@@ -12,6 +12,7 @@ import {
 	newPassphrase,
 	newUsername,
 	signInOnLoginPage,
+	passTrackerStep,
 	signUpAndSignIn,
 	signUpViaApi,
 	unlockWith
@@ -63,6 +64,7 @@ async function walkJoinToConsent(
 	const groups = await readRecoveryKey(page);
 	await page.getByRole('button', { name: "I've stored it. Check me" }).click();
 	await confirmRecoveryKey(page, groups);
+	await passTrackerStep(page);
 	await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible();
 	return groups;
 }
@@ -131,6 +133,7 @@ test.describe('joining', () => {
 		await page.getByRole('button', { name: 'Confirm' }).click();
 
 		// Consent: explicit, not pre-ticked.
+		await passTrackerStep(page);
 		await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible();
 		const agree = page.getByRole('checkbox', { name: /I understand, and I agree/ });
 		await expect(agree).not.toBeChecked();

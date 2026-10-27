@@ -18,6 +18,7 @@
 		SyncCard,
 		TextField,
 		TotpCard,
+		TrackersCard,
 		WatchList,
 		showToast
 	} from '$lib/components';
@@ -31,6 +32,7 @@
 	import type { MessageKey } from '$lib/i18n/en';
 	import { checkNewPassphrase } from '$lib/passphrase';
 	import { outboxCount } from '$lib/records/store.svelte';
+	import { trackerOn } from '$lib/records/trackers.svelte';
 	import {
 		AUTO_LOCK_CHOICES,
 		afterDeletion,
@@ -166,6 +168,7 @@
 	</div>
 </Card>
 <NameCard />
+<TrackersCard />
 <SignOutWarning bind:open={warnOpen} count={waitingCount} onconfirm={doSignOut} />
 {#if session.identity?.role === 'admin'}
 	<Card title={t('me.admin.heading')}>
@@ -173,7 +176,7 @@
 		<a class="link-button" href={resolve('/me/admin')} data-testid="admin-link">{t('me.admin.open')}</a>
 	</Card>
 {/if}
-<WatchList />
+{#if trackerOn('food')}<WatchList />{/if}
 <Card title={t('me.autolock.heading')}>
 	<SelectField
 		label={t('me.autolock.label')}
@@ -183,7 +186,7 @@
 	/>
 	<p class="small muted hint">{t('me.autolock.hint')}</p>
 </Card>
-<RemindersCard />
+{#if trackerOn('meds')}<RemindersCard />{/if}
 <Card title={t('me.passphrase.heading')}>
 	<p class="small muted hint">{t('me.passphrase.lead')}</p>
 	<Button variant="quiet" disabled={!connection.online} onclick={() => (changeOpen = true)}>

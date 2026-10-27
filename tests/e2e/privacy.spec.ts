@@ -2,7 +2,14 @@ import type { Page } from '@playwright/test';
 import Database from 'better-sqlite3';
 import { resolve } from 'node:path';
 import { test, expect } from './fixtures';
-import { DATA_DIR, createInvite, newPassphrase, newUsername, signUpAndSignIn } from './helpers';
+import {
+	DATA_DIR,
+	createInvite,
+	newPassphrase,
+	newUsername,
+	passTrackerStep,
+	signUpAndSignIn
+} from './helpers';
 
 // Synthetic data only. Covers consent v2 at sign-up, the Privacy page inside and outside the join flow, and
 // that people who agreed to v1 keep v1.
@@ -32,6 +39,7 @@ async function walkJoinToConsent(page: Page, username: string, passphrase: strin
 	await page.getByLabel(`Group ${a} (4 characters)`).fill(groups[a! - 1]!);
 	await page.getByLabel(`Group ${b} (4 characters)`).fill(groups[b! - 1]!);
 	await page.getByRole('button', { name: 'Confirm' }).click();
+	await passTrackerStep(page);
 	await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible();
 }
 

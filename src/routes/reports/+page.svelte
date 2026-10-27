@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { Icon } from '$lib/components';
 	import { t } from '$lib/i18n/index.svelte';
+	import { trackerOn } from '$lib/records/trackers.svelte';
 </script>
 
 <div class="nav-head">
@@ -14,16 +15,18 @@
 </header>
 
 <ul class="list">
-	<li>
-		<a class="rcard" href={resolve('/reports/headache')} data-testid="report-headache">
-			<span class="badge note"><Icon name="thermometer" size={22} /></span>
-			<span class="grow">
-				<b>{t('reports.headache.title')}</b>
-				<small>{t('reports.headache.sub')}</small>
-			</span>
-			<span class="chev"><Icon name="chevron-right" size={22} /></span>
-		</a>
-	</li>
+	{#if trackerOn('pain')}
+		<li>
+			<a class="rcard" href={resolve('/reports/headache')} data-testid="report-headache">
+				<span class="badge note"><Icon name="thermometer" size={22} /></span>
+				<span class="grow">
+					<b>{t('reports.headache.title')}</b>
+					<small>{t('reports.headache.sub')}</small>
+				</span>
+				<span class="chev"><Icon name="chevron-right" size={22} /></span>
+			</a>
+		</li>
+	{/if}
 	<li>
 		<a class="rcard" href={resolve('/reports/doctor')} data-testid="report-doctor">
 			<span class="badge meds"><Icon name="file-down" size={22} /></span>

@@ -26,6 +26,7 @@
 	import { watchedItems } from '$lib/records/watch';
 	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
 	import { convertLegacyNaps } from '$lib/records/napsConvert';
+	import { savePendingTrackers, trackerOn } from '$lib/records/trackers.svelte';
 	import { todayKey } from '$lib/records/time';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
@@ -144,12 +145,23 @@
 		}
 	});
 
+	// ---- A new account's first-run choice (what to track) is saved once the diary has loaded ----
+	$effect(() => {
+		if (session.status === 'unlocked' && store.status === 'ready' && !store.syncing && !store.syncFailed) {
+			void savePendingTrackers().catch(() => undefined); // on failure the Today card offers the choice again
+		}
+	});
+
 	// ---- Reminders (D7): the schedule of fire times is computed here and uploaded only when it changed ----
 	const reminderKey = $derived(
 		store.status === 'ready'
 			? scheduleKey(
 					buildReminderSchedule(
-						allRecords().flatMap((r) => (r.payload.type === 'medication' ? [r.payload] : [])),
+						// Medicine switched off: an empty schedule pauses this device's reminders; switching it
+						// back on uploads the real one again (the medications themselves are never touched).
+						trackerOn('meds')
+							? allRecords().flatMap((r) => (r.payload.type === 'medication' ? [r.payload] : []))
+							: [],
 						timeZone(),
 						todayKey()
 					)
@@ -168,7 +180,7 @@
 	const timeFormat = $derived(
 		new Intl.DateTimeFormat(i18n.locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 	);
-	const tiles = Object.keys(categories) as Category[];
+	const tiles = $derived((Object.keys(categories) as Category[]).filter((id) => trackerOn(id)));
 
 	function pick(key: Category) {
 		quickLogOpen = false;
@@ -187,7 +199,11 @@
 	}
 
 	// "Again?": up to three one-tap repeats from recent records; each saves at once with an Undo toast.
-	const again = $derived(quickLogOpen ? againOptions(allRecords(), new Date()) : []);
+	const again = $derived(
+		quickLogOpen
+			? againOptions(allRecords(), new Date()).filter((o) => trackerOn(o.kind === 'meal' ? 'food' : o.kind))
+			: []
+	);
 	const numberFormat = $derived(new Intl.NumberFormat(i18n.locale));
 
 	function againLabel(option: Again): { name: string; detail: string; category: Category } {
