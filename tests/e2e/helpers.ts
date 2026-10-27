@@ -181,3 +181,9 @@ export async function seedRecords(
 	}
 	return ids;
 }
+
+/** The first-run step of sign-up ("What do you want to track?"): keeps everything ticked and continues. */
+export async function passTrackerStep(page: Page): Promise<void> {
+	await expect(page.getByRole('heading', { name: 'What do you want to track?' })).toBeVisible();
+	await page.getByTestId('tracker-continue').click();
+}

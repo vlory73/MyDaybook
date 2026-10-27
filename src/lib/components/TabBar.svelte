@@ -5,6 +5,7 @@
 	import type { IconName } from './icon-names';
 	import type { MessageKey } from '$lib/i18n/en';
 	import { t } from '$lib/i18n/index.svelte';
+	import { trackerOn } from '$lib/records/trackers.svelte';
 
 	let { onquicklog }: { onquicklog: () => void } = $props();
 
@@ -13,10 +14,11 @@
 		{ href: '/', icon: 'house', label: 'nav.today' },
 		{ href: '/trends', icon: 'chart-spline', label: 'nav.trends' }
 	];
-	const right: Tab[] = [
-		{ href: '/meds', icon: 'pill', label: 'nav.meds' },
-		{ href: '/me', icon: 'user-round', label: 'nav.me' }
-	];
+	const meds: Tab = { href: '/meds', icon: 'pill', label: 'nav.meds' };
+	const me: Tab = { href: '/me', icon: 'user-round', label: 'nav.me' };
+	/** With Medicine switched off the Meds tab is hidden (#123); the bar has four places instead of five. */
+	const medsOn = $derived(trackerOn('meds'));
+	const right = $derived<Tab[]>(medsOn ? [meds, me] : [me]);
 	const isCurrent = (href: Tab['href']) =>
 		page.url.pathname === resolve(href) ||
 		(href === '/me' && page.url.pathname.startsWith(resolve(href) + '/'));
@@ -29,7 +31,7 @@
 	</a>
 {/snippet}
 
-<nav class="tabbar" aria-label={t('nav.main')}>
+<nav class="tabbar" class:four={!medsOn} aria-label={t('nav.main')}>
 	{#each left as item (item.href)}{@render tab(item)}{/each}
 	<button type="button" class="fab" aria-label={t('nav.log')} onclick={onquicklog}>
 		<Icon name="plus" size={30} />
@@ -53,6 +55,9 @@
 		backdrop-filter: blur(18px);
 		-webkit-backdrop-filter: blur(18px);
 		border-top: 1px solid var(--line);
+	}
+	.tabbar.four {
+		grid-template-columns: repeat(4, 1fr);
 	}
 	.tab {
 		display: flex;

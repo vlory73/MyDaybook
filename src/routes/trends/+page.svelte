@@ -14,6 +14,7 @@
 	import { i18n, t, tn, type MessageKey } from '$lib/i18n/index.svelte';
 	import { formatDuration } from '$lib/records/format';
 	import { allRecords, store } from '$lib/records/store.svelte';
+	import { trackerOn } from '$lib/records/trackers.svelte';
 	import { openEpisode } from '$lib/records/editor.svelte';
 	import { episodeRange, episodeViews, overlapping } from '$lib/records/episodes';
 	import { dayDate, todayKey } from '$lib/records/time';
@@ -92,25 +93,33 @@
 		days.length > 0 ? overlapping(episodeViews(recs, i18n.locale, today), days[0]!, days.at(-1)!) : []
 	);
 
-	const showFeeling = $derived(hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress));
-	const showSleep = $derived(hasAny(sleep.minutes) || hasAny(sleep.napMinutes));
-	const showWeight = $derived(hasAny(weight.values));
-	const showBp = $derived(hasAny(bpUpper.values) || hasAny(bpLower.values));
-	const showPulse = $derived(hasAny(pulse.values));
-	const showFluids = $derived(hasAny(fluids.totalMl));
-	const showGut = $derived(hasAny(gut.nausea) || hasAny(gut.heartburn));
+	// A tracker that is switched off (Me → What you track) shows no cards; its old entries stay in the diary.
+	const showFeeling = $derived(
+		trackerOn('feel') && (hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress))
+	);
+	const showSleep = $derived(trackerOn('sleep') && (hasAny(sleep.minutes) || hasAny(sleep.napMinutes)));
+	const showWeight = $derived(trackerOn('weight') && hasAny(weight.values));
+	const showBp = $derived(trackerOn('measure') && (hasAny(bpUpper.values) || hasAny(bpLower.values)));
+	const showPulse = $derived(trackerOn('measure') && hasAny(pulse.values));
+	const showOwn = $derived(trackerOn('measure') && own.length > 0);
+	const showFluids = $derived(trackerOn('drink') && hasAny(fluids.totalMl));
+	const showDoses = $derived(trackerOn('meds') && doses.any);
+	const showBowel = $derived(trackerOn('gut') && bowel.length > 0);
+	const showGut = $derived(trackerOn('stomach') && (hasAny(gut.nausea) || hasAny(gut.heartburn)));
+	const showPain = $derived(trackerOn('pain') && pain.daysWithPain > 0);
+	const showEpisodes = $derived(trackerOn('pain') && episodes.length > 0);
 	const anything = $derived(
 		showFeeling ||
 			showSleep ||
 			showWeight ||
 			showBp ||
 			showPulse ||
-			own.length > 0 ||
+			showOwn ||
 			showFluids ||
-			doses.any ||
-			bowel.length > 0 ||
+			showDoses ||
+			showBowel ||
 			showGut ||
-			pain.daysWithPain > 0
+			showPain
 	);
 	// The watch-list card shows its own empty state, so a period with only meals still leaves the page usable.
 
@@ -416,7 +425,7 @@
 		{#if showPulse}
 			{@render measureCard(t('measure.pulse'), pulse.unit || 'bpm', pulse.values)}
 		{/if}
-		{#each own as type (type.id)}
+		{#each showOwn ? own : [] as type (type.id)}
 			{@render measureCard(type.name, type.unit, measurementSeries(recs, days, type.id).values)}
 		{/each}
 
@@ -448,7 +457,7 @@
 			</Card>
 		{/if}
 
-		{#if doses.any}
+		{#if showDoses}
 			<Card title={t('trends.meds.title')}>
 				<p class="sub">
 					{t('trends.meds.sub', {
@@ -493,7 +502,7 @@
 			</Card>
 		{/if}
 
-		{#if bowel.length > 0}
+		{#if showBowel}
 			<Card title={t('trends.bowel.title')}>
 				<p class="sub">{tn('trends.bowel.sub', bowel.length)}</p>
 				<TrendChart
@@ -554,7 +563,7 @@
 			</Card>
 		{/if}
 
-		{#if pain.daysWithPain > 0}
+		{#if showPain}
 			<Card title={t('trends.pain.title')}>
 				<p class="sub">
 					{t('trends.pain.sub', {
@@ -611,7 +620,7 @@
 			</Card>
 		{/if}
 
-		{#if episodes.length > 0}
+		{#if showEpisodes}
 			<Card title={t('trends.episodes.title')}>
 				<p class="sub">{t('trends.episodes.sub')}</p>
 				<ul class="eps">
@@ -634,9 +643,9 @@
 			</Card>
 		{/if}
 
-		<HeatMapCard {days} />
+		{#if trackerOn('pain')}<HeatMapCard {days} />{/if}
 
-		<AfterMeals {days} />
+		{#if trackerOn('food')}<AfterMeals {days} />{/if}
 	</div>
 {/if}
 
