@@ -6,6 +6,7 @@ import {
 	dayTotalMl,
 	draftOf,
 	draftProblem,
+	drinkPillText,
 	findDrink,
 	findPresets,
 	findSize,
@@ -347,5 +348,30 @@ describe('same again and the day total', () => {
 		expect(dayTotalMl(all, '2026-10-18')).toBe(550);
 		expect(dayTotalMl(all, '2026-10-19')).toBe(500);
 		expect(dayTotalMl(all, '2026-10-20')).toBe(0);
+	});
+});
+
+describe('drinkPillText', () => {
+	const cl = (ml: number) => `${mlToCl(ml)} cl`;
+	const base: DrinkPayload = {
+		v: 1,
+		type: 'drink',
+		at: '2026-10-18T08:10:00+02:00',
+		drink: 'def:coffee',
+		size: 'def:mug',
+		sizeMl: 250,
+		count: 1,
+		totalMl: 250
+	};
+	it('shows the drink and the size volume', () => {
+		expect(drinkPillText(base, nameOf, cl)).toBe('Coffee · 25 cl');
+	});
+	it('puts the count first when more than one', () => {
+		const p = { ...base, drink: 'def:water', count: 2, sizeMl: 150, totalMl: 300 };
+		expect(drinkPillText(p, nameOf, cl)).toBe('2 × Water · 15 cl');
+	});
+	it('uses the total for an own amount and keeps typed names', () => {
+		const p = { ...base, drink: 'Kombucha', size: '', sizeMl: 330, totalMl: 330 };
+		expect(drinkPillText(p, nameOf, cl)).toBe('Kombucha · 33 cl');
 	});
 });

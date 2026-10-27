@@ -73,11 +73,19 @@ type Timed = StoredRecord<TimedPayload>;
 
 const isTimed = (r: StoredRecord): r is Timed => hasAt(r.payload);
 
+/** At the same time, a meal comes before the drinks logged with it. */
+const sameTimeRank = (r: Timed) => (r.payload.type === 'food' ? 0 : 1);
+
 /** Records of one local day, earliest first. */
 export function recordsForDay(all: Iterable<StoredRecord>, day: string): Timed[] {
 	const out: Timed[] = [];
 	for (const r of all) if (isTimed(r) && dayKey(r.payload.at) === day) out.push(r);
-	return out.sort((a, b) => instant(a.payload.at) - instant(b.payload.at) || a.id.localeCompare(b.id));
+	return out.sort(
+		(a, b) =>
+			instant(a.payload.at) - instant(b.payload.at) ||
+			sameTimeRank(a) - sameTimeRank(b) ||
+			a.id.localeCompare(b.id)
+	);
 }
 
 /** Day keys in [from, to] (inclusive, as "YYYY-MM-DD") that have at least one entry. */

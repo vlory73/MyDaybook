@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Drinks with a meal: MyDaybook mockup</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="mockup.css">
+<style>
+body.board { padding: 24px; min-height: 0; width: max-content; }
+.board-title { font-size: 22px; font-weight: var(--fw-bold); } .board-sub { color: var(--text-2); margin: 4px 0 24px; font-size: var(--fs-callout); }
+.row { display: flex; gap: 32px; align-items: flex-start; width: max-content; } .row + .row { margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--line); }
+.frame { margin: 0; width: 375px; } .phone-wrap { border-radius: 36px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), var(--shadow-2); background: var(--bg); }
+.frame figcaption { margin-top: 12px; font-size: var(--fs-footnote); color: var(--text-2); line-height: 1.4; } .frame figcaption b { color: var(--text); }
+.frame.dark figcaption { color: #5f5666; } .frame.dark figcaption b { color: #2a2430; } .frame.dark { color: var(--text); }
+.statusbar { position: relative; z-index: 60; }
+.sheet { display: flex; flex-direction: column; padding-bottom: 0; } .sheet .body { flex: 1; overflow: hidden; } .sheet .bottom { padding: var(--sp-3) 0 calc(var(--safe-bottom) + var(--sp-2)); background: var(--surface); box-shadow: 0 -1px 0 var(--line); }
+.tri { display: flex; align-items: center; gap: var(--sp-3); padding: 6px 0; } .tri .what { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
+.tri .segmented { flex: none; width: 190px; } .tri .segmented button { min-height: 34px; font-size: var(--fs-footnote); }
+.tri .segmented button.yes { background: var(--food-tint); color: var(--food-ink); font-weight: var(--fw-bold); box-shadow: none; }
+.dpill { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 2px 0 var(--sp-3); border-radius: var(--r-full); background: var(--drink-tint); color: var(--drink-ink); font-size: var(--fs-callout); font-weight: var(--fw-semibold); }
+.dpill button { width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--r-full); color: var(--drink-ink); }
+.addd { color: var(--primary-press); border: 1.5px dashed var(--primary); background: transparent; }
+.cl { font-size: var(--fs-footnote); color: var(--text-2); font-weight: var(--fw-regular); margin-left: 2px; }
+.link { color: var(--primary-press); font-weight: var(--fw-medium); }
+.count { display: flex; align-items: center; justify-content: space-between; margin-top: var(--sp-4); } .label-text { font-weight: var(--fw-semibold); }
+.stepper { display: inline-flex; align-items: center; background: var(--surface-2); border-radius: var(--r-full); } .stepper button { width: 48px; height: 48px; display: grid; place-items: center; border-radius: var(--r-full); color: var(--drink-ink); }
+.stepper output { min-width: 36px; text-align: center; font-size: var(--fs-title3); font-weight: var(--fw-bold); }
+.dsum { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--drink-tint); color: var(--drink-ink); font-weight: var(--fw-semibold); }
+.tl { list-style: none; margin: 0; padding: 0; } .tl li { display: grid; grid-template-columns: 46px 40px 1fr; gap: var(--sp-3); align-items: start; padding: 10px 0; }
+.tl time { font-size: var(--fs-footnote); color: var(--text-2); padding-top: 10px; font-weight: var(--fw-medium); } .tl .t { font-weight: var(--fw-semibold); } .tl .s { font-size: var(--fs-callout); color: var(--text-2); }
+.cat-drink { background: var(--drink-tint); color: var(--drink-ink); }
+:root { --drink-tint: #d9ecee; --drink-ink: #1f5f66; }
+
+.dark { color: var(--text); }
+.statusbar { position: relative; z-index: 60; }
+.hint { margin: var(--sp-2) 0 0; }
+.row2 { display: flex; gap: var(--sp-2); } .row2 .btn { flex: 1; }
+.sum { text-align: center; padding: var(--sp-3) 0 var(--sp-4); }
+.sum .big { font-size: var(--fs-display); font-weight: var(--fw-bold); line-height: 1.1; }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.tcard { background: var(--sleep-tint); color: var(--sleep-ink); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); }
+.tcard .v { font-size: var(--fs-title2); font-weight: var(--fw-bold); color: var(--text); }
+.tcard .k { display: flex; gap: 6px; align-items: center; font-size: var(--fs-footnote); font-weight: var(--fw-semibold); }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button { height: 46px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2); font-weight: var(--fw-semibold); }
+.scale button.on { background: var(--sleep-tint); color: var(--sleep-ink); box-shadow: inset 0 0 0 2px var(--sleep-ink); }
+.ends { display: flex; justify-content: space-between; font-size: var(--fs-caption); color: var(--text-3); margin-top: 4px; }
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl li { display: grid; grid-template-columns: 46px 40px 1fr; gap: var(--sp-3); align-items: start; padding: 10px 0; }
+.tl time { font-size: var(--fs-footnote); color: var(--text-2); padding-top: 10px; font-weight: var(--fw-medium); }
+.tl .t { font-weight: var(--fw-semibold); } .tl .s { font-size: var(--fs-callout); color: var(--text-2); }
+.cat-nap { background: color-mix(in srgb, var(--sleep-tint) 55%, var(--surface)); }
+.chart { display: block; width: 100%; height: auto; margin-top: var(--sp-3); overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .tick { stroke: var(--text-3); stroke-width: 1; }
+.chart .ax { font-size: 11px; fill: var(--text-2); font-family: var(--font-sans); }
+.chart .sbar { fill: var(--sleep-ink); opacity: .85; }
+.chart .ndot { fill: var(--surface); stroke: var(--sleep-ink); stroke-width: 2; }
+.napsum { display: flex; gap: var(--sp-3); align-items: center; margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--line); font-size: var(--fs-callout); }
+.dark {
+    --bg: #16131a;
+    --surface: #211d25;
+    --surface-2: #2a2530;
+    --surface-3: #352f3b;
+    --line: #3b3441;
+    --text: #f4eff2;
+    --text-2: #bdb3c1;
+    --text-3: #978c9b;
+    --primary: #f08f68;
+    --primary-press: #f6a585;
+    --on-primary: #2b1309;
+    --primary-soft: #43271d;
+    --focus: #8cbcf0;
+    --scrim: rgb(0 0 0 / 0.55);
+    --food-tint: #3b2a1b;  --food-ink: #f5c591;
+    --feel-tint: #2e2843;  --feel-ink: #cfc1f6;
+    --sleep-tint: #252c45; --sleep-ink: #b5c3f2;
+    --measure-tint: #1e3141; --measure-ink: #a8d2ef;
+    --pain-tint: #3e2329;  --pain-ink: #f5b0b6;
+    --meds-tint: #1f3329;  --meds-ink: #a9dabd;
+    --note-tint: #34301f;  --note-ink: #e4d4a7;
+    --gut-tint: #2b3120;   --gut-ink: #c9d89a;
+    --drink-tint: #1b3436; --drink-ink: #a6d8dc;
+    --heat-0: #2a2530;
+    --heat-1: #4a3428;
+    --heat-2: #7a4a34;
+    --heat-3: #b0603f;
+    --heat-4: #dc7a5c;
+    --heat-5: #f0a07f;
+    --heat-6: #fbd0b3;
+    --on-heat-hi: #2b1309;
+    --on-heat-1: #f4eff2;
+    --on-heat-2: #f4eff2;
+    --on-heat-3: #ffffff;
+    --on-heat-4: #16101a;
+    --on-heat-5: #16101a;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-2: 0 6px 18px rgb(0 0 0 / 0.45);
+    --shadow-fab: 0 6px 18px rgb(240 143 104 / 0.25), 0 2px 4px rgb(0 0 0 / 0.4);
+}
+
+</style></head>
+<body class="board">
+<h1 class="board-title">Add a drink from the meal screen (#119)</h1>
+<p class="board-sub">Synthetic data. New meals only. Light mode above, dark mode below.</p>
+<div class="row"><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div><section class="sheet" role="dialog" aria-label="Meal" style="top:52px; overflow:hidden"><div class="grabber"></div>
+<div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Meal</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> 08:10</span></div>
+<div class="body">
+<div class="scroll-row"><span class="chip on">Breakfast</span><span class="chip">Lunch</span><span class="chip">Dinner</span><span class="chip">Snack</span><span class="chip">Drink</span></div>
+<p class="label">What did you have?</p>
+<div class="field" style="color:var(--text); padding-right:6px"><span style="flex:1">Oatmeal with berries and yoghurt</span><button class="icon-btn" aria-label="Add photo"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#camera"/></svg></button><button class="icon-btn" aria-label="Tags"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#tag"/></svg></button></div>
+<p class="label">Drinks with this meal <span class="hint">they take the meal's time</span></p>
+<div class="chip-row"><span class="dpill"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg><span>Coffee · 25 cl</span><button aria-label="Remove Coffee · 25 cl"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#x"/></svg></button></span><span class="dpill"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg><span>2 × Water · 15 cl</span><button aria-label="Remove 2 × Water · 15 cl"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#x"/></svg></button></span><button class="chip addd"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> Add a drink</button></div>
+<p class="label">Your watch list <span class="hint">you choose what to track</span></p>
+<div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#wheat"/></svg></span>Gluten</span><div class="segmented"><button class="on">No</button><button class="">Not sure</button><button class="">Yes</button></div></div><div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#milk"/></svg></span>Lactose</span><div class="segmented"><button class="">No</button><button class="">Not sure</button><button class="on yes">Yes</button></div></div><div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bean"/></svg></span>FODMAP</span><div class="segmented"><button class="">No</button><button class="on">Not sure</button><button class="">Yes</button></div></div>
+<p class="label">Where</p><div class="chip-row"><span class="chip on"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#house"/></svg> Home</span><span class="chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#store"/></svg> Eating out</span><span class="chip">Takeaway</span></div>
+</div>
+<div class="bottom"><button class="btn btn-primary btn-block">Save</button></div></section><div class="home-indicator"></div></div></div><figcaption><b>1. Meal sheet, two drinks added.</b> New meal at 08:10. "Drinks with this meal" sits right after the text field and before the watch list, so drinks stay next to what was eaten. Each drink is a removable pill (tap the pill to change it, × to remove). Save stays one button.</figcaption></figure><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div><section class="sheet" role="dialog" aria-label="Drink" style="top:52px; overflow:hidden"><div class="grabber"></div>
+<div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back to the meal"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Drink</h2></div>
+<div class="body">
+<p class="label">What did you drink? <span class="link">Edit</span></p><div class="chip-row"><span class="chip">Water</span><span class="chip on">Coffee</span><span class="chip">Tea</span><span class="chip">Milk</span><span class="chip">Juice</span><span class="chip">Soft drink</span><span class="chip">Beer</span><span class="chip">Wine</span><span class="chip">Other</span></div>
+<p class="label">Size</p><div class="chip-row"><span class="chip">Cup<span class="cl">15 cl</span></span><span class="chip on">Mug<span class="cl">25 cl</span></span><span class="chip">Glass<span class="cl">30 cl</span></span><span class="chip">Own amount<span class="cl"></span></span></div>
+<div class="count"><span class="label-text">How many</span><div class="stepper"><button aria-label="One fewer" style="opacity:.35"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#minus"/></svg></button><output>1</output><button aria-label="One more"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button></div></div>
+<p class="dsum" style="margin-top:var(--sp-3)">Coffee · Mug 25 cl · × 1 = 25 cl</p>
+<p class="label">Note <span class="hint">Optional</span></p><div class="field">Optional</div>
+<p class="footnote-lock"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#lock"/></svg> Only you can see this. Not even the server can.</p>
+</div>
+<div class="bottom"><button class="btn btn-primary btn-block">Add to meal</button></div></section><div class="home-indicator"></div></div></div><figcaption><b>2. Drink sheet on top.</b> The normal Drink sheet (same chips, sizes, stepper, own amount, Other). No time chip, because the drink takes the meal's time. "Same again" and the day total are left out. The main button says "Add to meal" and does not save; Back returns to the meal without adding.</figcaption></figure><figure class="frame "><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><header class="page-head"><div><p class="eyebrow">Sunday 18 October</p><h1 class="large-title">Good morning, Sam</h1></div></header>
+<h2 class="section-title">Today</h2><ol class="tl">
+<li><time>07:10</time><span class="cat cat-sleep"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg></span><div><div class="t">Slept 7 h 20 min</div><div class="s">23:50 to 07:10 · rested</div></div></li>
+<li><time>08:10</time><span class="cat cat-food"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg></span><div><div class="t">Breakfast</div><div class="s">Oatmeal with berries and yoghurt</div></div></li>
+<li><time>08:10</time><span class="cat cat-drink"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg></span><div><div class="t">Coffee</div><div class="s">25 cl</div></div></li>
+<li><time>08:10</time><span class="cat cat-drink"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg></span><div><div class="t">Water</div><div class="s">2 × 15 cl = 30 cl</div></div></li>
+<li><time>10:30</time><span class="cat cat-feel"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#smile"/></svg></span><div><div class="t">Feeling good</div><div class="s">Mood 4 · Energy 3 · Stress 2</div></div></li>
+</ol></main><div class="toast" role="status"><span class="grow">Meal and 2 drinks saved</span><button><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#undo-2"/></svg> Undo</button></div><nav class="tabbar" aria-label="Main"><button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>3. Today after Save.</b> The meal and the two drinks are separate entries with the same time. One toast: "Meal and 2 drinks saved"; Undo removes all three.</figcaption></figure></div>
+<div class="row"><figure class="frame dark"><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div><section class="sheet" role="dialog" aria-label="Meal" style="top:52px; overflow:hidden"><div class="grabber"></div>
+<div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Meal</h2><span class="time-chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#clock"/></svg> 08:10</span></div>
+<div class="body">
+<div class="scroll-row"><span class="chip on">Breakfast</span><span class="chip">Lunch</span><span class="chip">Dinner</span><span class="chip">Snack</span><span class="chip">Drink</span></div>
+<p class="label">What did you have?</p>
+<div class="field" style="color:var(--text); padding-right:6px"><span style="flex:1">Oatmeal with berries and yoghurt</span><button class="icon-btn" aria-label="Add photo"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#camera"/></svg></button><button class="icon-btn" aria-label="Tags"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#tag"/></svg></button></div>
+<p class="label">Drinks with this meal <span class="hint">they take the meal's time</span></p>
+<div class="chip-row"><span class="dpill"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg><span>Coffee · 25 cl</span><button aria-label="Remove Coffee · 25 cl"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#x"/></svg></button></span><span class="dpill"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg><span>2 × Water · 15 cl</span><button aria-label="Remove 2 × Water · 15 cl"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#x"/></svg></button></span><button class="chip addd"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg> Add a drink</button></div>
+<p class="label">Your watch list <span class="hint">you choose what to track</span></p>
+<div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#wheat"/></svg></span>Gluten</span><div class="segmented"><button class="on">No</button><button class="">Not sure</button><button class="">Yes</button></div></div><div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#milk"/></svg></span>Lactose</span><div class="segmented"><button class="">No</button><button class="">Not sure</button><button class="on yes">Yes</button></div></div><div class="tri"><span class="what"><span class="cat cat-food" style="width:32px;height:32px;border-radius:10px"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#bean"/></svg></span>FODMAP</span><div class="segmented"><button class="">No</button><button class="on">Not sure</button><button class="">Yes</button></div></div>
+<p class="label">Where</p><div class="chip-row"><span class="chip on"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#house"/></svg> Home</span><span class="chip"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#store"/></svg> Eating out</span><span class="chip">Takeaway</span></div>
+</div>
+<div class="bottom"><button class="btn btn-primary btn-block">Save</button></div></section><div class="home-indicator"></div></div></div><figcaption><b>1. Meal sheet, two drinks added.</b> New meal at 08:10. "Drinks with this meal" sits right after the text field and before the watch list, so drinks stay next to what was eaten. Each drink is a removable pill (tap the pill to change it, × to remove). Save stays one button.</figcaption></figure><figure class="frame dark"><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><div class="scrim" style="background:var(--bg)"></div><section class="sheet" role="dialog" aria-label="Drink" style="top:52px; overflow:hidden"><div class="grabber"></div>
+<div class="sheet-head" style="margin-bottom:var(--sp-2)"><button class="icon-btn" aria-label="Back to the meal"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chevron-left"/></svg></button><h2 style="flex:1; margin-left:4px">Drink</h2></div>
+<div class="body">
+<p class="label">What did you drink? <span class="link">Edit</span></p><div class="chip-row"><span class="chip">Water</span><span class="chip on">Coffee</span><span class="chip">Tea</span><span class="chip">Milk</span><span class="chip">Juice</span><span class="chip">Soft drink</span><span class="chip">Beer</span><span class="chip">Wine</span><span class="chip">Other</span></div>
+<p class="label">Size</p><div class="chip-row"><span class="chip">Cup<span class="cl">15 cl</span></span><span class="chip on">Mug<span class="cl">25 cl</span></span><span class="chip">Glass<span class="cl">30 cl</span></span><span class="chip">Own amount<span class="cl"></span></span></div>
+<div class="count"><span class="label-text">How many</span><div class="stepper"><button aria-label="One fewer" style="opacity:.35"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#minus"/></svg></button><output>1</output><button aria-label="One more"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button></div></div>
+<p class="dsum" style="margin-top:var(--sp-3)">Coffee · Mug 25 cl · × 1 = 25 cl</p>
+<p class="label">Note <span class="hint">Optional</span></p><div class="field">Optional</div>
+<p class="footnote-lock"><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#lock"/></svg> Only you can see this. Not even the server can.</p>
+</div>
+<div class="bottom"><button class="btn btn-primary btn-block">Add to meal</button></div></section><div class="home-indicator"></div></div></div><figcaption><b>2. Drink sheet on top.</b> The normal Drink sheet (same chips, sizes, stepper, own amount, Other). No time chip, because the drink takes the meal's time. "Same again" and the day total are left out. The main button says "Add to meal" and does not save; Back returns to the meal without adding.</figcaption></figure><figure class="frame dark"><div class="phone-wrap"><div class="phone"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sys"><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:11px"></i></span><span class="batt"></span></span></div><main class="content"><header class="page-head"><div><p class="eyebrow">Sunday 18 October</p><h1 class="large-title">Good morning, Sam</h1></div></header>
+<h2 class="section-title">Today</h2><ol class="tl">
+<li><time>07:10</time><span class="cat cat-sleep"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#bed"/></svg></span><div><div class="t">Slept 7 h 20 min</div><div class="s">23:50 to 07:10 · rested</div></div></li>
+<li><time>08:10</time><span class="cat cat-food"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#utensils"/></svg></span><div><div class="t">Breakfast</div><div class="s">Oatmeal with berries and yoghurt</div></div></li>
+<li><time>08:10</time><span class="cat cat-drink"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg></span><div><div class="t">Coffee</div><div class="s">25 cl</div></div></li>
+<li><time>08:10</time><span class="cat cat-drink"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#droplets"/></svg></span><div><div class="t">Water</div><div class="s">2 × 15 cl = 30 cl</div></div></li>
+<li><time>10:30</time><span class="cat cat-feel"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#smile"/></svg></span><div><div class="t">Feeling good</div><div class="s">Mood 4 · Energy 3 · Stress 2</div></div></li>
+</ol></main><div class="toast" role="status"><span class="grow">Meal and 2 drinks saved</span><button><svg class="i i-sm" aria-hidden="true"><use href="assets/icons.svg#undo-2"/></svg> Undo</button></div><nav class="tabbar" aria-label="Main"><button class="tab on" aria-current="page"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#house"/></svg><span>Today</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#chart-spline"/></svg><span>Trends</span></button><button class="fab" aria-label="Log something"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#plus"/></svg></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#pill"/></svg><span>Meds</span></button><button class="tab"><svg class="i" aria-hidden="true"><use href="assets/icons.svg#user-round"/></svg><span>Me</span></button></nav><div class="home-indicator"></div></div></div><figcaption><b>3. Today after Save.</b> The meal and the two drinks are separate entries with the same time. One toast: "Meal and 2 drinks saved"; Undo removes all three.</figcaption></figure></div>
+<!--
+Danish drafts for the new strings (first drafts, for the Danish review):
+  Drinks with this meal      -> Drikke til måltidet
+  they take the meal's time  -> de får måltidets tidspunkt
+  + Add a drink              -> + Tilføj en drik
+  Add to meal                -> Tilføj til måltidet
+  Meal and 2 drinks saved    -> Måltid og 2 drikke gemt   (one drink: "Måltid og 1 drik gemt")
+  Remove {drink}             -> Fjern {drink}
+-->
+</body></html>

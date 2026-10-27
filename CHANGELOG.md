@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0 (2026-10-27)
+
+### Features
+
+- add drinks from the meal sheet (#119) (#120)
+
+### Documentation
+
+- session handover (M8 done, 1.2.0 released) (#118)
+
 ## 1.2.0 (2026-10-26)
 
 ### Features
