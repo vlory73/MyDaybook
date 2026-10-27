@@ -57,4 +57,12 @@
 		background: var(--note-tint);
 		color: var(--note-ink);
 	}
+	.tint-period {
+		background: var(--period-tint);
+		color: var(--period-ink);
+	}
+	.tint-bladder {
+		background: var(--bladder-tint);
+		color: var(--bladder-ink);
+	}
 </style>

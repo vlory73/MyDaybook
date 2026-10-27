@@ -1,6 +1,7 @@
 import type { DoseSlot } from './types';
 
-export type LogKind = 'feeling' | 'sleep' | 'measurement' | 'bowel' | 'gut' | 'food' | 'drink' | 'pain';
+export type LogKind =
+	'feeling' | 'sleep' | 'measurement' | 'bowel' | 'gut' | 'food' | 'drink' | 'pain' | 'period' | 'bladder';
 
 /** Which entry sheet is open. The layout renders the sheets; any screen can open one. */
 export const editor = $state<{

@@ -5,6 +5,7 @@
  */
 import type { StoredRecord } from './codec';
 import { lastSavedMeal, foodFromSaved } from './watch';
+import { copyForToday, yesterdayOffer, type PeriodPayload } from './period';
 import { addDays, dayKey, formatAt, fromLocalInput, instant, minutesBetween, todayKey } from './time';
 import {
 	isNap,
@@ -166,11 +167,13 @@ export function lastFeeling(all: Iterable<Rec>, field: 'mood' | 'energy' | 'stre
 export type Again =
 	| { kind: 'sleep'; asleep: string; wake: string }
 	| { kind: 'weight'; value: number; unit: string }
-	| { kind: 'meal'; id: string; saved: SavedMealPayload };
+	| { kind: 'meal'; id: string; saved: SavedMealPayload }
+	| { kind: 'period'; from: PeriodPayload };
 
 /**
- * Up to three one-tap repeats from recent records, in a fixed order: the usual night (when at least one night is
- * logged and none ends today), the last weight (when none is logged today) and the last saved meal.
+ * Up to four one-tap repeats from recent records, in a fixed order: the usual night (when at least one night is
+ * logged and none ends today), the last weight (when none is logged today), the last saved meal and "Period as
+ * yesterday" (when yesterday has a period entry and today has none).
  */
 export function againOptions(all: Iterable<Rec>, now: Date): Again[] {
 	const records = [...all];
@@ -187,7 +190,9 @@ export function againOptions(all: Iterable<Rec>, now: Date): Again[] {
 	}
 	const meal = lastSavedMeal(records);
 	if (meal) out.push({ kind: 'meal', id: meal.id, saved: meal.payload });
-	return out.slice(0, 3);
+	const period = yesterdayOffer(records, today);
+	if (period) out.push({ kind: 'period', from: period.payload });
+	return out.slice(0, 4);
 }
 
 /** The record an Again? option would save, stamped with the current time. */
@@ -197,6 +202,7 @@ export function againPayload(
 	watched: ReadonlySet<string> = new Set()
 ): Payload | null {
 	if (option.kind === 'meal') return foodFromSaved(option.saved, formatAt(now), watched);
+	if (option.kind === 'period') return copyForToday(option.from, formatAt(now));
 	if (option.kind === 'weight') {
 		return {
 			v: 1,

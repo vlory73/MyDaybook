@@ -30,6 +30,7 @@
 		showTime = true,
 		photos,
 		saveLabel,
+		hideSave = false,
 		dock,
 		extra,
 		children
@@ -53,6 +54,8 @@
 		photos?: PhotoDrafts;
 		/** Text of the Save button when it is not just "Save". */
 		saveLabel?: string;
+		/** No Save button on a new entry (the sheet saves with its own buttons); editing still saves normally. */
+		hideSave?: boolean;
 		/** Content pinned above the buttons at the bottom of the sheet (the body map's panel); it stays in view while the sheet scrolls. */
 		dock?: Snippet;
 		/** Another button between Delete and Save. */
@@ -165,7 +168,9 @@
 					<Button variant="quiet" disabled={busy} onclick={onDelete}>{t('common.delete')}</Button>
 				{/if}
 				{#if extra}{@render extra()}{/if}
-				<Button disabled={!valid || busy} onclick={onSave}>{saveLabel ?? t('common.save')}</Button>
+				{#if !(hideSave && !id)}
+					<Button disabled={!valid || busy} onclick={onSave}>{saveLabel ?? t('common.save')}</Button>
+				{/if}
 			</div>
 		</div>
 	</div>

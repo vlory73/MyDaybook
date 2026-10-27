@@ -23,17 +23,20 @@ const tp = (choices: Record<string, boolean>, introSeen?: boolean): TrackersPayl
 });
 
 describe('trackers', () => {
-	it('has all 11 on without a record', () => {
-		expect(TRACKER_IDS).toHaveLength(11);
-		expect(onList(undefined)).toEqual(TRACKER_IDS);
+	it('has the 11 older trackers on and period and bladder off without a record', () => {
+		expect(TRACKER_IDS).toHaveLength(13);
+		expect(onList(undefined)).toEqual(TRACKER_IDS.filter((id) => id !== 'period' && id !== 'bladder'));
 		expect(isOn(undefined, 'gut')).toBe(true);
+		expect(isOn(undefined, 'period')).toBe(false);
+		expect(isOn(undefined, 'bladder')).toBe(false);
+		expect(isOn(tp({ period: true }), 'period')).toBe(true);
 	});
 
 	it('reads choices and treats a missing key as the default', () => {
 		const p = tp({ gut: false, meds: false });
 		expect(isOn(p, 'gut')).toBe(false);
 		expect(isOn(p, 'food')).toBe(true);
-		expect(onList(p)).toHaveLength(9);
+		expect(onList(p)).toHaveLength(9); // 11 default-on minus two
 	});
 
 	it('switches one off and on again, keeping introSeen', () => {

@@ -10,8 +10,10 @@ import type { TrackersPayload } from './types';
 
 export type TrackerId = Category;
 export const TRACKER_IDS = Object.keys(categories) as TrackerId[];
-/** Trackers that start switched off for people who never chose. Empty today; period and urination come next. */
-export const DEFAULT_OFF: readonly TrackerId[] = [];
+/** Trackers that start switched off for people who never chose (also unticked in the sign-up step). */
+export const DEFAULT_OFF: readonly TrackerId[] = ['period', 'bladder'];
+/** What a person who never chose has switched on. */
+export const DEFAULT_ON: readonly TrackerId[] = TRACKER_IDS.filter((id) => !DEFAULT_OFF.includes(id));
 
 type Choice = Pick<TrackersPayload, 'choices'> | undefined;
 

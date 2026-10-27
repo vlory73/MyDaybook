@@ -182,6 +182,18 @@ const tables: { [K in Payload['type']]?: Builder<K> } = {
 			]
 		]
 	},
+	period: {
+		file: 'period.csv',
+		columns: ['id', 'at', 'flow', 'extras', 'note', 'photos'],
+		rows: ({ id, payload: p }, _c, photos) => [[id, p.at, p.flow, joinList(p.extras ?? []), p.note, photos]]
+	},
+	bladder: {
+		file: 'bladder.csv',
+		columns: ['id', 'at', 'visit', 'urgency', 'discomfort', 'leak_amount', 'leak_when', 'note', 'photos'],
+		rows: ({ id, payload: p }, _c, photos) => [
+			[id, p.at, p.visit, p.urgency, p.discomfort === true, p.leak?.amount, p.leak?.when, p.note, photos]
+		]
+	},
 	note: {
 		file: 'notes.csv',
 		columns: ['id', 'at', 'text', 'tags', 'photos'],

@@ -27,6 +27,8 @@ export { default as MeasurementSheet } from './MeasurementSheet.svelte';
 export { default as NoteSheet } from './NoteSheet.svelte';
 export { default as Notice } from './Notice.svelte';
 export { default as NeedsConnection } from './NeedsConnection.svelte';
+export { default as BladderSheet } from './BladderSheet.svelte';
+export { default as PeriodSheet } from './PeriodSheet.svelte';
 export { default as PainThumb } from './PainThumb.svelte';
 export { default as PhotoPicker } from './PhotoPicker.svelte';
 export { default as PhotoThumb } from './PhotoThumb.svelte';

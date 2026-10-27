@@ -6,6 +6,8 @@
  * Validators are small and hand-written: a payload that fails them is skipped, never trusted.
  */
 
+import { isBladderPayload, type BladderPayload } from './bladder';
+import { isPeriodPayload, type PeriodPayload } from './period';
 import { isPainEpisodePayload, isPainPayload, type PainEpisodePayload, type PainPayload } from './pain';
 
 export const PAYLOAD_VERSION = 1;
@@ -240,6 +242,8 @@ export type Payload =
 	| DrinkPresetsPayload
 	| PainPayload
 	| PainEpisodePayload
+	| PeriodPayload
+	| BladderPayload
 	| ProfilePayload
 	| TrackersPayload
 	| SettingsPayload
@@ -486,6 +490,8 @@ const validators: { [K in PayloadType]: (o: Obj) => boolean } = {
 	drink_presets: isDrinkPresets,
 	pain: isPainPayload,
 	pain_episode: isPainEpisodePayload,
+	period: isPeriodPayload,
+	bladder: isBladderPayload,
 	profile: (o) => optName(o.firstName) && optName(o.lastName),
 	trackers: (o) =>
 		isObj(o.choices) &&

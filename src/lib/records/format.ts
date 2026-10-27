@@ -22,6 +22,8 @@ export type Described = {
 	tags?: string[];
 	/** A nap: shown with the nap icon on a lighter sleep tile. */
 	nap?: boolean;
+	/** A bladder leak: the timeline draws this many droplets and reads the amount to screen readers. */
+	leak?: 1 | 2 | 3;
 };
 
 /** Resolves record ids to names: custom measurement types and watch-list items. */
@@ -181,6 +183,45 @@ export function describe(record: StoredRecord<TimedPayload>, names: Names = {}):
 				title: t(categories.pain.label),
 				summary: painSummary(i18n.locale, p.points)
 			};
+		case 'period':
+			return {
+				category: 'period',
+				title: t('fmt.period.title', { flow: t(`fmt.period.flow.${p.flow}` as MessageKey) }),
+				summary: join([
+					...(p.extras ?? []).map((e) => t(`period.extra.${e}` as MessageKey)),
+					p.note && firstLine(p.note)
+				])
+			};
+		case 'bladder': {
+			// What was logged, in the order it is asked: urgency, discomfort, leak. The first part goes in the title.
+			const leakText = p.leak
+				? p.visit
+					? t(p.leak.when ? (`fmt.bladder.leak.${p.leak.when}` as MessageKey) : 'fmt.bladder.leak')
+					: ''
+				: '';
+			if (!p.visit) {
+				return {
+					category: 'bladder',
+					title: p.leak?.when
+						? join([t('fmt.leak.title'), t(`fmt.leak.when.${p.leak.when}` as MessageKey)])
+						: t('fmt.leak.title'),
+					summary: join([p.discomfort && t('fmt.bladder.discomfort'), p.note && firstLine(p.note)]),
+					...(p.leak ? { leak: p.leak.amount } : {})
+				};
+			}
+			const parts = [
+				p.urgency && t('fmt.bladder.urgency', { level: t(`fmt.bladder.urgency.${p.urgency}` as MessageKey) }),
+				p.discomfort && t('fmt.bladder.discomfort'),
+				leakText
+			].filter(Boolean) as string[];
+			const [first, ...rest] = parts;
+			return {
+				category: 'bladder',
+				title: join([t('fmt.bladder.title'), first]),
+				summary: join([...rest, p.note && firstLine(p.note)]),
+				...(p.leak ? { leak: p.leak.amount } : {})
+			};
+		}
 		case 'note':
 			return { category: 'note', title: t(categories.note.label), summary: firstLine(p.text) };
 	}

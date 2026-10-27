@@ -172,8 +172,11 @@ test('first run: new accounts choose what to track during sign-up', async ({ pag
 	await expect(page.getByRole('heading', { name: 'What do you want to track?' })).toBeVisible();
 	await expect(page.getByText('You can change this any time on Me.')).toBeVisible();
 	const tiles = page.getByRole('checkbox');
-	await expect(tiles).toHaveCount(11);
-	for (const t of await tiles.all()) await expect(t).toBeChecked();
+	await expect(tiles).toHaveCount(13);
+	// Period and Bladder come last and start unticked; the other eleven are ticked.
+	for (const t of (await tiles.all()).slice(0, 11)) await expect(t).toBeChecked();
+	await expect(page.getByRole('checkbox', { name: 'Period', exact: true })).not.toBeChecked();
+	await expect(page.getByRole('checkbox', { name: 'Bladder', exact: true })).not.toBeChecked();
 	await page.getByRole('checkbox', { name: 'Weight', exact: true }).click();
 	await expect(page.getByRole('checkbox', { name: 'Weight', exact: true })).not.toBeChecked();
 	await page.getByTestId('tracker-continue').click();

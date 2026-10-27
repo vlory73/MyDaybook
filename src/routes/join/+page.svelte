@@ -39,7 +39,7 @@
 	import { checkNewPassphrase } from '$lib/passphrase';
 	import { loadPrivacySettings, privacy } from '$lib/privacy.svelte';
 	import { establish, nextFrame } from '$lib/session.svelte';
-	import { TRACKER_IDS, type TrackerId } from '$lib/records/trackers';
+	import { DEFAULT_ON, type TrackerId } from '$lib/records/trackers';
 	import { setPendingTrackers } from '$lib/records/trackers.svelte';
 
 	type Step = 'welcome' | 'account' | 'creating' | 'key' | 'confirm' | 'track' | 'consent' | 'sending';
@@ -63,7 +63,7 @@
 	let repeat = $state('');
 	let agreed = $state(false);
 	/** What the person wants to track (first-run step). Saved with the account once the diary opens. */
-	let tracked = $state<TrackerId[]>([...TRACKER_IDS]);
+	let tracked = $state<TrackerId[]>([...DEFAULT_ON]);
 	/** Formatted recovery key for display; cleared as soon as the account exists. */
 	let recoveryText = $state('');
 

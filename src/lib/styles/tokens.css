@@ -40,6 +40,12 @@
 	--note-ink: #665630;
 	--gut-tint: #e6ead6;
 	--gut-ink: #4f5e26;
+	--period-tint: #f3dcf0;
+	--period-ink: #7d2a78;
+	--period-mark: #a63a9f;
+	--bladder-tint: #f6eebf;
+	--bladder-ink: #5f5000;
+	--bladder-mark: #8a6f00;
 	--drink-tint: #d9ecee;
 	--drink-ink: #1f5f66;
 
@@ -146,6 +152,12 @@
 		--note-ink: #e4d4a7;
 		--gut-tint: #2b3120;
 		--gut-ink: #c9d89a;
+		--period-tint: #3a2342;
+		--period-ink: #eebdf0;
+		--period-mark: #e58fe0;
+		--bladder-tint: #393219;
+		--bladder-ink: #ecdc8e;
+		--bladder-mark: #d9c24a;
 		--drink-tint: #1b3436;
 		--drink-ink: #a6d8dc;
 		--heat-0: #2a2530;
@@ -198,6 +210,12 @@
 	--note-ink: #e4d4a7;
 	--gut-tint: #2b3120;
 	--gut-ink: #c9d89a;
+	--period-tint: #3a2342;
+	--period-ink: #eebdf0;
+	--period-mark: #e58fe0;
+	--bladder-tint: #393219;
+	--bladder-ink: #ecdc8e;
+	--bladder-mark: #d9c24a;
 	--drink-tint: #1b3436;
 	--drink-ink: #a6d8dc;
 	--heat-0: #2a2530;
