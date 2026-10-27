@@ -31,6 +31,11 @@ body {
 	-webkit-tap-highlight-color: transparent;
 }
 
+/* While a sheet is open, the page behind it must not scroll: on iPhone a swipe would otherwise move the page instead of the sheet. */
+html:has(dialog[open]) {
+	overflow: hidden;
+}
+
 h1,
 h2,
 h3,
