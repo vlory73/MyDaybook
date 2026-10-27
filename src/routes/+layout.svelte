@@ -8,6 +8,7 @@
 	import { startAutoLock } from '$lib/autolock';
 	import { brand } from '$lib/brand';
 	import { i18n, t } from '$lib/i18n/index.svelte';
+	import type { MessageKey } from '$lib/i18n/en';
 	import { watchConnection } from '$lib/connection.svelte';
 	import { HIDDEN_LOCK_SECONDS, loadSession, lock, onSessionRefreshed, session } from '$lib/session.svelte';
 	import { applyTheme, theme } from '$lib/theme.svelte';
@@ -27,12 +28,15 @@
 	import { allRecords, startRecords, store, syncIfStale } from '$lib/records/store.svelte';
 	import { convertLegacyNaps } from '$lib/records/napsConvert';
 	import { savePendingTrackers, trackerOn } from '$lib/records/trackers.svelte';
+	import { periodOnDay } from '$lib/records/period';
 	import { todayKey } from '$lib/records/time';
 	import { categories, type Category } from '$lib/components/categories';
 	import {
 		BodyMapSheet,
 		BowelSheet,
+		BladderSheet,
 		GutSheet,
+		PeriodSheet,
 		Button,
 		CategoryBadge,
 		AdhocDoseSheet,
@@ -192,6 +196,8 @@
 		else if (key === 'sleep') openLog('sleep');
 		else if (key === 'gut') openLog('bowel');
 		else if (key === 'stomach') openLog('gut');
+		else if (key === 'period') openLog('period', { id: periodOnDay(allRecords(), todayKey())?.id ?? null });
+		else if (key === 'bladder') openLog('bladder');
 		else if (key === 'meds') medicineOpen = true;
 		else if (key === 'weight') openLog('measurement', { typeId: WEIGHT_ID });
 		else if (key === 'measure') openLog('measurement', { typeId: lastUsedMeasureType(allRecords()) });
@@ -217,6 +223,13 @@
 		if (option.kind === 'meal') {
 			return { name: option.saved.name, detail: t('again.savedMeal'), category: 'food' };
 		}
+		if (option.kind === 'period') {
+			return {
+				name: t('again.periodYesterday'),
+				detail: t(`fmt.period.flow.${option.from.flow}` as MessageKey),
+				category: 'period'
+			};
+		}
 		return {
 			name: t('cat.weight'),
 			detail: `${numberFormat.format(option.value)} ${option.unit}`,
@@ -228,7 +241,7 @@
 		quickLogOpen = false;
 		const watched = new Set(watchedItems(allRecords()).map((w) => w.id));
 		const payload = againPayload(option, new Date(), watched);
-		if (payload) void quickSave(payload, 'entry.saved');
+		if (payload) void quickSave(payload, option.kind === 'period' ? 'period.logged' : 'entry.saved');
 	}
 </script>
 
@@ -300,6 +313,8 @@
 	<BodyMapSheet />
 	<BowelSheet />
 	<GutSheet />
+	<PeriodSheet />
+	<BladderSheet />
 	<DrinkSheet />
 	<MealSheet />
 	<EntryDetailSheet />
@@ -394,6 +409,14 @@
 	.tint-note {
 		background: var(--note-tint);
 		color: var(--note-ink);
+	}
+	.tint-period {
+		background: var(--period-tint);
+		color: var(--period-ink);
+	}
+	.tint-bladder {
+		background: var(--bladder-tint);
+		color: var(--bladder-ink);
 	}
 	.again-label {
 		display: flex;

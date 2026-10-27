@@ -30,6 +30,8 @@
 	import { showToast } from '$lib/components';
 	import { describe, lookups } from '$lib/records/format';
 	import { quickSave } from '$lib/records/quick';
+	import { visitsOnDay } from '$lib/records/bladder';
+	import { copyForToday, yesterdayOffer } from '$lib/records/period';
 	import { dayTotalMl, mlToCl } from '$lib/records/drinks';
 	import { allRecords, daysInRange, recordsOnDay, store } from '$lib/records/store.svelte';
 	import { hasPendingTrackers, introCardShown, markIntroSeen, trackerOn } from '$lib/records/trackers.svelte';
@@ -82,6 +84,40 @@
 
 	// A plain sum of the day's drinks; shown only when there is one, never compared with anything.
 	const drinkMl = $derived(trackerOn('drink') ? dayTotalMl(allRecords(), selected) : 0);
+
+	// A plain count of the day's bladder visits (leak-only entries are not visits); shown only when there is one.
+	const visits = $derived(trackerOn('bladder') ? visitsOnDay(allRecords(), selected) : 0);
+
+	// "Period yesterday. Log today?": only when yesterday has an entry and today has none. The cross hides it for
+	// today; this device remembers only that day.
+	const HIDE_KEY = 'mydaybook.periodAskHidden';
+	let askHidden = $state<string | null>(
+		browser
+			? (() => {
+					try {
+						return localStorage.getItem(HIDE_KEY);
+					} catch {
+						return null;
+					}
+				})()
+			: null
+	);
+	const periodAsk = $derived(
+		isToday && trackerOn('period') && askHidden !== selected
+			? yesterdayOffer(allRecords(), selected)
+			: undefined
+	);
+	function hidePeriodAsk() {
+		askHidden = selected;
+		try {
+			localStorage.setItem(HIDE_KEY, selected);
+		} catch {
+			// Hiding then only lasts until the page is closed.
+		}
+	}
+	function logPeriodAsk() {
+		if (periodAsk) void quickSave(copyForToday(periodAsk.payload, formatAt(new Date())), 'period.logged');
+	}
 
 	const open = openEntry;
 
@@ -373,6 +409,17 @@
 	</section>
 {/if}
 
+{#if periodAsk}
+	<section class="card askcard" aria-labelledby="period-ask" data-testid="period-ask">
+		<CategoryBadge category="period" size={36} />
+		<h2 class="grow" id="period-ask">{t('period.card.title')}</h2>
+		<Button size="sm" style="min-height:44px" onclick={logPeriodAsk}>{t('period.card.log')}</Button>
+		<button type="button" class="x" aria-label={t('period.card.hide')} onclick={hidePeriodAsk}
+			><Icon name="x" size={18} /></button
+		>
+	</section>
+{/if}
+
 {#if trackerOn('meds')}
 	<DueDoses day={selected} title={isToday ? t('dose.card.today') : t('dose.card.day')} />
 {/if}
@@ -386,9 +433,25 @@
 	</p>
 {/if}
 
+{#if visits > 0}
+	<p class="day-total" data-testid="bladder-day">
+		<CategoryBadge category="bladder" size={28} />
+		{tn(isToday ? 'bladder.today' : 'bladder.today.other', visits)}
+	</p>
+{/if}
+
 {#snippet lines(d: ReturnType<typeof describe>, id: string)}
 	<span class="t">{d.title}</span>
 	{#if d.summary}<span class="s">{d.summary}</span>{/if}
+	{#if d.leak}
+		<span
+			class="drops"
+			role="img"
+			aria-label={t('fmt.leak.sr', { amount: t(`fmt.leak.amount.${d.leak}` as MessageKey) })}
+		>
+			{#each Array.from({ length: d.leak }, (_, i) => i) as i (i)}<Icon name="droplet" size={14} />{/each}
+		</span>
+	{/if}
 	{#if d.tags?.length}
 		<span class="tags"
 			>{#each d.tags as tag, i (i)}<span class="tag">{tag}</span>{/each}</span
@@ -619,6 +682,31 @@
 		font-size: var(--fs-title3);
 		font-weight: var(--fw-bold);
 		margin: var(--sp-4) 0 var(--sp-1);
+	}
+	.askcard {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-3);
+	}
+	.askcard .grow {
+		flex: 1;
+		font-size: var(--fs-body);
+		font-weight: var(--fw-semibold);
+		line-height: 1.3;
+	}
+	.askcard .x {
+		width: 44px;
+		height: 44px;
+		display: grid;
+		place-items: center;
+		color: var(--text-3);
+		border-radius: 50%;
+	}
+	.drops {
+		display: inline-flex;
+		gap: 2px;
+		margin-top: 2px;
+		color: var(--bladder-mark);
 	}
 	.day-total {
 		display: flex;

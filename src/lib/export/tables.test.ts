@@ -215,6 +215,39 @@ describe('buildTables', () => {
 		expect(find([ep, pain], 'pain_episodes.csv').rows[0]).toEqual(['e1', 'Knee, October', AT, undefined]);
 	});
 
+	it('writes period and bladder with English column names and yes/no cells', () => {
+		const period = find(
+			[rec({ v: 1, type: 'period', at: AT, flow: 'medium', extras: ['cramps', 'clots'], note: 'ok' }, 'p1')],
+			'period.csv'
+		);
+		expect(period.columns).toEqual(['id', 'at', 'flow', 'extras', 'note', 'photos']);
+		expect(period.rows[0]).toEqual(['p1', AT, 'medium', 'cramps; clots', 'ok', '']);
+		const bladder = find(
+			[
+				rec(
+					{
+						v: 1,
+						type: 'bladder',
+						at: AT,
+						visit: true,
+						urgency: 'some',
+						leak: { amount: 2, when: 'afterwards' }
+					},
+					'b1'
+				),
+				rec(
+					{ v: 1, type: 'bladder', at: '2026-10-23T09:00:00+02:00', visit: false, leak: { amount: 1 } },
+					'b2'
+				)
+			],
+			'bladder.csv'
+		);
+		expect(bladder.columns).toContain('leak_when');
+		expect(bladder.rows[0]!.slice(0, 8)).toEqual(['b1', AT, true, 'some', false, 2, 'afterwards', undefined]);
+		expect(bladder.rows[1]![2]).toBe(false);
+		expect(tableCsv(bladder)).toContain('b2');
+	});
+
 	it('resolves built-in drink names and sorts rows by time', () => {
 		const later = rec({
 			v: 1,

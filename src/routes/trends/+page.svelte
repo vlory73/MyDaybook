@@ -4,6 +4,7 @@
 	import {
 		AfterMeals,
 		Card,
+		CategoryBadge,
 		HeatMapCard,
 		EmptyState,
 		Icon,
@@ -17,7 +18,9 @@
 	import { trackerOn } from '$lib/records/trackers.svelte';
 	import { openEpisode } from '$lib/records/editor.svelte';
 	import { episodeRange, episodeViews, overlapping } from '$lib/records/episodes';
-	import { dayDate, todayKey } from '$lib/records/time';
+	import { dayDate, todayKey, weekStart } from '$lib/records/time';
+	import { bladderSummary, hasBladderData } from '$lib/records/bladder';
+	import { FLOWS, flowSize, periodCalendar, periodByDay } from '$lib/records/period';
 	import { BLOOD_PRESSURE_ID, PULSE_ID, WEIGHT_ID } from '$lib/records/log';
 	import { mlToCl } from '$lib/records/drinks';
 	import { bandPath, linePath, runs, spread } from '$lib/trends/paths';
@@ -93,6 +96,25 @@
 		days.length > 0 ? overlapping(episodeViews(recs, i18n.locale, today), days[0]!, days.at(-1)!) : []
 	);
 
+	const periodWeeks = $derived(
+		days.length > 0 ? periodCalendar(recs, days[0]!, days.at(-1)!, weekStart) : []
+	);
+	const periodDays = $derived(days.length > 0 ? periodByDay(recs, days[0]!, days.at(-1)!).size : 0);
+	const bladder = $derived(
+		days.length > 0
+			? bladderSummary(recs, days[0]!, days.at(-1)!)
+			: bladderSummary([], '0000-00-00', '0000-00-00')
+	);
+	const bladderIdx = $derived(new Map(days.map((d, i) => [d, i])));
+	const dayNames = $derived.by(() => {
+		const fmt = new Intl.DateTimeFormat(i18n.locale, { weekday: 'narrow' });
+		const first = periodWeeks[0];
+		return first ? first.map((c) => fmt.format(dayDate(c.day))) : [];
+	});
+	const longDay = $derived(
+		new Intl.DateTimeFormat(i18n.locale, { weekday: 'long', day: 'numeric', month: 'long' })
+	);
+
 	// A tracker that is switched off (Me → What you track) shows no cards; its old entries stay in the diary.
 	const showFeeling = $derived(
 		trackerOn('feel') && (hasAny(feeling.mood) || hasAny(feeling.energy) || hasAny(feeling.stress))
@@ -107,6 +129,10 @@
 	const showBowel = $derived(trackerOn('gut') && bowel.length > 0);
 	const showGut = $derived(trackerOn('stomach') && (hasAny(gut.nausea) || hasAny(gut.heartburn)));
 	const showPain = $derived(trackerOn('pain') && pain.daysWithPain > 0);
+	const showPeriod = $derived(trackerOn('period') && periodDays > 0);
+	const showBladder = $derived(
+		trackerOn('bladder') && days.length > 0 && hasBladderData(recs, days[0]!, days.at(-1)!)
+	);
 	const showEpisodes = $derived(trackerOn('pain') && episodes.length > 0);
 	const anything = $derived(
 		showFeeling ||
@@ -119,7 +145,9 @@
 			showDoses ||
 			showBowel ||
 			showGut ||
-			showPain
+			showPain ||
+			showPeriod ||
+			showBladder
 	);
 	// The watch-list card shows its own empty state, so a period with only meals still leaves the page usable.
 
@@ -138,6 +166,7 @@
 	const hasNaps = $derived(sleep.napCount > 0);
 	const showBadges = $derived(days.length <= 14);
 	const fluidTop = $derived(niceTop(Math.max(...present(fluids.totalMl).map(mlToCl), 0), 50, 50));
+	const bladderTop = $derived(niceTop(Math.max(...bladder.days.map((d) => d.visits), 0), 5, 5));
 	const doseTop = $derived(Math.max(...doses.days.map((d) => d.taken + d.late + d.skipped), 1));
 
 	function span(values: Series, pad = 0.5) {
@@ -643,6 +672,121 @@
 			</Card>
 		{/if}
 
+		{#if showPeriod}
+			<Card>
+				<div class="cardhead">
+					<CategoryBadge category="period" size={36} />
+					<h2 class="ctitle">{t('cat.period')}</h2>
+				</div>
+				<div class="dow" aria-hidden="true">
+					{#each dayNames as n, i (i)}<span>{n}</span>{/each}
+				</div>
+				<div class="cal" role="group" aria-label={aria('trends.period.chart')} data-testid="period-calendar">
+					{#each periodWeeks as week, w (w)}
+						{#each week as cell (cell.day)}
+							<div class="cd" class:out={!cell.inRange} class:today={cell.day === today}>
+								<span class="m" aria-hidden="true">
+									{#if cell.flow}
+										{@const px = [8, 10, 16, 21][flowSize(cell.flow) - 1]}
+										<i class:ring={cell.flow === 'spotting'} style:width="{px}px" style:height="{px}px"></i>
+									{/if}
+								</span>
+								<span aria-hidden="true">{dayDate(cell.day).getDate()}</span>
+								{#if cell.flow}<span class="sr-only"
+										>{longDay.format(dayDate(cell.day))}: {t(`period.flow.${cell.flow}` as MessageKey)}</span
+									>{/if}
+							</div>
+						{/each}
+					{/each}
+				</div>
+				<ul class="legend pl" aria-hidden="true">
+					{#each FLOWS as f (f)}
+						{@const px = [8, 10, 14, 18][flowSize(f) - 1]}
+						<li>
+							<i class="pdotl" class:ring={f === 'spotting'} style:width="{px}px" style:height="{px}px"
+							></i>{t(`period.flow.${f}` as MessageKey)}
+						</li>
+					{/each}
+				</ul>
+				<p class="fact"><span>{t('trends.period.logged')}</span><b>{periodDays}</b></p>
+			</Card>
+		{/if}
+
+		{#if showBladder}
+			<Card>
+				<div class="cardhead">
+					<CategoryBadge category="bladder" size={36} />
+					<h2 class="ctitle">{t('cat.bladder')}</h2>
+					<span class="sub">{t('trends.bladder.sub')}</span>
+				</div>
+				<TrendChart
+					{days}
+					yMin={0}
+					yMax={bladderTop}
+					yTicks={[0, bladderTop / 2, bladderTop]}
+					yFormat={(n) => String(Math.round(n))}
+					label={aria('trends.bladder.chart')}
+				>
+					{#snippet layers(s)}
+						{#each bladder.days as d (d.day)}
+							{@const i = bladderIdx.get(d.day)!}
+							<rect
+								class="vbar"
+								x={s.x(i) - bw(s) / 2}
+								y={s.y(d.visits)}
+								width={bw(s)}
+								height={Math.max(0, s.bottom - s.y(d.visits))}
+								rx="2"
+							/>
+						{/each}
+					{/snippet}
+				</TrendChart>
+				{#if trackerOn('drink') && showFluids}
+					<p class="sub drinkrow">
+						<CategoryBadge category="drink" size={22} />{t('trends.bladder.drinks')}
+					</p>
+					<TrendChart
+						{days}
+						yMin={0}
+						yMax={fluidTop}
+						yTicks={[0, fluidTop / 2, fluidTop]}
+						label={aria('trends.bladder.drinksChart')}
+						height={110}
+					>
+						{#snippet layers(s)}
+							{#each fluids.totalMl as ml, i (i)}
+								{#if ml !== null}
+									<rect
+										class="fbar"
+										x={s.x(i) - bw(s) / 2}
+										y={s.y(mlToCl(ml))}
+										width={bw(s)}
+										height={Math.max(0, s.bottom - s.y(mlToCl(ml)))}
+										rx="2"
+									/>
+								{/if}
+							{/each}
+						{/snippet}
+					</TrendChart>
+				{/if}
+				<p class="fact"><span>{t('trends.bladder.discomfort')}</span><b>{bladder.daysWithDiscomfort}</b></p>
+				<p class="fact">
+					<span>{t('trends.bladder.leak')}</span><b>{bladder.daysWithLeak}</b>
+				</p>
+				{#if bladder.daysWithLeak > 0}
+					{#each ['on_the_way', 'afterwards', 'moving'] as w (w)}
+						{#if bladder.leakWhen[w as 'on_the_way' | 'afterwards' | 'moving'] > 0}
+							<p class="fact subf">
+								<span>{t(`bladder.when.${w}` as MessageKey)}</span><b
+									>{bladder.leakWhen[w as 'on_the_way' | 'afterwards' | 'moving']}</b
+								>
+							</p>
+						{/if}
+					{/each}
+				{/if}
+			</Card>
+		{/if}
+
 		{#if trackerOn('pain')}<HeatMapCard {days} />{/if}
 
 		{#if trackerOn('food')}<AfterMeals {days} />{/if}
@@ -905,6 +1049,100 @@
 		fill: var(--surface);
 		stroke: var(--measure-ink);
 		stroke-width: 2;
+	}
+	.cardhead {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-3);
+	}
+	.ctitle {
+		flex: 1;
+		font-size: var(--fs-body);
+		font-weight: var(--fw-semibold);
+	}
+	.dow {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		text-align: center;
+		font-size: 11px;
+		font-weight: var(--fw-semibold);
+		color: var(--text-2);
+		margin: var(--sp-3) 0 2px;
+	}
+	.cal {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		row-gap: 2px;
+	}
+	.cd {
+		height: 40px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		padding-top: 3px;
+		font-size: 11px;
+		color: var(--text-2);
+		border-radius: 8px;
+	}
+	.cd.today {
+		box-shadow: inset 0 0 0 1.5px var(--text-3);
+	}
+	.cd.out {
+		opacity: 0.35;
+	}
+	.cd .m {
+		height: 24px;
+		display: grid;
+		place-items: center;
+	}
+	.cd .m i,
+	.pdotl {
+		display: block;
+		border-radius: 50%;
+		background: var(--period-mark);
+	}
+	.cd .m i.ring,
+	.pdotl.ring {
+		background: none;
+		box-shadow: inset 0 0 0 2px var(--period-mark);
+	}
+	.legend.pl {
+		margin-top: var(--sp-3);
+	}
+	.fact {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--sp-3);
+		padding: 8px 0;
+		border-top: 1px solid var(--line);
+		font-size: var(--fs-callout);
+		margin: 0;
+	}
+	.fact:first-of-type {
+		margin-top: var(--sp-2);
+	}
+	.fact b {
+		font-weight: var(--fw-semibold);
+	}
+	.subf {
+		padding: 4px 0 4px var(--sp-3);
+		font-size: var(--fs-footnote);
+		color: var(--text-2);
+		border-top: 0;
+	}
+	.subf b {
+		color: var(--text);
+	}
+	.vbar {
+		fill: var(--bladder-mark);
+		opacity: 0.85;
+	}
+	.drinkrow {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: var(--sp-3);
 	}
 	.fbar {
 		fill: var(--drink-ink);

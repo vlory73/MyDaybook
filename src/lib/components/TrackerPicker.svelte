@@ -2,10 +2,10 @@
 	import Icon from './Icon.svelte';
 	import { categories } from './categories';
 	import { t } from '$lib/i18n/index.svelte';
-	import { TRACKER_IDS, type TrackerId } from '$lib/records/trackers';
+	import { DEFAULT_ON, TRACKER_IDS, type TrackerId } from '$lib/records/trackers';
 
 	/** The first-run choice: every tracker ticked, tap to untick. At least one stays ticked. */
-	let { selected = $bindable(TRACKER_IDS) }: { selected?: TrackerId[] } = $props();
+	let { selected = $bindable([...DEFAULT_ON]) }: { selected?: TrackerId[] } = $props();
 
 	function flip(id: TrackerId) {
 		if (selected.includes(id)) {
@@ -119,6 +119,14 @@
 	.tint-note {
 		background: var(--note-tint);
 		color: var(--note-ink);
+	}
+	.tint-period {
+		background: var(--period-tint);
+		color: var(--period-ink);
+	}
+	.tint-bladder {
+		background: var(--bladder-tint);
+		color: var(--bladder-ink);
 	}
 	.ptile.off.tint-food,
 	.ptile.off.tint-feel,
