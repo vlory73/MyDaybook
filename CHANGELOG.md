@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 (2026-10-27)
+
+### Fixes
+
+- keep the page behind a sheet from scrolling on iPhone
+
 ## 1.4.0 (2026-10-27)
 
 ### Features
