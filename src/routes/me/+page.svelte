@@ -176,7 +176,7 @@
 		<a class="link-button" href={resolve('/me/admin')} data-testid="admin-link">{t('me.admin.open')}</a>
 	</Card>
 {/if}
-<WatchList />
+{#if trackerOn('food')}<WatchList />{/if}
 <Card title={t('me.autolock.heading')}>
 	<SelectField
 		label={t('me.autolock.label')}

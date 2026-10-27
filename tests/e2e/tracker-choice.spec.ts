@@ -75,6 +75,14 @@ test('Me: switching off Bowel and Medicine hides them, but old entries stay', as
 	await expect(page.getByRole('dialog')).toBeVisible();
 });
 
+test('Me: switching off Meal hides the food watch list card', async ({ page }) => {
+	await open(page, '/me');
+	await expect(page.getByRole('heading', { name: 'What I watch in food' })).toBeVisible();
+	await sw(page, 'Meal').click();
+	await expect(sw(page, 'Meal')).not.toBeChecked();
+	await expect(page.getByRole('heading', { name: 'What I watch in food' })).toBeHidden();
+});
+
 test('the choice is saved with the account and survives a reload', async ({ page }) => {
 	const account = await open(page, '/me');
 	await sw(page, 'Drink').click();
