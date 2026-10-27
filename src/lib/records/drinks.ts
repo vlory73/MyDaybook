@@ -318,3 +318,13 @@ export function dayTotalMl(all: Iterable<StoredRecord>, day: string): number {
 		if (r.payload.type === 'drink' && dayKey(r.payload.at) === day) sum += r.payload.totalMl;
 	return sum;
 }
+
+/**
+ * The short text of a drink waiting on the meal sheet: "Coffee · 25 cl", "2 × Water · 15 cl", or the typed amount
+ * for an own amount. `cl` formats a volume in ml for the language in use.
+ */
+export function drinkPillText(p: DrinkPayload, nameOf: NameOf, cl: (ml: number) => string): string {
+	const name = storedLabel('drink', p.drink, nameOf);
+	if (p.size === '') return `${name} · ${cl(p.totalMl)}`;
+	return p.count > 1 ? `${p.count} × ${name} · ${cl(p.sizeMl)}` : `${name} · ${cl(p.sizeMl)}`;
+}

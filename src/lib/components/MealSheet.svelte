@@ -4,12 +4,14 @@
 	import Icon from './Icon.svelte';
 	import { iconNames, type IconName } from './icon-names';
 	import LogSheet from './LogSheet.svelte';
+	import MealDrinkSheet from './MealDrinkSheet.svelte';
 	import Toggle from './Toggle.svelte';
 	import WatchListSheet from './WatchListSheet.svelte';
-	import { t } from '$lib/i18n/index.svelte';
+	import { t, tn } from '$lib/i18n/index.svelte';
 	import { PhotoDrafts } from '$lib/photos/drafts.svelte';
 	import type { MessageKey } from '$lib/i18n/en';
-	import { sensitivityName } from '$lib/records/format';
+	import { drinkPillText, mlToCl } from '$lib/records/drinks';
+	import { drinkName, sensitivityName } from '$lib/records/format';
 	import { allRecords, save } from '$lib/records/store.svelte';
 	import { fromLocalInput } from '$lib/records/time';
 	import {
@@ -18,6 +20,7 @@
 		WHERE,
 		type Exposure,
 		type ExposureState,
+		type DrinkPayload,
 		type FoodPayload,
 		type Meal,
 		type Payload,
@@ -35,6 +38,12 @@
 	let exposures = $state<Record<string, ExposureState>>({});
 	let savedId = $state<string | null>(null);
 	let saveAsMeal = $state(false);
+	/** Drinks added to a new meal; each is saved as its own drink entry with the meal's time. */
+	let drinks = $state<{ key: string; payload: DrinkPayload }[]>([]);
+	let drinkOpen = $state(false);
+	/** The drink being changed, else null for a new one. */
+	let drinkEditKey = $state<string | null>(null);
+	let editing = $state(false);
 
 	// New meals start with the type that fits the hour on the time chip, until the person picks one.
 	const meal = $derived<Meal>(
@@ -58,6 +67,9 @@
 		exposures = Object.fromEntries((f?.exposures ?? []).map((e) => [e.id, e.state]));
 		savedId = null;
 		saveAsMeal = false;
+		drinks = [];
+		drinkOpen = false;
+		editing = f !== null;
 	}
 
 	/** One tap on a saved meal fills in everything. */
@@ -110,6 +122,27 @@
 		);
 	}
 
+	const cl = (ml: number) => t('fmt.cl', { n: mlToCl(ml) });
+	const pillText = (p: DrinkPayload) => drinkPillText(p, drinkName, cl);
+	const drinkBeingChanged = $derived(drinks.find((d) => d.key === drinkEditKey)?.payload ?? null);
+
+	function addDrink(p: DrinkPayload) {
+		if (drinkEditKey && drinks.some((d) => d.key === drinkEditKey))
+			drinks = drinks.map((d) => (d.key === drinkEditKey ? { ...d, payload: p } : d));
+		else drinks = [...drinks, { key: crypto.randomUUID(), payload: p }];
+	}
+
+	function openDrink(key: string | null) {
+		drinkEditKey = key;
+		drinkOpen = true;
+	}
+
+	/** The drinks as their own records, at the meal's time. */
+	function drinkRecords(meal: Payload): Payload[] {
+		const at = meal.type === 'food' ? meal.at : null;
+		return at ? drinks.map((d) => ({ ...d.payload, at })) : [];
+	}
+
 	const iconFor = (icon: string): IconName =>
 		((iconNames as readonly string[]).includes(icon) ? icon : 'utensils') as IconName;
 	const stateLabel = (s: ExposureState) => t(`exposure.state.${s}` as MessageKey);
@@ -125,6 +158,8 @@
 	{payload}
 	{onopen}
 	onbeforesave={saveMealToo}
+	alsoSave={drinkRecords}
+	alsoSavedText={(n) => tn('meal.drinks.saved', n)}
 	{photos}
 	bind:time
 >
@@ -177,6 +212,31 @@
 		<button type="submit" class="go"><Icon name="tag" size={18} />{t('common.add')}</button>
 	</form>
 
+	{#if !editing}
+		<p class="label">{t('meal.drinks')}<span class="hint">{t('meal.drinks.hint')}</span></p>
+		<div class="chip-row" role="group" aria-label={t('meal.drinks')}>
+			{#each drinks as d (d.key)}
+				{@const text = pillText(d.payload)}
+				<span class="dpill">
+					<button
+						type="button"
+						class="what-btn"
+						aria-label={t('meal.drinks.change', { drink: text })}
+						onclick={() => openDrink(d.key)}><Icon name="droplets" size={16} /><span>{text}</span></button
+					>
+					<button
+						type="button"
+						class="x"
+						aria-label={t('meal.drinks.remove', { drink: text })}
+						onclick={() => (drinks = drinks.filter((x) => x.key !== d.key))}
+						><Icon name="x" size={14} /></button
+					>
+				</span>
+			{/each}
+			<Chip onclick={() => openDrink(null)}><Icon name="plus" size={16} />{t('meal.drinks.add')}</Chip>
+		</div>
+	{/if}
+
 	<p class="label">{t('meal.watch')}<span class="hint">{t('meal.watch.hint')}</span></p>
 	{#if watched.length === 0}
 		<p class="muted small">
@@ -222,8 +282,34 @@
 </LogSheet>
 
 <WatchListSheet bind:open={watchOpen} />
+<MealDrinkSheet bind:open={drinkOpen} drink={drinkBeingChanged} onadd={addDrink} />
 
 <style>
+	.dpill {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		border-radius: var(--r-full);
+		background: var(--drink-tint);
+		color: var(--drink-ink);
+		font-weight: var(--fw-medium);
+	}
+	.dpill button {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		color: inherit;
+	}
+	.dpill .what-btn {
+		padding: 0 4px 0 var(--sp-3);
+		text-align: left;
+	}
+	.dpill .x {
+		min-width: 40px;
+		justify-content: center;
+		border-radius: var(--r-full);
+	}
 	.inline {
 		display: flex;
 		gap: var(--sp-2);
