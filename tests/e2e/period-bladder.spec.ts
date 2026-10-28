@@ -159,7 +159,10 @@ test('Bladder: one-tap visits, "+ 1 again", details and a leak on its own', asyn
 	await sheet(page).getByRole('button', { name: 'A little', exact: true }).click();
 	await expect(sheet(page).getByTestId('bladder-when')).toBeVisible();
 	await sheet(page).getByRole('button', { name: 'Afterwards', exact: true }).click();
-	await sheet(page).getByTestId('bladder-visit').click();
+	// After the details, the usual Save at the bottom saves the visit, like on every other sheet.
+	const save = sheet(page).getByRole('button', { name: 'Save', exact: true });
+	await save.scrollIntoViewIfNeeded();
+	await save.click();
 	await expect(sheet(page)).toBeHidden();
 	await expect(day).toHaveText(/Bladder today: 3 times$/);
 	const detailed = entries(page).filter({ hasText: 'Bladder · urgency: some' });

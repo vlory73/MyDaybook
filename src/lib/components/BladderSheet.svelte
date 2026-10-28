@@ -23,8 +23,8 @@
 	import type { Payload } from '$lib/records/types';
 
 	/**
-	 * The Bladder sheet (#123), built for one tap: "Log a visit" saves at once with whatever details are set. Editing
-	 * an existing entry uses a normal Save. Record only: no counts are compared with anything.
+	 * The Bladder sheet (#123): "Log a visit" saves at once with whatever details are set, and the usual Save at the
+	 * bottom does the same, like every other sheet. Record only: no counts are compared with anything.
 	 */
 	let time = $state('');
 	let visit = $state(true);
@@ -117,7 +117,7 @@
 	}
 </script>
 
-<LogSheet kind="bladder" title={t('cat.bladder')} {valid} {payload} {onopen} hideSave bind:time>
+<LogSheet kind="bladder" title={t('cat.bladder')} {valid} {payload} {onopen} bind:time>
 	{#if !editing}
 		<div class="bigrow">
 			<button type="button" class="big" data-testid="bladder-visit" onclick={logVisit}>

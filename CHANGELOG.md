@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2 (2026-10-28)
+
+### Fixes
+
+- give the Bladder sheet the usual Save button
+
 ## 1.4.1 (2026-10-27)
 
 ### Fixes
