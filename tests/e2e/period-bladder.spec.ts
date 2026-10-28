@@ -188,6 +188,52 @@ test('Bladder: one-tap visits, "+ 1 again", details and a leak on its own', asyn
 	await expect(leak.getByRole('img', { name: 'Leak: a lot' })).toBeVisible();
 });
 
+test('Bladder: an open sheet scrolls on its own and the page behind it stays put', async ({ page }) => {
+	await open(page, '/', [
+		ON,
+		{
+			v: 1,
+			type: 'bladder',
+			at: at(0, 7),
+			visit: true,
+			urgency: 'some',
+			leak: { amount: 2, when: 'afterwards' },
+			note: 'Synthetic note'
+		}
+	]);
+	const entry = page.getByRole('button', { name: /Bladder ·/ }).first();
+	await expect(entry).toBeVisible({ timeout: 15_000 });
+	await entry.click();
+	await expect(sheet(page)).toBeVisible();
+	const styles = await page.evaluate(() => {
+		const d = document.querySelector('dialog[open]') as HTMLElement;
+		return {
+			page: getComputedStyle(document.documentElement).overflow,
+			sheet: getComputedStyle(d).overflowY,
+			chain: getComputedStyle(d).overscrollBehaviorY
+		};
+	});
+	expect(styles).toEqual({ page: 'hidden', sheet: 'auto', chain: 'contain' });
+	const save = sheet(page).getByRole('button', { name: 'Save', exact: true });
+	await save.scrollIntoViewIfNeeded();
+	await expect(save).toBeInViewport();
+	await page.keyboard.press('Escape');
+	await expect(sheet(page)).toBeHidden();
+	expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden');
+});
+
+test('Period: an open sheet scrolls on its own and the page behind it stays put', async ({ page }) => {
+	await open(page, '/', [ON, { ...period(0, 'medium', ['cramps']), note: 'Synthetic note' }]);
+	const entry = page.getByRole('button', { name: /Period ·/ }).first();
+	await expect(entry).toBeVisible({ timeout: 15_000 });
+	await entry.click();
+	await expect(sheet(page)).toBeVisible();
+	expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe('hidden');
+	const save = sheet(page).getByRole('button', { name: 'Save', exact: true });
+	await save.scrollIntoViewIfNeeded();
+	await expect(save).toBeInViewport();
+});
+
 test('Trends: Period and Bladder cards for the chosen days, and hidden when switched off', async ({
 	page
 }) => {

@@ -55,6 +55,9 @@
 		width: 100%;
 		max-width: 100%;
 		max-height: calc(100dvh - env(safe-area-inset-top) - 24px);
+		/* The sheet scrolls on its own; reaching its end does not hand the swipe to the page behind. */
+		overflow-y: auto;
+		overscroll-behavior: contain;
 		padding: 0;
 		border: 0;
 		background: transparent;
