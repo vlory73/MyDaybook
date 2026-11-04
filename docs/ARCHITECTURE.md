@@ -719,11 +719,11 @@ Service workers, PWA install, Web Push and `crypto.subtle` all need a secure con
 | **C. Private CA** (Caddy `tls internal`, or step-ca) | Install the CA's root profile on each iPhone (then enable full trust in Settings → General → About → Certificate Trust Settings) and on each computer | Fully offline, no domain needed | Manual setup per device, repeated for every new device and every future self-hoster user. PWA and push work on iOS with a fully trusted root, but this is the least-tested path |
 | D. Self-signed per host | | | Not workable: iOS will not install the PWA or register service workers reliably |
 
-**Chosen (D3): option A, using the reverse proxy you already run.** The Home Assistant stack's Caddy already holds a valid
-certificate for `lory-home.duckdns.org`, which resolves to the Pi's LAN IP. Caddy serves the app at
-`https://myday.lory-home.duckdns.org` (its own name on port 443 since 2026-10-23, so password managers and later passkeys
-keep it apart from other apps on the Pi; it was `https://lory-home.duckdns.org:8444` before) and forwards it to the app on
-port 8090. Nothing is opened on the router. Remote use goes
+**Chosen (D3): option A, using the reverse proxy you already run.** The Home Assistant stack's Caddy holds a wildcard
+certificate for the owner's domain `lory.dk` (Cloudflare DNS-01) and serves the app at `https://diary.lory.dk`, an
+internal-only name that resolves to the Pi, on port 443 by name, so password managers and later passkeys keep it apart from
+other apps on the Pi. It forwards to the app on port 8090. (History: `https://lory-home.duckdns.org:8444` at first, then
+`https://myday.lory-home.duckdns.org` from 2026-10-23, then `diary.lory.dk` from 2026-11-04.) Nothing is opened on the router. Remote use goes
 through the router VPN (Synology VPN Plus) today, and Tailscale later. The same URL must keep working over Tailscale (Pi as a
 subnet router, or DNS pointing there), because a PWA's identity is its origin: changing the URL means reinstalling and logging
 in again (no data is lost; the local cache holds only ciphertext). For self-hosters, A/B/C above remain the documented options.
@@ -734,7 +734,7 @@ HTTPS URL instead of the app. `TRUSTED_PROXY` (comma-separated IPs) names the pr
 site is switched off (IP retention, §8).
 
 **HSTS:** it applies to a host name on *every* port, so `HSTS_MAX_AGE` is configurable and never adds `includeSubDomains` or
-`preload` (duckdns.org is a shared domain). On the home Pi, every service on that name is HTTPS-only: start at 86400 for the first weeks, then 31536000.
+`preload` (a shared or mixed parent domain, such as duckdns.org at first, must not be forced to HTTPS). On the home Pi the app's own name is HTTPS-only: start at 86400 for the first weeks, then 31536000.
 The rest of the home Pi details are in [`HOME_DEPLOYMENT.md`](HOME_DEPLOYMENT.md).
 
 ## 10. Build, release and deployment
@@ -817,7 +817,7 @@ Status as of 2026-10-18 (owner review of M0). **Approved** = settled; **Tentativ
 | --- | --- | --- |
 | D1 | Stack: SvelteKit 2/Svelte 5, Node 24, SQLite + better-sqlite3 + Drizzle, libsodium-sumo | **Approved** |
 | D2 | Hash-based strict CSP (one hashed inline bootstrap script, no `unsafe-inline`) plus `'wasm-unsafe-eval'` | **Approved** |
-| D3 | TLS via the existing Home Assistant Caddy at `https://lory-home.duckdns.org:8444`; remote access via VPN Plus now, Tailscale later (§9) | **Approved** |
+| D3 | TLS via the existing Home Assistant Caddy at `https://lory-home.duckdns.org:8444` (now `https://diary.lory.dk`, 2026-11-04); remote access via VPN Plus now, Tailscale later (§9) | **Approved** |
 | D4 | Derived-key (Bitwarden-style) auth for v1, OPAQUE possible later | **Approved** |
 | D5 | libsodium-wrappers-sumo despite exceeding the 1 MB rule | **Approved** |
 | D6 | Allow SIL OFL-1.1 as a licence for font files only (the app licence stays PolyForm Noncommercial). Start with system fonts | **Approved** |

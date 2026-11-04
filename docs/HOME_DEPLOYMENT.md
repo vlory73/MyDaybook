@@ -3,7 +3,8 @@
 The owner's Pi is managed by a separate "Home Assistant session". This file records the integration
 request we sent it, so both sides agree. The general guide for other self-hosters will be `docs/SELF_HOSTING.md` (M7).
 
-Status: **0.1.0 deployed** by the Home Assistant session on 2026-10-18 (see "Deployed" at the bottom of this file).
+Status: **0.1.0 deployed** by the Home Assistant session on 2026-10-18 (see "Deployed" below). Current address since 2026-11-04:
+**`https://diary.lory.dk`** (see "New domain" below). The request block below is kept as it was sent; older addresses in it are history.
 
 ```text
 APP INTEGRATION REQUEST
@@ -28,14 +29,14 @@ APP INTEGRATION REQUEST
 
 These override the request above where they differ.
 
-1. **HTTPS:** Caddy serves `https://myday.lory-home.duckdns.org` (port 443, chosen by name; until 2026-10-23 it was `https://lory-home.duckdns.org:8444`, see "Own hostname" below) and forwards to `127.0.0.1:8090`. Request bodies are allowed up to 15 MB.
+1. **HTTPS:** Caddy serves `https://diary.lory.dk` (port 443, chosen by name; see "New domain" below. Before: `https://myday.lory-home.duckdns.org` from 2026-10-23, `https://lory-home.duckdns.org:8444` at first) and forwards to `127.0.0.1:8090`. Request bodies are allowed up to 15 MB.
    Caddy sends `X-Forwarded-For/-Proto/-Host` by default and writes no access log.
 2. **Port:** publish `"127.0.0.1:8090:8090"` only. There is no plain HTTP on the LAN. Health checks use `http://127.0.0.1:8090/healthz` on the Pi.
 3. **Network:** the Compose project gets a fixed subnet `172.30.90.0/24`, so `TRUSTED_PROXY=172.30.90.1` (the gateway Caddy's
    connections arrive from). The app logs the first proxy peer address it sees once at startup, so this can be verified.
 4. **HSTS:** every service on that name is HTTPS-only. Ramp up: `HSTS_MAX_AGE=86400` for the first weeks, then `31536000`.
-   **No `includeSubDomains` and no `preload`** (duckdns.org is a shared domain).
-5. **Remote access:** VPN Plus now; later a Tailscale subnet router. The URL stays the same, so nobody reinstalls (`myday.lory-home.duckdns.org` resolves to the same LAN IP, 192.168.10.52, so the subnet router covers it).
+   **No `includeSubDomains` and no `preload`** (first because duckdns.org is a shared domain; kept for `lory.dk`, where other names may not all be HTTPS-only).
+5. **Remote access:** VPN Plus now; later a Tailscale subnet router. `diary.lory.dk` is an internal-only name, so it must keep resolving to the Pi over the VPN; the URL then stays the same and nobody reinstalls.
 6. **Backups:** the 04:30 job copies `~/mydaybook/backup/` to the NAS. `db/` dumps are kept 14 days, using the date in the file
    name. `blobs/` is mirrored, and deleted or changed files are kept 14 days in a dated side folder. A dump that is missing or older
    than 26 h fails the run and alerts the owner. **The file name pattern `db/app-<timestamp>.sqlite`, with the timestamp containing
@@ -91,6 +92,23 @@ Done and verified by the Home Assistant session:
 - **For each person:** install the app again from the new address (Share → Add to Home Screen), sign in once, and switch
   reminders on again on Me (push is bound to the address). Diary data on the server is not affected.
 - **Pi rule from now on:** new apps on the Pi get their own sub-name (`<app>.lory-home.duckdns.org`) instead of their own port.
+
+## New domain (2026-11-04): change to the agreement
+
+Reported by the Home Assistant session (details in its own repo, `docs/mydaybook-integration.md`, "Updates"):
+
+- **Address:** `https://diary.lory.dk`, an internal-only name under the owner's own domain `lory.dk`. Caddy uses a wildcard
+  certificate obtained via Cloudflare DNS-01 (nothing exposed inbound). Everything else on Caddy is unchanged: port 443 by name,
+  `X-Forwarded-*` passed, bodies up to 15 MB, no access log, no HSTS from Caddy (the app's own header stays, without
+  `includeSubDomains` or `preload`). Backend unchanged: `127.0.0.1:8090`, `TRUSTED_PROXY=172.30.90.1`.
+- **`.env`:** only `PUBLIC_URL=https://diary.lory.dk` changed (backup of the old file: `.env.bak-2026-11-04`). App restarted, healthy.
+- **Old address:** `https://myday.lory-home.duckdns.org` answers with a 308 redirect to the same path on `diary.lory.dk` until
+  everyone has moved; the HA session removes it before 2027-01-03.
+- **For each person:** install the app again from `https://diary.lory.dk` (Share → Add to Home Screen), sign in once, and switch
+  reminders on again on Me: push subscriptions belong to the old address and no longer work. Diary data on the server is not
+  affected. Before deleting the old app, open it once and check Me → Sync: entries saved offline and not yet sent live only on
+  that device, under the old address, and a redirect does not move them. If anything is still waiting there, keep the old app
+  and tell the main session.
 
 ## Reminders (0.3.0): change to the agreement
 
